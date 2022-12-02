@@ -39,7 +39,7 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime = Long.MAX_VALUE;
+    private long reshuffleTime;
     private long elapsedTime;
     private Thread[] playerThreads;
     private Thread timer;
@@ -51,11 +51,6 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
-        for(int i = 0; i< playerThreads.length; i++)
-        {
-            playerThreads[i] = new Thread(players[i],
-                                "Player "+players[i].id +", "+(players[i].human ? "Human":"AI"));
-        }
         timer = new Thread(()-> {
             stopTimer = false;
             while(stopTimer == false){
@@ -65,23 +60,29 @@ public class Dealer implements Runnable {
         });
     }
 
+    private void createPlayerThreads(Player[] players) {
+        for(int i = 0; i< playerThreads.length; i++)
+        {
+            String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
+            playerThreads[i] = new Thread(players[i],name);
+        }
+    }
+
     /**
      * The dealer thread starts here (main loop for the dealer thread).
      */
     @Override
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+        createPlayerThreads(players);
         elapsedTime = System.currentTimeMillis();
         while (!shouldFinish()) {
-            placeCardsOnTable();
-            timer.start();
+            placeCardsOnTable();         
             timerLoop();
             removeAllCardsFromTable();
         }
         stopTimer();
-        stopPlayerThreads();
-
-        
+        stopPlayerThreads();    
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -90,7 +91,8 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        
+        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        timer.start();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             sleepUntilWokenOrTimeout();
