@@ -151,7 +151,7 @@ public class Player implements Runnable {
         score++;
         clearPlacedTokens();
         try{
-            wait(env.config.pointFreezeMillis);
+            Thread.sleep(env.config.pointFreezeMillis);
         } catch(InterruptedException ignored2){}
         if(human == false) aiThread.interrupt();
     }
