@@ -151,7 +151,7 @@ public class Player implements Runnable {
         score++;
         clearPlacedTokens();
         try{
-            Thread.sleep(env.config.pointFreezeMillis);
+            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored2){}
         if(human == false) aiThread.interrupt();
     }
@@ -162,7 +162,7 @@ public class Player implements Runnable {
     public void penalty() {
         clearPlacedTokens();
         try{
-            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);} ;
+            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored){}
         if(human == false) aiThread.interrupt();
     }
