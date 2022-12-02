@@ -78,9 +78,11 @@ public class Dealer implements Runnable {
             timerLoop();
             removeAllCardsFromTable();
         }
+        stopTimer();
+        stopPlayerThreads();
+
         
-        
-        announceWinners();
+        if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
 
@@ -131,7 +133,7 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        // TODO implement
+        terminate = true;
     }
 
     /**

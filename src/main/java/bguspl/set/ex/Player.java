@@ -147,15 +147,13 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        // TODO implement
 
-        int ignored = table.countCards(); // this part is just for demonstration in the unit tests
+        // int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-        score++;
         clearPlacedTokens();
         try{
             synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
-        } catch(InterruptedException ignored2){}
+        } catch(InterruptedException ignored){}
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();

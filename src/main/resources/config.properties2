@@ -16,21 +16,21 @@ ComputerPlayers=2
 # Whether to print out hints to the console or not
 Hints=True
 # The number of seconds until the dealer reshuffles the deck (0 show timer since last action, -1 show nothing)
-TurnTimeoutSeconds=60
+TurnTimeoutSeconds=0
 # The number of seconds the turn timeout warning should be displayed
-TurnTimeoutWarningSeconds=10
+TurnTimeoutWarningSeconds=5
 # The number of seconds a player gets frozen for when he scores a point
-PointFreezeSeconds=1
+PointFreezeSeconds=0
 # The number of seconds a player gets frozen for when penalized
-PenaltyFreezeSeconds=5
+PenaltyFreezeSeconds=0
 # The number of seconds to delay before removing/placing a card on the table
-TableDelaySeconds=0.1
+TableDelaySeconds=0
 
 # UI DATA
 
 # The names of the players to display on the screen
 # Note: If there are more players than names, the remaining players will be called "Player 3", "Player 4", etc.
-PlayerNames=flotz, flotzit
+PlayerNames=Meni, Marina
 Rows=3
 # The number of columns in the grid of cards on the table (and on the screen)
 Columns=4
