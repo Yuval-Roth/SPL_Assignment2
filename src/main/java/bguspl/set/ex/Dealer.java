@@ -160,8 +160,9 @@ public class Dealer implements Runnable {
     public synchronized void claimSet(Deque<Integer> cards, Player claimer){
         //TODO implement - claimSet
         if (isValidSet(cards)){
-            
+            claimer.point();
         }
+        else claimer.penalty();
 
         sleepUntilWokenOrTimeout();
     }

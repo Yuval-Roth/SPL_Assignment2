@@ -187,7 +187,6 @@ public class Player implements Runnable {
     }
 
     private void ClaimSet() {
-        env.
         dealer.claimSet(placedTokens,this);
     }
     // public void receivePoint(long timeToWait){
