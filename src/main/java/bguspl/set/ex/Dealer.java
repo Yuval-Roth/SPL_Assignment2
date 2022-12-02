@@ -42,6 +42,8 @@ public class Dealer implements Runnable {
     private long reshuffleTime = Long.MAX_VALUE;
     private long elapsedTime;
     private Thread[] playerThreads;
+    private Thread timer;
+    private boolean stopTimer;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -54,6 +56,13 @@ public class Dealer implements Runnable {
             playerThreads[i] = new Thread(players[i],
                                 "Player "+players[i].id +", "+(players[i].human ? "Human":"AI"));
         }
+        timer = new Thread(()-> {
+            stopTimer = false;
+            while(stopTimer == false){
+                updateTimerDisplay(false);
+                try{Thread.sleep(1000);} catch (InterruptedException ignored){}
+            }
+        });
     }
 
     /**
@@ -65,7 +74,7 @@ public class Dealer implements Runnable {
         elapsedTime = System.currentTimeMillis();
         while (!shouldFinish()) {
             placeCardsOnTable();
-            updateTimerDisplay(true);
+            timer.start();
             timerLoop();
             removeAllCardsFromTable();
         }
@@ -83,14 +92,22 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             sleepUntilWokenOrTimeout();
-            // this will need to be turned into a thread that continously changes the timer in the future
-            updateTimerDisplay(true); 
-            // -------------------------------
-            stopPlayerThreads();
+            // // this will need to be turned into a thread that continously changes the timer in the future
+            // updateTimerDisplay(true); 
+            // // -------------------------------
+            stopPlayerThreads();      
+            stopTimer();
             removeCardsFromTable();
             shuffleDeck();
             placeCardsOnTable();
         }
+    }
+
+    private void stopTimer() {
+        try{
+            stopTimer = true;
+            timer.join();
+        } catch (InterruptedException ignored){}
     }
 
     private void startPlayerThreads() {
