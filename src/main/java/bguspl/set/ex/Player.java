@@ -1,5 +1,7 @@
 package bguspl.set.ex;
 
+import java.util.Deque;
+
 import bguspl.set.Env;
 
 /**
@@ -19,6 +21,12 @@ public class Player implements Runnable {
      * Game entities.
      */
     private final Table table;
+
+    /*
+     * Create a stack of int
+     *      
+     */
+    private Deque<Integer> tokensStack;
 
     /**
      * The id of the player (starting from 0).
