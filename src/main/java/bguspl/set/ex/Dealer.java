@@ -111,7 +111,7 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         
-        if(reshuffleTime-System.currentTimeMillis() >= 0){
+        if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
                 synchronized(this){wait(reshuffleTime-System.currentTimeMillis());}
             }
@@ -140,7 +140,7 @@ public class Dealer implements Runnable {
         // TODO implement
     }
 
-    public synchronized void claimSet(Deque<Integer> cards){
+    public synchronized void claimSet(Deque<Integer> cards, Player claimer){
         //TODO implement - claimSet
     }
 
