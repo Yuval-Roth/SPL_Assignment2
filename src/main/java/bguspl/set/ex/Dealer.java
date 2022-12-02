@@ -132,6 +132,6 @@ public class Dealer implements Runnable {
     }
 
     public synchronized void claimSet(Deque<Integer> cards){
-        //TO DO implement this method
+        //TODO implement - claimSet
     }
 }

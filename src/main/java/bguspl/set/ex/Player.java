@@ -109,7 +109,7 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminate) {
-                // TODO implement player key press simulator
+                keyPressed(generateKeyPress());
                 try {
                     synchronized (this) { wait(); }
                 } catch (InterruptedException ignored) {}
@@ -186,6 +186,6 @@ public class Player implements Runnable {
     }
     private int generateKeyPress(){
         Random rand = new Random();
-        return rand.nextInt(table.size);
+        return rand.nextInt(Config.CHAR_TABLE_SIZE);
     }
 }

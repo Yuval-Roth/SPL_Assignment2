@@ -100,7 +100,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        // TODO implement -FIGURE OUT WHAT THE FUCK THEY WANT HERE
+        // TODO implement - FIGURE OUT WHAT THE FUCK THEY WANT HERE
     }
 
     /**
@@ -123,7 +123,7 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement
+        // TODO implement - placeToken
     }
 
     /**
@@ -133,7 +133,7 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO implement
+        // TODO implement - removeToken
         return false;
     }
 }
