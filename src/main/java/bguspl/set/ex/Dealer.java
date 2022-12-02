@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,6 +57,7 @@ public class Dealer implements Runnable {
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
+
         }
         announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
@@ -69,6 +71,7 @@ public class Dealer implements Runnable {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
             removeCardsFromTable();
+            shuffleDeck();
             placeCardsOnTable();
         }
     }
@@ -140,4 +143,12 @@ public class Dealer implements Runnable {
     public synchronized void claimSet(Deque<Integer> cards){
         //TODO implement - claimSet
     }
+
+    /*
+     * Shuffles the deck
+     */
+    private void shuffleDeck() {
+        Collections.shuffle(deck);
+    }
+     
 }
