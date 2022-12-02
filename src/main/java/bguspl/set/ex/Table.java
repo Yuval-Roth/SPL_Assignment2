@@ -93,7 +93,7 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
-
+        
         // TODO implement - FIGURE OUT WHAT THE FUCK THEY WANT HERE
     }
 
