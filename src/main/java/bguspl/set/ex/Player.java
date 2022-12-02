@@ -109,7 +109,9 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminate) {
-                keyPressed(generateKeyPress());
+                while(placedTokens.size() < 3){
+                    keyPressed(generateKeyPress());
+                }
                 try {
                     synchronized (this) { wait(); }
                 } catch (InterruptedException ignored) {}
@@ -132,7 +134,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO implement
+        placeOrRemoveToken(slot);
     }
 
     /**
@@ -146,13 +148,23 @@ public class Player implements Runnable {
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        score++;
+        clearPlacedTokens();
+        try{
+            wait(env.config.pointFreezeMillis);
+        } catch(InterruptedException ignored2){}
+        if(human == false) aiThread.interrupt();
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
+        clearPlacedTokens();
+        try{
+            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);} ;
+        } catch(InterruptedException ignored){}
+        if(human == false) aiThread.interrupt();
     }
 
     public int getScore() {
@@ -186,6 +198,6 @@ public class Player implements Runnable {
     }
     private int generateKeyPress(){
         Random rand = new Random();
-        return rand.nextInt(table.size);
+        return rand.nextInt(env.config.tableSize);
     }
 }
