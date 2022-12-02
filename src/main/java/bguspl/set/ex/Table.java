@@ -95,8 +95,9 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
-        
-        // TODO implement - FIGURE OUT WHAT THE FUCK THEY WANT HERE
+
+        env.ui.placeCard(card, slot); // UI update, this is shitty code 
+
     }
 
     /**
@@ -140,7 +141,7 @@ public class Table {
         slotToCard = new Integer[slotToCard.length];
         cardToSlot = new Integer[cardToSlot.length];
     }
-    
+
 
     
 }
