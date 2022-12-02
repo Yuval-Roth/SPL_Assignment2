@@ -4,6 +4,7 @@ import bguspl.set.Env;
 
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,7 +39,6 @@ public class Dealer implements Runnable {
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     private long reshuffleTime = Long.MAX_VALUE;
-
     private Thread[] playerThreads;
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -80,11 +80,9 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             sleepUntilWokenOrTimeout();
-
             // this will need to be turned into a thread that continously changes the timer in the future
             updateTimerDisplay(false); 
             // -------------------------------
-
             stopPlayerThreads();
             removeCardsFromTable();
             shuffleDeck();
@@ -129,14 +127,19 @@ public class Dealer implements Runnable {
      * Checks if any cards should be removed from the table and returns them to the deck.
      */
     private void removeCardsFromTable() {
-        // TODO implement
+        table.clearTable();
     }
 
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        // TODO implement
+        // for card in deck table.placeCard()
+        for(int i = 0; i < env.config.tableSize; i++)
+        {
+            table.placeCard(deck.get(i), i); // TODO finish implementing me
+        }
+  
     }
 
     /**
@@ -177,6 +180,10 @@ public class Dealer implements Runnable {
         //TODO implement - claimSet
         if (isValidSet(cards)){
             claimer.point();
+            for(int card : cards){ // remove cards from table
+                deck.remove(card);
+                table.removeCard(card);
+            }
         }
         else claimer.penalty();
     }

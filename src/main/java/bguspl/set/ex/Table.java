@@ -21,13 +21,15 @@ public class Table {
 
     /**
      * Mapping between a slot and the card placed in it (null if none).
-     */
-    protected final Integer[] slotToCard; // card per slot (if any)
+     */     
+    protected Integer[] slotToCard; // card per slot (if any).
+    // Used to be final, we changed it to be able to reset the table
 
     /**
      * Mapping between a card and the slot it is in (null if none).
      */
-    protected final Integer[] cardToSlot; // slot per card (if any)
+    protected Integer[] cardToSlot; // slot per card (if any).
+    // Used to be final, we changed it to be able to reset the table
 
     /**
      * Constructor for testing.
@@ -130,4 +132,15 @@ public class Table {
         // TODO implement - removeToken
         return false;
     }
+
+    /*
+     * Clears the table of all cards and tokens.
+     */
+    public void clearTable() {
+        slotToCard = new Integer[slotToCard.length];
+        cardToSlot = new Integer[cardToSlot.length];
+    }
+    
+
+    
 }
