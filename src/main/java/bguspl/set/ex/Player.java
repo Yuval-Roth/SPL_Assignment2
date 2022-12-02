@@ -186,6 +186,6 @@ public class Player implements Runnable {
     }
     private int generateKeyPress(){
         Random rand = new Random();
-        rand.nextInt(Config.CHAR_TABLE_SIZE);
+        return rand.nextInt(table.size);
     }
 }

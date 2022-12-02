@@ -20,6 +20,11 @@ public class Table {
     private final Env env;
 
     /**
+     * The number of slots on the table.
+     */
+    public final int size;
+
+    /**
      * Mapping between a slot and the card placed in it (null if none).
      */
     protected final Integer[] slotToCard; // card per slot (if any)
@@ -41,6 +46,7 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+        this.size = 12; // TODO - Replace Magic number
     }
 
     /**
