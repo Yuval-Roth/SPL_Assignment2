@@ -40,6 +40,7 @@ public class Dealer implements Runnable {
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     private long reshuffleTime = Long.MAX_VALUE;
+    private long elapsedTime;
     private Thread[] playerThreads;
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -61,11 +62,11 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-        
+        elapsedTime = System.currentTimeMillis();
         while (!shouldFinish()) {
             placeCardsOnTable();
+            updateTimerDisplay(true);
             timerLoop();
-            updateTimerDisplay(false);
             removeAllCardsFromTable();
         }
         
@@ -78,12 +79,12 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             sleepUntilWokenOrTimeout();
             // this will need to be turned into a thread that continously changes the timer in the future
-            updateTimerDisplay(false); 
+            updateTimerDisplay(true); 
             // -------------------------------
             stopPlayerThreads();
             removeCardsFromTable();
@@ -163,8 +164,15 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
+        if(reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;   
         env.ui.setCountdown(reshuffleTime-System.currentTimeMillis(),
-                         reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+        reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);   
+    }
+
+    private void updateElapsedTimeDisplay(boolean reset){
+
+        if(reset) elapsedTime = System.currentTimeMillis();   
+        env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }
 
     /**

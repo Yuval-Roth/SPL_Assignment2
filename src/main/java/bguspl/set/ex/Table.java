@@ -96,7 +96,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        env.ui.placeCard(card, slot); // UI update, this is shitty code 
+        env.ui.placeCard(card, slot); // UI update, this is shitty software design 
 
     }
 
