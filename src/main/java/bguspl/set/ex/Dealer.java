@@ -78,22 +78,34 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            for(Thread thread : playerThreads)
-            {
-                thread.start();
-            }
+            startPlayerThreads();
             sleepUntilWokenOrTimeout();
-            updateTimerDisplay(false);
-            for(Player player: players)
-            {
-                player.terminate();
-            }
-            for(Thread thread : playerThreads){
-                try { thread.join(); } catch (InterruptedException ignored) {}
-            }
+
+            // this will need to be turned into a thread that continously changes the timer in the future
+            updateTimerDisplay(false); 
+            // -------------------------------
+            
+            stopPlayerThreads();
             removeCardsFromTable();
             shuffleDeck();
             placeCardsOnTable();
+        }
+    }
+
+    private void startPlayerThreads() {
+        for(Thread thread : playerThreads)
+        {
+            thread.start();
+        }
+    }
+
+    private void stopPlayerThreads() {
+        for(Player player: players)
+        {
+            player.terminate();
+        }
+        for(Thread thread : playerThreads){
+            try { thread.join(); } catch (InterruptedException ignored) {}
         }
     }
 

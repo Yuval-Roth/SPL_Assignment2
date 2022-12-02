@@ -89,12 +89,12 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-        
+            terminate = false;
             playerThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
             while (!terminate) {
-                
+                // maybe code will go in here in the future
             }
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
