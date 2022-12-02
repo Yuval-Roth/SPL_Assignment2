@@ -4,6 +4,7 @@ import bguspl.set.Env;
 
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -135,11 +136,13 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         // for card in deck table.placeCard()
-        for(int i = 0; i < env.config.tableSize; i++)
+        int countToPlace = env.config.tableSize;
+        Iterator<Integer> iter = deck.iterator();
+        int index = 0;
+        while(index < countToPlace && iter.hasNext())
         {
-            table.placeCard(deck.get(i), i); // TODO finish implementing me
+            table.placeCard(iter.next(), index++);
         }
-  
     }
 
     /**
