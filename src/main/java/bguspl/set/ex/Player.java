@@ -193,12 +193,6 @@ public class Player implements Runnable {
     private void ClaimSet() {
         dealer.claimSet(placedTokens,this);
     }
-    // public void receivePoint(long timeToWait){
-    //     //TO DO Implement this method;
-    // }
-    // public void receivePenalty(long timeToWait){
-    //     //TO DO Implement this method;
-    // }
 
     private void clearPlacedTokens(){
         placedTokens.clear();

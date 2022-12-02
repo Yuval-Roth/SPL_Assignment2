@@ -84,7 +84,7 @@ public class Dealer implements Runnable {
             // this will need to be turned into a thread that continously changes the timer in the future
             updateTimerDisplay(false); 
             // -------------------------------
-            
+
             stopPlayerThreads();
             removeCardsFromTable();
             shuffleDeck();
@@ -179,8 +179,6 @@ public class Dealer implements Runnable {
             claimer.point();
         }
         else claimer.penalty();
-
-        sleepUntilWokenOrTimeout();
     }
 
     /*
