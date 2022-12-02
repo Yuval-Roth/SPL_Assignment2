@@ -169,7 +169,7 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement
+        table.clearTable();
     }
 
     /**
@@ -180,7 +180,6 @@ public class Dealer implements Runnable {
     }
 
     public synchronized void claimSet(Deque<Integer> cards, Player claimer){
-        //TODO implement - claimSet
         if (isValidSet(cards)){
             claimer.point();
             for(int card : cards){ // remove cards from table
