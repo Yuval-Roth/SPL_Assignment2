@@ -128,7 +128,7 @@ public class Player implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        // TODO implement
+        terminate = true;
     }
 
     /**
@@ -156,6 +156,8 @@ public class Player implements Runnable {
         try{
             synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored2){}
+
+        //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
     }
 
@@ -167,6 +169,8 @@ public class Player implements Runnable {
         try{
             synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored){}
+
+        //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
     }
 

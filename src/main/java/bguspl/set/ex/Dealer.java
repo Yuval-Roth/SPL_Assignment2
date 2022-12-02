@@ -47,6 +47,11 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
+        for(int i = 0; i< playerThreads.length; i++)
+        {
+            playerThreads[i] = new Thread(players[i],
+                                "Player "+players[i].id +", "+(players[i].human ? "Human":"AI"));
+        }
     }
 
     /**
@@ -62,9 +67,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(false);
             removeAllCardsFromTable();
         }
-        for(Thread thread : playerThreads){
-            try { thread.join(); } catch (InterruptedException ignored) {}
-        }
+        
         
         announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
@@ -75,17 +78,18 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            for(int i = 0; i< playerThreads.length; i++)
+            for(Thread thread : playerThreads)
             {
-                playerThreads[i] = new Thread(players[i],
-                                    "Player "+players[i].id +", "+(players[i].human ? "Human":"AI"));
-                playerThreads[i].start();
+                thread.start();
             }
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
             for(Player player: players)
             {
                 player.terminate();
+            }
+            for(Thread thread : playerThreads){
+                try { thread.join(); } catch (InterruptedException ignored) {}
             }
             removeCardsFromTable();
             shuffleDeck();
@@ -130,7 +134,7 @@ public class Dealer implements Runnable {
         
         if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
-                synchronized(this){Thread.sleep(reshuffleTime-System.currentTimeMillis());}
+                Thread.sleep(reshuffleTime-System.currentTimeMillis());
             }
             catch(InterruptedException ignored){}
         }
