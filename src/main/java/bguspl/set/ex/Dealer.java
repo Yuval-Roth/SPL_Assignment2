@@ -142,6 +142,9 @@ public class Dealer implements Runnable {
 
     public synchronized void claimSet(Deque<Integer> cards){
         //TODO implement - claimSet
+        if (isValidSet(cards)){
+            
+        }
     }
 
     /*
@@ -151,4 +154,11 @@ public class Dealer implements Runnable {
         Collections.shuffle(deck);
     }
      
+    /*
+     * Checks if the given set of cards is a valid set.
+     */
+    private boolean isValidSet(Deque<Integer> cards) {
+        int[] _cards = cards.stream().mapToInt(i -> i).toArray();
+        return env.util.testSet(_cards);
+    }
 }
