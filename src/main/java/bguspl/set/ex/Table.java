@@ -94,7 +94,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        // TODO implement
+        // TODO implement -FIGURE OUT WHAT THE FUCK THEY WANT HERE
     }
 
     /**
@@ -106,7 +106,9 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
-        // TODO implement
+        cardToSlot[slotToCard[slot]] = null;
+        slotToCard[slot] = null;
+        
     }
 
     /**
