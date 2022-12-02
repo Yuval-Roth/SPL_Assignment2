@@ -173,10 +173,32 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Check who is/are the winner/s and displays them.
+     * Check who is/are the winner/s and send them to the UI.
      */
     private void announceWinners() {
-        // TODO implement
+        int maxScore = 0;
+        LinkedList<Player> winners = new LinkedList<>();
+        for(Player player : players)
+        {
+            if (player.getScore() >= maxScore)
+            {
+                maxScore = player.getScore();
+            }
+        }
+        for(Player player : players)
+        {
+            if (player.getScore() == maxScore)
+            {
+                winners.add(player);
+            }
+        }
+        // convert winners to int[], send to UI
+        int[] winnerIds = new int[winners.size()];
+        for(int i = 0; i < winnerIds.length; i++)
+        {
+            winnerIds[i] = winners.get(i).id;
+        }
+        env.ui.announceWinner(winnerIds);
     }
 
     public synchronized void claimSet(Deque<Integer> cards, Player claimer){
