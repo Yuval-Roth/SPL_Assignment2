@@ -1,8 +1,11 @@
 package bguspl.set.ex;
 
 import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Random;
 
 import bguspl.set.Env;
+import jdk.nashorn.internal.runtime.regexp.joni.Config;
 
 /**
  * This class manages the players' threads and data
@@ -26,7 +29,7 @@ public class Player implements Runnable {
      * Create a stack of int
      *      
      */
-    private Deque<Integer> tokensStack;
+    private Deque<Integer> placedTokens;
 
     /**
      * The id of the player (starting from 0).
@@ -59,6 +62,11 @@ public class Player implements Runnable {
     private int score;
 
     /**
+     * The game's dealer
+     */
+    private Dealer dealer;
+
+    /**
      * The class constructor.
      *
      * @param env    - the environment object.
@@ -72,6 +80,8 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+        this.dealer = dealer;
+        placedTokens = new LinkedList<Integer>();
     }
 
     /**
@@ -147,5 +157,35 @@ public class Player implements Runnable {
 
     public int getScore() {
         return score;
+    }
+    private void placeOrRemoveToken(int tokenValue){
+        
+        if(placedTokens.contains(tokenValue) == false){
+            placedTokens.addLast(tokenValue);
+            table.placeToken(id, tokenValue);
+            if(placedTokens.size() == 3) ClaimSet();
+        }
+        else{
+            placedTokens.remove(tokenValue);
+            table.removeToken(id, tokenValue);
+        } 
+    }
+
+    private void ClaimSet() {
+        dealer.claimSet(placedTokens);
+    }
+    // public void receivePoint(long timeToWait){
+    //     //TO DO Implement this method;
+    // }
+    // public void receivePenalty(long timeToWait){
+    //     //TO DO Implement this method;
+    // }
+
+    private void clearPlacedTokens(){
+        placedTokens.clear();
+    }
+    private int generateKeyPress(){
+        Random rand = new Random();
+        rand.nextInt(Config.CHAR_TABLE_SIZE);
     }
 }

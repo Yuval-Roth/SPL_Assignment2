@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -128,5 +129,9 @@ public class Dealer implements Runnable {
      */
     private void announceWinners() {
         // TODO implement
+    }
+
+    public synchronized void claimSet(Deque<Integer> cards){
+        //TO DO implement this method
     }
 }
