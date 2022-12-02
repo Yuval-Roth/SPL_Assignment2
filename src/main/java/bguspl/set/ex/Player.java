@@ -49,7 +49,7 @@ public class Player implements Runnable {
     /**
      * True iff the player is human (not a computer player).
      */
-    private final boolean human;
+    public final boolean human;
 
     /**
      * True iff game should be terminated due to an external event.
@@ -89,15 +89,18 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-        playerThread = Thread.currentThread();
-        System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-        if (!human) createArtificialIntelligence();
-
-        while (!terminate) {
-            // TODO implement main player loop
-        }
-        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
-        System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+        
+            playerThread = Thread.currentThread();
+            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+            if (!human) createArtificialIntelligence();
+            while (!terminate) {
+                
+            }
+            if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+        
+        
+        
     }
 
     /**
@@ -184,6 +187,7 @@ public class Player implements Runnable {
     }
 
     private void ClaimSet() {
+        env.
         dealer.claimSet(placedTokens,this);
     }
     // public void receivePoint(long timeToWait){

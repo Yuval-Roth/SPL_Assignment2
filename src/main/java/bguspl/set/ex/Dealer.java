@@ -39,11 +39,14 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
+    private Thread[] playerThreads;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        playerThreads = new Thread[players.length];
     }
 
     /**
@@ -52,13 +55,17 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+        
         while (!shouldFinish()) {
             placeCardsOnTable();
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
-
         }
+        for(Thread thread : playerThreads){
+            try { thread.join(); } catch (InterruptedException ignored) {}
+        }
+        
         announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -68,8 +75,18 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+            for(int i = 0; i< playerThreads.length; i++)
+            {
+                playerThreads[i] = new Thread(players[i],
+                                    "Player "+players[i].id +", "+(players[i].human ? "Human":"AI"));
+                playerThreads[i].start();
+            }
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
+            for(Player player: players)
+            {
+                player.terminate();
+            }
             removeCardsFromTable();
             shuffleDeck();
             placeCardsOnTable();
@@ -113,7 +130,7 @@ public class Dealer implements Runnable {
         
         if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
-                synchronized(this){wait(reshuffleTime-System.currentTimeMillis());}
+                synchronized(this){Thread.sleep(reshuffleTime-System.currentTimeMillis());}
             }
             catch(InterruptedException ignored){}
         }
@@ -145,6 +162,8 @@ public class Dealer implements Runnable {
         if (isValidSet(cards)){
             
         }
+
+        sleepUntilWokenOrTimeout();
     }
 
     /*
