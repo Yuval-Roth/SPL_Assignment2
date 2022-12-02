@@ -107,7 +107,13 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        // TODO implement
+        
+        if(reshuffleTime-System.currentTimeMillis() >= 0){
+            try{
+                synchronized(this){wait(reshuffleTime-System.currentTimeMillis());}
+            }
+            catch(InterruptedException ignored){}
+        }
     }
 
     /**
