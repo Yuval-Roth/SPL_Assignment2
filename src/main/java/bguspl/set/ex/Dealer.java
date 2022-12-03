@@ -100,6 +100,7 @@ public class Dealer implements Runnable {
     private void startTimer() {
         timer = new Thread(()-> {        
             stopTimer = false;
+            updateTimerDisplay(true);
             while(stopTimer == false & reshuffleTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
@@ -316,7 +317,7 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(List<Integer> cards, Player claimer) {
         removeClaimedCards(cards, claimer);
         claimer.point();
-        if(dealerThread.getState() == Thread.State.TIMED_WAITING) dealerThread.interrupt();
+        // if(dealerThread.getState() == Thread.State.TIMED_WAITING) dealerThread.interrupt();
     }
 
     /*

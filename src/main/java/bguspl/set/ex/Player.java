@@ -68,7 +68,12 @@ public class Player implements Runnable {
     /**
      * True iff game should be terminated due to an external event.
      */
-    private volatile boolean terminate;
+    private volatile boolean terminatePlayer;
+
+    /**
+     * True iff game should be terminated due to an external event.
+     */
+    private volatile boolean terminateAI;
 
     /**
      * The current score of the player.
@@ -106,11 +111,11 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-            terminate = false;
+            terminatePlayer = false;
             playerThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
-            while (!terminate) {
+            while (!terminatePlayer) {
                 // maybe code will go in here in the future
             }
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -130,20 +135,23 @@ public class Player implements Runnable {
      */
     private void createArtificialIntelligence() {
         // note: this is a very very smart AI (!)
+        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){}
         aiThread = new Thread(() -> {
-            // System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-            while (!terminate) {
-                while(placedTokens.size() < 3 & !terminate){
+            aiThread = Thread.currentThread();
+            terminateAI = false;
+            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+            while (!terminateAI) {
+                while(placedTokens.size() < 3 & !terminateAI){
                     keyPressed(generateKeyPress());
 
 
                     // limit how fast the AI clicks buttons
                     try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}}catch(InterruptedException ignored){}
                 }
-                if(terminate) break;
+                if(terminateAI) break;
                 waitForClaimSet();
             }
-            // System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
     }
@@ -163,7 +171,8 @@ public class Player implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        terminate = true;
+        terminatePlayer = true;
+        terminateAI = true;
         clearPlacedTokens();
     }
 
