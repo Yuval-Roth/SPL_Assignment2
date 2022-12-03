@@ -88,6 +88,7 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         createPlayerThreads(players);
         elapsedTime = System.currentTimeMillis();
+        shuffleDeck();
         while (!shouldFinish()) {
             placeCardsOnTable();         
             timerLoop();
