@@ -27,7 +27,7 @@ public class Player implements Runnable {
     /**
      *
      */
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 2000;
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
 
     /**
      * The game environment object.
