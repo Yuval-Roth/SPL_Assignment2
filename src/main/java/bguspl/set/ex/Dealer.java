@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.io.Console;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -89,8 +90,8 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             placeCardsOnTable();
             startPlayerThreads();
-            startTimer();
             sleepUntilWokenOrTimeout();
+            // stopTimer();
             stopPlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
@@ -107,6 +108,7 @@ public class Dealer implements Runnable {
                     try{Thread.sleep(10);} catch (InterruptedException ignored){}
                 else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
+            dealerThread.interrupt();
         });     
         timer.setPriority(Thread.MAX_PRIORITY);
         timer.start();
@@ -139,15 +141,15 @@ public class Dealer implements Runnable {
      */
     private void stopPlayerThreads() {
         for(Player player: players)
-        {
+        {    
             player.terminate();
         }
-        for(Thread thread : playerThreads){
-            try {
-                thread.interrupt();
-                thread.join(); 
-            } catch (InterruptedException ignored) {}
-        }
+        // for(Thread thread : playerThreads){
+        //     try {
+        //         thread.interrupt();
+        //         thread.join(); 
+        //     } catch (InterruptedException ignored) {}
+        // }
     }
 
     /**
@@ -204,10 +206,13 @@ public class Dealer implements Runnable {
         
         if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
-                Thread.sleep(reshuffleTime-System.currentTimeMillis());
+                startTimer();
+                synchronized(this){wait();}
+                // Thread.sleep(reshuffleTime-System.currentTimeMillis());
             }
             catch(InterruptedException e){
                 stopTimer();
+                System.out.println("Dealer thread interrupted");
             }
         }
     }
@@ -263,61 +268,66 @@ public class Dealer implements Runnable {
     /*
      * Why does this not have a javadoc?
      */
-    public synchronized void claimSet(List<Integer> cards, Player claimer,int claimVersion){
+    public void claimSet(List<Integer> cards, Player claimer,int claimVersion){
         
+        boolean correct = false;
 
         if (isValidSet(cards)){
-
-            //the claim matches the game version, pretty straight forward procedure from here
-            if(gameVersion == claimVersion){
-                handleClaimedSet(cards, claimer);
-                gameVersion++;
-                pushClaimToStack(cards, claimVersion);
-            }
-
-            //Decide what to do if received a claim from an older gameVersion
-            else{
-
-                Integer[] claim = convertCardsListToClaim(cards, claimVersion);
-                ListIterator<Integer[]> iter = claimStack.listIterator();
-
-
-                while(iter.hasNext()){
-                    Integer[] next = iter.next();
-
-                    //find the first claim that has the same version
-                    if(next[next.length-1] > claimVersion) continue;
-                    
-                    else {
-
-                        //found a claim from the same gameVersion
-                        if(next[next.length-1] == claimVersion){
-
-                            //check if the claim is identical
-                            if(isIdenticalClaim(next, claim)){
-                                break; //found an identical claim, continue the game without penalizing the claimer
+            synchronized(this){
+            
+                //the claim matches the game version, pretty straight forward procedure from here
+                if(gameVersion == claimVersion){
+                    handleClaimedSet(cards, claimer);
+                    gameVersion++;
+                    pushClaimToStack(cards, claimVersion);
+                    correct = true;
+                }
+    
+                //Decide what to do if received a claim from an older gameVersion
+                else{
+    
+                    Integer[] claim = convertCardsListToClaim(cards, claimVersion);
+                    ListIterator<Integer[]> iter = claimStack.listIterator();
+    
+    
+                    while(iter.hasNext()){
+                        Integer[] next = iter.next();
+    
+                        //find the first claim that has the same version
+                        if(next[next.length-1] > claimVersion) continue;
+                        
+                        else {
+    
+                            //found a claim from the same gameVersion
+                            if(next[next.length-1] == claimVersion){
+    
+                                //check if the claim is identical
+                                if(isIdenticalClaim(next, claim)){
+                                    break; //found an identical claim, continue the game without penalizing the claimer
+                                }
+                                else continue; // keep looking for identical claims
                             }
-                            else continue; // keep looking for identical claims
+    
+                            //at this point, we've went through all the claims with the same claimVersion 
+                            // and decided that they are not indentical claims, thus this is a new legit claim
+                            // from an older gameVersion
+                            else if(next[next.length-1] < claimVersion){
+                                iter.add(claim);
+                                handleClaimedSet(cards, claimer);
+                                correct = true;
+                            };
                         }
-
-                        //at this point, we've went through all the claims with the same claimVersion 
-                        // and decided that they are not indentical claims, thus this is a new legit claim
-                        // from an older gameVersion
-                        else if(next[next.length-1] < claimVersion){
-                            iter.add(claim);
-                            handleClaimedSet(cards, claimer);
-                        };
                     }
                 }
             }
-        }
-        else claimer.penalty();       
+        }       
+        if(correct) claimer.point();
+        else claimer.penalty();
     }
 
     private void handleClaimedSet(List<Integer> cards, Player claimer) {
         removeClaimedCards(cards, claimer);
-        claimer.point();
-        // if(dealerThread.getState() == Thread.State.TIMED_WAITING) dealerThread.interrupt();
+        if(dealerThread.getState() == Thread.State.TIMED_WAITING) dealerThread.interrupt();
     }
 
     /*
