@@ -41,8 +41,8 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime;
-    private long elapsedTime;
+    volatile private long reshuffleTime;
+    volatile private long elapsedTime;
     private Thread[] playerThreads;
     private Thread timer;
     private boolean stopTimer;
@@ -327,8 +327,9 @@ public class Dealer implements Runnable {
 
     private void handleClaimedSet(List<Integer> cards, Player claimer) {
         removeClaimedCards(cards, claimer);
-        if(dealerThread.getState() == Thread.State.WAITING) 
-            dealerThread.interrupt();
+        // if(dealerThread.getState() == Thread.State.WAITING) 
+        //     dealerThread.interrupt();
+        updateElapsedTimeDisplay(true);
     }
 
     /*
