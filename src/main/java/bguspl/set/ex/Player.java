@@ -1,6 +1,5 @@
 package bguspl.set.ex;
 
-import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -29,7 +28,7 @@ public class Player implements Runnable {
      * Create a stack of int
      *      
      */
-    private Deque<Integer> placedTokens;
+    private LinkedList<Integer> placedTokens;
 
     /**
      * The id of the player (starting from 0).
@@ -187,7 +186,7 @@ public class Player implements Runnable {
     public int getScore() {
         return score;
     }
-    private void placeOrRemoveToken(int tokenValue){
+    private void placeOrRemoveToken(Integer tokenValue){
         
         if(placedTokens.contains(tokenValue) == false){
             placedTokens.addLast(tokenValue);
@@ -201,7 +200,8 @@ public class Player implements Runnable {
     }
 
     private void ClaimSet() {
-        dealer.claimSet(placedTokens, this);
+        int version = dealer.getGameVersion();
+        dealer.claimSet(placedTokens, this,version);
     }
 
     private void clearPlacedTokens(){

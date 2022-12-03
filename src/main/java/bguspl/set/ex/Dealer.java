@@ -7,6 +7,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,6 +46,13 @@ public class Dealer implements Runnable {
     private Thread timer;
     private boolean stopTimer;
 
+    private int gameVersion;
+    private LinkedList<Integer[]> claimStack;
+
+    private static final int SET_SIZE = 3;
+
+    
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -57,7 +65,7 @@ public class Dealer implements Runnable {
                 updateTimerDisplay(false);
                 try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
-        });
+        });     
     }
 
     private void createPlayerThreads(Player[] players) {
@@ -92,7 +100,8 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        
+        gameVersion = 0;
+        claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             timer.start();
@@ -234,19 +243,92 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winnerIds);
     }
 
-    public synchronized void claimSet(Deque<Integer> cards, Player claimer){
+    public synchronized void claimSet(List<Integer> cards, Player claimer,int claimVersion){
+        
+
         if (isValidSet(cards)){
-            for(int card : cards){ // remove cards from table
-                deck.remove(card); // cards is empty rn
-                table.removeCard(card);
-                // TODO: replace the card at the actual table, needs to be implemented 
-                // placeNextCardOnTable();
-                // Place a card from the deck on the table
+
+            //the claim matches the game version, pretty straight forward procedure from here
+            if(gameVersion == claimVersion){
+                removeClaimedCards(cards, claimer);
+                claimer.point();
+                gameVersion++;
+                pushClaimToStack(cards, claimVersion);
             }
 
-            claimer.point();
+            //Decide what to do if received a claim from an older gameVersion
+            else{
+
+                Integer[] claim = convertCardsListToClaim(cards, claimVersion);
+                ListIterator<Integer[]> iter = claimStack.listIterator();
+
+
+                while(iter.hasNext()){
+                    Integer[] next = iter.next();
+
+                    //find the first claim that has the same version
+                    if(next[next.length-1] > claimVersion) continue;
+                    
+                    else {
+
+                        //found a claim from the same gameVersion
+                        if(next[next.length-1] == claimVersion){
+
+                            //check if the claim is identical
+                            if(isIdenticalClaim(next, claim)){
+                                break; //found an identical claim, continue the game without penalizing the claimer
+                            }
+                            else continue; // keep looking for identical claims
+                        }
+
+                        //at this point, we've went through all the claims with the same claimVersion 
+                        // and decided that they are not indentical claims, thus this is a new legit claim
+                        // from an older gameVersion
+                        else if(next[next.length-1] < claimVersion){
+                            iter.add(claim);
+                            removeClaimedCards(cards, claimer);
+                            claimer.point();
+                        };
+                    }
+                }
+            }
         }
-        else claimer.penalty();
+        else claimer.penalty();       
+    }
+
+    private void removeClaimedCards(List<Integer> cards, Player claimer) {
+        for(int card : cards){ // remove cards from table
+            deck.remove(card); // cards is empty rn
+            table.removeCard(card);
+            // TODO: replace the card at the actual table, needs to be implemented 
+            // placeNextCardOnTable();
+            // Place a card from the deck on the table
+        }  
+    }
+    private boolean isIdenticalClaim( Integer[] claim1,Integer[] claim2){
+        
+        if(claim1.length != claim2.length) return false;
+
+        for (int i = 0; i< claim1.length; i ++){
+            if(claim1[i] != claim2[i]) return false;
+        }
+
+        return true;
+    }
+    private void pushClaimToStack(List<Integer> cards, int claimVersion) {
+        Integer[] claim = convertCardsListToClaim(cards, claimVersion);
+        claimStack.push(claim);
+    }
+
+    private Integer[] convertCardsListToClaim(List<Integer> cards, int claimVersion) {
+        Integer[] claim = new Integer[SET_SIZE+1];
+        Collections.sort(cards);
+        int i = 0;
+        for(Integer card : cards){
+            claim[i++] = card;
+        }
+        claim[claim.length-1] = claimVersion;
+        return claim;
     }
 
     /*
@@ -259,7 +341,7 @@ public class Dealer implements Runnable {
     /*
      * Checks if the given set of cards is a valid set.
      */
-    private boolean isValidSet(Deque<Integer> cards) {
+    private boolean isValidSet(List<Integer> cards) {
         int[] _cards = cards.stream().mapToInt(i -> i).toArray();
         return env.util.testSet(_cards);
     }
@@ -271,5 +353,8 @@ public class Dealer implements Runnable {
         
         // table.placeCard(cardToPlace);
 
+    }
+    public int getGameVersion() {
+        return gameVersion;
     }
 }
