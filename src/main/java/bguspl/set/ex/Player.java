@@ -116,7 +116,7 @@ public class Player implements Runnable {
     private void createArtificialIntelligence() {
         // note: this is a very very smart AI (!)
         aiThread = new Thread(() -> {
-            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+            // System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminate) {
                 while(placedTokens.size() < 3 & !terminate){
                     keyPressed(generateKeyPress());
@@ -131,7 +131,7 @@ public class Player implements Runnable {
                     }
                 } catch (InterruptedException ignored) {}
             }
-            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+            // System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
     }

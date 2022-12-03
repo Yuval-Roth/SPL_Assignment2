@@ -372,8 +372,10 @@ public class Dealer implements Runnable {
      * Checks if the given set of cards is a valid set.
      */
     private boolean isValidSet(List<Integer> cards) {
-        int[] _cards = cards.stream().mapToInt(i -> i).toArray();
-        return env.util.testSet(_cards);
+        synchronized(cards){
+            int[] _cards = cards.stream().mapToInt(i -> i).toArray();
+            return env.util.testSet(_cards);
+        }
     }
 
     /*
