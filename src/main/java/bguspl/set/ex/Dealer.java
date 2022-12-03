@@ -73,7 +73,7 @@ public class Dealer implements Runnable {
         while (!shouldFinish()) {        
             timerLoop();
         }
-        stopTimer();
+        // stopTimer();
         stopPlayerThreads();    
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
