@@ -235,11 +235,12 @@ public class Dealer implements Runnable {
 
     public synchronized void claimSet(Deque<Integer> cards, Player claimer){
         if (isValidSet(cards)){
-            claimer.point();
             for(int card : cards){ // remove cards from table
                 deck.remove(card); // cards is empty rn
                 table.removeCard(card);
             }
+            
+            claimer.point();
         }
         else claimer.penalty();
     }

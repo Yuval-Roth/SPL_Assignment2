@@ -111,7 +111,7 @@ public class Table {
 
         cardToSlot[slotToCard[slot]] = null;
         slotToCard[slot] = null;
-        
+        env.ui.removeCard(slot);
     }
 
     /**
