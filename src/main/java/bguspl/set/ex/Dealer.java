@@ -60,12 +60,16 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
         timer = new Thread(()-> {
+            
             stopTimer = false;
             while(stopTimer == false){
                 updateTimerDisplay(false);
-                try{Thread.sleep(1000);} catch (InterruptedException ignored){}
+                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
+                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
+                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
         });     
+        timer.setPriority(Thread.MAX_PRIORITY);
     }
 
     private void createPlayerThreads(Player[] players) {
@@ -200,7 +204,6 @@ public class Dealer implements Runnable {
         env.ui.setCountdown(reshuffleTime-System.currentTimeMillis(),
         reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);   
     }
-
     private void updateElapsedTimeDisplay(boolean reset){
 
         if(reset) elapsedTime = System.currentTimeMillis();   
