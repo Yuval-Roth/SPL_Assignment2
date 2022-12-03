@@ -193,8 +193,9 @@ public class Player implements Runnable {
     }
 
     private void clearPlacedTokens(){
-        while (placedTokens.size() > 0){
-            placedTokens.removeLast();
+        while (placedTokens.isEmpty() == false){
+            int token = placedTokens.pop();
+            env.ui.removeToken(id, token);
         }
     }
     private int generateKeyPress(){
