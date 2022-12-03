@@ -101,7 +101,7 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        
+        gameVersion = 0;
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             timer.start();

@@ -186,7 +186,7 @@ public class Player implements Runnable {
     public int getScore() {
         return score;
     }
-    private void placeOrRemoveToken(int tokenValue){
+    private void placeOrRemoveToken(Integer tokenValue){
         
         if(placedTokens.contains(tokenValue) == false){
             placedTokens.addLast(tokenValue);
