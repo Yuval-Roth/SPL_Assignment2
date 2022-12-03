@@ -97,9 +97,14 @@ public class Table {
         slotToCard[slot] = card;
 
         env.ui.placeCard(card, slot); // UI update, this is shitty software design 
-
     }
 
+    /*
+     * Replaces a card on the table with another card.
+     */
+    public void replaceCard(int card, int slot) {
+        // TODO: implement this method
+    }
     /**
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.

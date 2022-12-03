@@ -166,6 +166,7 @@ public class Dealer implements Runnable {
         while(index < countToPlace && iter.hasNext())
         {
             table.placeCard(iter.next(), index++);
+            // remove card from deck
         }
     }
 
@@ -238,8 +239,11 @@ public class Dealer implements Runnable {
             for(int card : cards){ // remove cards from table
                 deck.remove(card); // cards is empty rn
                 table.removeCard(card);
+                // TODO: replace the card at the actual table, needs to be implemented 
+                // placeNextCardOnTable();
+                // Place a card from the deck on the table
             }
-            
+
             claimer.point();
         }
         else claimer.penalty();
@@ -258,5 +262,14 @@ public class Dealer implements Runnable {
     private boolean isValidSet(Deque<Integer> cards) {
         int[] _cards = cards.stream().mapToInt(i -> i).toArray();
         return env.util.testSet(_cards);
+    }
+
+    private void placeNextCardOnTable(){
+        // TODO implement me
+        // Integer cardToPlace = deck.get(0);
+        // deck.remove(0);
+        
+        // table.placeCard(cardToPlace);
+
     }
 }

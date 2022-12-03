@@ -202,4 +202,6 @@ public class Player implements Runnable {
         Random rand = new Random();
         return rand.nextInt(env.config.tableSize);
     }
+
+    
 }
