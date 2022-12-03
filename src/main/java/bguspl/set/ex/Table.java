@@ -121,10 +121,10 @@ public class Table {
      * @return - the first empty slot on the table.
      */
     private int findEmptySlot() {
-        int suggestedSlot  = -1;
-        for (Integer key : slotToCard) {
-            if (key == null) {
-                suggestedSlot = key;
+        int suggestedSlot = -1;
+        for (int i =0 ; i< slotToCard.length; i++) {
+            if (slotToCard[i] == null) {
+                suggestedSlot = i;
                 break;
             }
         }

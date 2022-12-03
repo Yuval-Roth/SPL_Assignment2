@@ -189,13 +189,13 @@ public class Player implements Runnable {
     private void placeOrRemoveToken(Integer tokenValue){
         
         if(placedTokens.contains(tokenValue) == false){
-            placedTokens.addLast(tokenValue);
             table.placeToken(id, tokenValue);
+            placedTokens.addLast(tokenValue);
             if(placedTokens.size() == 3) ClaimSet();
         }
         else{
-            placedTokens.remove(tokenValue);
             table.removeToken(id, tokenValue);
+            placedTokens.remove(tokenValue);
         } 
     }
 
