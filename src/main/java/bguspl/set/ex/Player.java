@@ -15,6 +15,21 @@ import jdk.nashorn.internal.runtime.regexp.joni.Config;
 public class Player implements Runnable {
 
     /**
+     *
+     */
+    private static final int SET_SIZE = 3;
+
+    /**
+     *
+     */
+    private static final int CLOCK_UPDATE_INTERVAL = 900;
+
+    /**
+     *
+     */
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 2000;
+
+    /**
      * The game environment object.
      */
     private final Env env;
@@ -120,20 +135,28 @@ public class Player implements Runnable {
             while (!terminate) {
                 while(placedTokens.size() < 3 & !terminate){
                     keyPressed(generateKeyPress());
-                    try{synchronized(this){wait(2000);}}catch(InterruptedException ignored){}
+
+
+                    // limit how fast the AI clicks buttons
+                    try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}}catch(InterruptedException ignored){}
                 }
                 if(terminate) break;
-                try {
-                    synchronized (this){
-                        env.ui.setFreeze(id,Long.MAX_VALUE);
-                        wait();
-                        env.ui.setFreeze(id,0);
-                    }
-                } catch (InterruptedException ignored) {}
+                waitForClaimSet();
             }
             // System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
+    }
+
+    private void waitForClaimSet() {
+        //This is a freeze that unlocks after claimSet() is complete
+        try {
+            synchronized (this){
+                env.ui.setFreeze(id,Long.MAX_VALUE);
+                wait();
+                env.ui.setFreeze(id,0);
+            }
+        } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -198,7 +221,7 @@ public class Player implements Runnable {
             stopTimer = false;
             while(stopTimer == false & timerStopTime >= System.currentTimeMillis() ){
                 updateTimerDisplay();
-                try{Thread.sleep(500);} catch (InterruptedException ignored){}
+                try{Thread.sleep(CLOCK_UPDATE_INTERVAL);} catch (InterruptedException ignored){}
             }
         });
         freezeTimer.setPriority(Thread.MAX_PRIORITY); 
@@ -213,7 +236,7 @@ public class Player implements Runnable {
         if(placedTokens.contains(tokenValue) == false){
             table.placeToken(id, tokenValue);
             placedTokens.addLast(tokenValue);
-            if(placedTokens.size() == 3) ClaimSet();
+            if(placedTokens.size() == SET_SIZE) ClaimSet();
         }
         else{
             table.removeToken(id, tokenValue);

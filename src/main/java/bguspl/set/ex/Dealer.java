@@ -91,7 +91,6 @@ public class Dealer implements Runnable {
             startPlayerThreads();
             startTimer();
             sleepUntilWokenOrTimeout();
-            // stopTimer();
             stopPlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
@@ -206,7 +205,9 @@ public class Dealer implements Runnable {
             try{
                 Thread.sleep(reshuffleTime-System.currentTimeMillis());
             }
-            catch(InterruptedException ignored){}
+            catch(InterruptedException e){
+                stopTimer();
+            }
         }
     }
 
@@ -268,8 +269,7 @@ public class Dealer implements Runnable {
 
             //the claim matches the game version, pretty straight forward procedure from here
             if(gameVersion == claimVersion){
-                removeClaimedCards(cards, claimer);
-                claimer.point();
+                handleClaimedSet(cards, claimer);
                 gameVersion++;
                 pushClaimToStack(cards, claimVersion);
             }
@@ -304,14 +304,19 @@ public class Dealer implements Runnable {
                         // from an older gameVersion
                         else if(next[next.length-1] < claimVersion){
                             iter.add(claim);
-                            removeClaimedCards(cards, claimer);
-                            claimer.point();
+                            handleClaimedSet(cards, claimer);
                         };
                     }
                 }
             }
         }
         else claimer.penalty();       
+    }
+
+    private void handleClaimedSet(List<Integer> cards, Player claimer) {
+        removeClaimedCards(cards, claimer);
+        claimer.point();
+        if(dealerThread.getState() == Thread.State.TIMED_WAITING) dealerThread.interrupt();
     }
 
     /*
