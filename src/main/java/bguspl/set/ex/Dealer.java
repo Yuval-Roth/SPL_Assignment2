@@ -91,10 +91,7 @@ public class Dealer implements Runnable {
             startPlayerThreads();
             startTimer();
             sleepUntilWokenOrTimeout();
-            // // this will need to be turned into a thread that continously changes the timer in the future
-            // updateTimerDisplay(true); 
-            // // -------------------------------
-            stopTimer();
+            // stopTimer();
             stopPlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
@@ -104,7 +101,7 @@ public class Dealer implements Runnable {
     private void startTimer() {
         timer = new Thread(()-> {        
             stopTimer = false;
-            while(stopTimer == false){
+            while(stopTimer == false & reshuffleTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
                     try{Thread.sleep(10);} catch (InterruptedException ignored){}

@@ -105,12 +105,8 @@ public class Player implements Runnable {
     private void updateTimerDisplay() { 
         env.ui.setFreeze(id,timerStopTime-System.currentTimeMillis());   
     }
-    private void stopTimer() {
-        
+    private void stopTimer() {     
         stopTimer = true;
-        // try{
-        //     freezeTimer.join();
-        // } catch (InterruptedException ignored){}
     }
 
     /**
