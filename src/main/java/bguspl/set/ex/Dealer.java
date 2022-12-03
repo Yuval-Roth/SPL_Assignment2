@@ -65,8 +65,7 @@ public class Dealer implements Runnable {
                 updateTimerDisplay(false);
                 try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
-        });
-        claimStack = new LinkedList<Integer[]>();      
+        });     
     }
 
     private void createPlayerThreads(Player[] players) {
@@ -102,6 +101,7 @@ public class Dealer implements Runnable {
     private void timerLoop() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         gameVersion = 0;
+        claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
             timer.start();
