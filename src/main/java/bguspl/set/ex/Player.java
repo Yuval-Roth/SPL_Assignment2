@@ -189,11 +189,13 @@ public class Player implements Runnable {
     }
 
     private void ClaimSet() {
-        dealer.claimSet(placedTokens,this);
+        dealer.claimSet(placedTokens, this);
     }
 
     private void clearPlacedTokens(){
-        placedTokens.clear();
+        while (placedTokens.size() > 0){
+            placedTokens.removeLast();
+        }
     }
     private int generateKeyPress(){
         Random rand = new Random();

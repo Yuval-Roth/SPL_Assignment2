@@ -92,9 +92,10 @@ public class Dealer implements Runnable {
      */
     private void timerLoop() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        timer.start();
+        
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
+            timer.start();
             sleepUntilWokenOrTimeout();
             // // this will need to be turned into a thread that continously changes the timer in the future
             // updateTimerDisplay(true); 
@@ -236,7 +237,7 @@ public class Dealer implements Runnable {
         if (isValidSet(cards)){
             claimer.point();
             for(int card : cards){ // remove cards from table
-                deck.remove(card);
+                deck.remove(card); // cards is empty rn
                 table.removeCard(card);
             }
         }
