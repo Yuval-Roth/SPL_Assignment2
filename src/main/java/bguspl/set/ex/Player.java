@@ -80,7 +80,7 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        placedTokens = new LinkedList<Integer>();
+        placedTokens = new LinkedList<>();
     }
 
     Thread freezeTimer;
@@ -108,9 +108,9 @@ public class Player implements Runnable {
     private void stopTimer() {
         
         stopTimer = true;
-        try{
-            freezeTimer.join();
-        } catch (InterruptedException ignored){}
+        // try{
+        //     freezeTimer.join();
+        // } catch (InterruptedException ignored){}
     }
 
     /**
@@ -122,10 +122,11 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminate) {
-                while(placedTokens.size() < 3){
+                while(placedTokens.size() < 3 & !terminate){
                     keyPressed(generateKeyPress());
                     try{synchronized(this){wait(2000);}}catch(InterruptedException ignored){}
                 }
+                if(terminate) break;
                 try {
                     synchronized (this){
                         env.ui.setFreeze(id,Long.MAX_VALUE);
@@ -144,6 +145,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
+        clearPlacedTokens();
     }
 
     /**
@@ -172,7 +174,7 @@ public class Player implements Runnable {
             synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored){}
         env.ui.setFreeze(id,0);
-        stopTimer();
+        // stopTimer();
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
@@ -189,7 +191,7 @@ public class Player implements Runnable {
             synchronized(this){Thread.sleep(env.config.penaltyFreezeMillis);}
         } catch(InterruptedException ignored){}
         env.ui.setFreeze(id,0);
-        stopTimer();
+        // stopTimer();
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
@@ -198,7 +200,7 @@ public class Player implements Runnable {
     private void startTimer() {
         freezeTimer = new Thread(()->{
             stopTimer = false;
-            while(stopTimer == false){
+            while(stopTimer == false & timerStopTime >= System.currentTimeMillis() ){
                 updateTimerDisplay();
                 try{Thread.sleep(500);} catch (InterruptedException ignored){}
             }

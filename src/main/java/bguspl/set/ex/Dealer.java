@@ -51,7 +51,7 @@ public class Dealer implements Runnable {
 
     private static final int SET_SIZE = 3;
 
-    
+    private Thread dealerThread;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -59,25 +59,6 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
-        timer = new Thread(()-> {
-            
-            stopTimer = false;
-            while(stopTimer == false){
-                updateTimerDisplay(false);
-                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
-                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
-                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
-            }
-        });     
-        timer.setPriority(Thread.MAX_PRIORITY);
-    }
-
-    private void createPlayerThreads(Player[] players) {
-        for(int i = 0; i< playerThreads.length; i++)
-        {
-            String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
-            playerThreads[i] = new Thread(players[i],name);
-        }
     }
 
     /**
@@ -86,7 +67,7 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-        createPlayerThreads(players);
+        dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
         shuffleDeck();
         while (!shouldFinish()) {
@@ -109,17 +90,31 @@ public class Dealer implements Runnable {
         claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             startPlayerThreads();
-            timer.start();
+            startTimer();
             sleepUntilWokenOrTimeout();
             // // this will need to be turned into a thread that continously changes the timer in the future
             // updateTimerDisplay(true); 
             // // -------------------------------
-            stopPlayerThreads();      
             stopTimer();
+            stopPlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
             placeCardsOnTable();
         }
+    }
+
+    private void startTimer() {
+        timer = new Thread(()-> {        
+            stopTimer = false;
+            while(stopTimer == false){
+                updateTimerDisplay(false);
+                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
+                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
+                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
+            }
+        });     
+        timer.setPriority(Thread.MAX_PRIORITY);
+        timer.start();
     }
 
     /*
@@ -136,9 +131,11 @@ public class Dealer implements Runnable {
      * Why does this not have a javadoc?
      */
     private void startPlayerThreads() {
-        for(Thread thread : playerThreads)
+        for(int i = 0; i< playerThreads.length; i++)
         {
-            thread.start();
+            String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
+            playerThreads[i] = new Thread(players[i],name);
+            playerThreads[i].start();
         }
     }
 
@@ -151,7 +148,10 @@ public class Dealer implements Runnable {
             player.terminate();
         }
         for(Thread thread : playerThreads){
-            try { thread.join(); } catch (InterruptedException ignored) {}
+            try {
+                thread.interrupt();
+                thread.join(); 
+            } catch (InterruptedException ignored) {}
         }
     }
 
