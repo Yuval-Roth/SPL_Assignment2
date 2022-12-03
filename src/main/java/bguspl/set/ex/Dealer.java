@@ -270,11 +270,13 @@ public class Dealer implements Runnable {
                     if(next[next.length-1] > claimVersion) continue;
                     
                     else {
+
+                        //found a claim from the same gameVersion
                         if(next[next.length-1] == claimVersion){
 
-                            //check if the claim was already made
+                            //check if the claim is identical
                             if(isIdenticalClaim(next, claim)){
-                                break; //found an identical claim, continue the game without penalty
+                                break; //found an identical claim, continue the game without penalizing the claimer
                             }
                             else continue; // keep looking for identical claims
                         }
