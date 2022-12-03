@@ -70,10 +70,8 @@ public class Dealer implements Runnable {
         dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
         shuffleDeck();
-        while (!shouldFinish()) {
-            placeCardsOnTable();         
+        while (!shouldFinish()) {        
             timerLoop();
-            removeAllCardsFromTable();
         }
         stopTimer();
         stopPlayerThreads();    
@@ -89,6 +87,7 @@ public class Dealer implements Runnable {
         gameVersion = 0;
         claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+            placeCardsOnTable();
             startPlayerThreads();
             startTimer();
             sleepUntilWokenOrTimeout();
@@ -99,7 +98,6 @@ public class Dealer implements Runnable {
             stopPlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
-            placeCardsOnTable();
         }
     }
 
