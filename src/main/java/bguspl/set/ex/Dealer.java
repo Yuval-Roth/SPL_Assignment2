@@ -256,9 +256,7 @@ public class Dealer implements Runnable {
     
                 claimer.point();
                 gameVersion++;
-                Integer[] claim = new Integer[SET_SIZE+1];
-                Collections.sort(cards);
-                claimStack.push(claim);
+                pushClaimToStack(cards, claimVersion);
             }
             else claimer.penalty();    
         }
@@ -267,6 +265,31 @@ public class Dealer implements Runnable {
         }
         
         
+    }
+    private boolean isIdenticalClaim( Integer[] claim1,Integer[] claim2){
+        
+        if(claim1.length != claim2.length) return false;
+
+        for (int i = 0; i< claim1.length; i ++){
+            if(claim1[i] != claim2[i]) return false;
+        }
+        
+        return true;
+    }
+    private void pushClaimToStack(List<Integer> cards, int claimVersion) {
+        Integer[] claim = convertCardsListToClaim(cards, claimVersion);
+        claimStack.push(claim);
+    }
+
+    private Integer[] convertCardsListToClaim(List<Integer> cards, int claimVersion) {
+        Integer[] claim = new Integer[SET_SIZE+1];
+        Collections.sort(cards);
+        int i = 0;
+        for(Integer card : cards){
+            claim[i++] = card;
+        }
+        claim[claim.length-1] = claimVersion;
+        return claim;
     }
 
     /*
