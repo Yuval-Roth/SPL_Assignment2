@@ -83,6 +83,9 @@ public class Player implements Runnable {
         placedTokens = new LinkedList<Integer>();
     }
 
+    Thread freezeTimer;
+    boolean stopTimer;
+    long timerStopTime;
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
@@ -96,10 +99,18 @@ public class Player implements Runnable {
                 // maybe code will go in here in the future
             }
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
-            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
+    }
+
+    private void updateTimerDisplay() { 
+        env.ui.setFreeze(id,timerStopTime-System.currentTimeMillis());   
+    }
+    private void stopTimer() {
         
-        
-        
+        stopTimer = true;
+        try{
+            freezeTimer.join();
+        } catch (InterruptedException ignored){}
     }
 
     /**
@@ -113,6 +124,7 @@ public class Player implements Runnable {
             while (!terminate) {
                 while(placedTokens.size() < 3){
                     keyPressed(generateKeyPress());
+                    try{synchronized(this){wait(2000);}}catch(InterruptedException ignored){}
                 }
                 try {
                     synchronized (this){
@@ -154,13 +166,13 @@ public class Player implements Runnable {
         // int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
         clearPlacedTokens();
+        timerStopTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
+        startTimer();
         try{
-            synchronized(this){
-                env.ui.setFreeze(id,Long.MAX_VALUE);
-                Thread.sleep(env.config.pointFreezeMillis);
-                env.ui.setFreeze(id,0);
-            }
+            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored){}
+        env.ui.setFreeze(id,0);
+        stopTimer();
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
@@ -171,16 +183,28 @@ public class Player implements Runnable {
      */
     public void penalty() {
         clearPlacedTokens();
+        timerStopTime = System.currentTimeMillis()+ env.config.penaltyFreezeMillis;
+        startTimer();
         try{
-            synchronized(this){
-                env.ui.setFreeze(id,Long.MAX_VALUE);
-                Thread.sleep(env.config.pointFreezeMillis);
-                env.ui.setFreeze(id,0);
-            }
+            synchronized(this){Thread.sleep(env.config.penaltyFreezeMillis);}
         } catch(InterruptedException ignored){}
+        env.ui.setFreeze(id,0);
+        stopTimer();
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
         if(human == false) aiThread.interrupt();
+    }
+
+    private void startTimer() {
+        freezeTimer = new Thread(()->{
+            stopTimer = false;
+            while(stopTimer == false){
+                updateTimerDisplay();
+                try{Thread.sleep(500);} catch (InterruptedException ignored){}
+            }
+        });
+        freezeTimer.setPriority(Thread.MAX_PRIORITY); 
+        freezeTimer.start();
     }
 
     public int getScore() {
