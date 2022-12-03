@@ -245,48 +245,53 @@ public class Dealer implements Runnable {
 
     public synchronized void claimSet(List<Integer> cards, Player claimer,int claimVersion){
         
-        if(gameVersion == claimVersion){
-            if (isValidSet(cards)){
+
+        if (isValidSet(cards)){
+
+            //the claim matches the game version, pretty straight forward procedure from here
+            if(gameVersion == claimVersion){
                 removeClaimedCards(cards, claimer);
                 claimer.point();
                 gameVersion++;
                 pushClaimToStack(cards, claimVersion);
             }
-            else claimer.penalty();    
-        }
 
-        //Decide what to do if received a claim from an older gameVersion
-        else{
+            //Decide what to do if received a claim from an older gameVersion
+            else{
 
-            Integer[] claim = convertCardsListToClaim(cards, claimVersion);
-            ListIterator<Integer[]> iter = claimStack.listIterator();
-            while(iter.hasNext()){
-                Integer[] next = iter.next();
+                Integer[] claim = convertCardsListToClaim(cards, claimVersion);
+                ListIterator<Integer[]> iter = claimStack.listIterator();
 
-                //find the first claim that has the same version
-                if(next[next.length-1] > claimVersion) continue;
-                
-                else {
-                    if(next[next.length-1] == claimVersion){
 
-                        //check if the claim was already made
-                        if(isIdenticalClaim(next, claim)){
-                            break; //found an identical claim, continue the game without penalty
-                        }
-                        else continue; // keep looking for identical claims
-                    }
+                while(iter.hasNext()){
+                    Integer[] next = iter.next();
 
-                    //at this point, we've went through all the claims with the same claimVersion 
-                    // and decided that they are not indentical claims, thus this is a new legit claim
-                    // from an older gameVersion
+                    //find the first claim that has the same version
+                    if(next[next.length-1] > claimVersion) continue;
+                    
                     else {
-                        iter.add(claim);
-                        removeClaimedCards(cards, claimer);
-                        claimer.point();
-                    };
+                        if(next[next.length-1] == claimVersion){
+
+                            //check if the claim was already made
+                            if(isIdenticalClaim(next, claim)){
+                                break; //found an identical claim, continue the game without penalty
+                            }
+                            else continue; // keep looking for identical claims
+                        }
+
+                        //at this point, we've went through all the claims with the same claimVersion 
+                        // and decided that they are not indentical claims, thus this is a new legit claim
+                        // from an older gameVersion
+                        else if(next[next.length-1] < claimVersion){
+                            iter.add(claim);
+                            removeClaimedCards(cards, claimer);
+                            claimer.point();
+                        };
+                    }
                 }
             }
-        }   
+        }
+        else claimer.penalty();       
     }
 
     private void removeClaimedCards(List<Integer> cards, Player claimer) {
