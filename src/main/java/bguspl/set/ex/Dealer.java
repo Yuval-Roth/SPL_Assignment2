@@ -45,6 +45,13 @@ public class Dealer implements Runnable {
     private Thread timer;
     private boolean stopTimer;
 
+    private int gameVersion;
+    private Deque<Integer[]> claimStack;
+
+    private static final int SET_SIZE = 3;
+
+    
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -58,6 +65,7 @@ public class Dealer implements Runnable {
                 try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
         });
+        claimStack = new LinkedList<Integer[]>();      
     }
 
     private void createPlayerThreads(Player[] players) {
@@ -234,19 +242,31 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winnerIds);
     }
 
-    public synchronized void claimSet(Deque<Integer> cards, Player claimer){
-        if (isValidSet(cards)){
-            for(int card : cards){ // remove cards from table
-                deck.remove(card); // cards is empty rn
-                table.removeCard(card);
-                // TODO: replace the card at the actual table, needs to be implemented 
-                // placeNextCardOnTable();
-                // Place a card from the deck on the table
+    public synchronized void claimSet(List<Integer> cards, Player claimer,int claimVersion){
+        
+        if(gameVersion == claimVersion){
+            if (isValidSet(cards)){
+                for(int card : cards){ // remove cards from table
+                    deck.remove(card); // cards is empty rn
+                    table.removeCard(card);
+                    // TODO: replace the card at the actual table, needs to be implemented 
+                    // placeNextCardOnTable();
+                    // Place a card from the deck on the table
+                }
+    
+                claimer.point();
+                gameVersion++;
+                Integer[] claim = new Integer[SET_SIZE+1];
+                Collections.sort(cards);
+                claimStack.push(claim);
             }
-
-            claimer.point();
+            else claimer.penalty();    
         }
-        else claimer.penalty();
+        else{
+            
+        }
+        
+        
     }
 
     /*
@@ -259,7 +279,7 @@ public class Dealer implements Runnable {
     /*
      * Checks if the given set of cards is a valid set.
      */
-    private boolean isValidSet(Deque<Integer> cards) {
+    private boolean isValidSet(List<Integer> cards) {
         int[] _cards = cards.stream().mapToInt(i -> i).toArray();
         return env.util.testSet(_cards);
     }
@@ -271,5 +291,8 @@ public class Dealer implements Runnable {
         
         // table.placeCard(cardToPlace);
 
+    }
+    public int getGameVersion() {
+        return gameVersion;
     }
 }
