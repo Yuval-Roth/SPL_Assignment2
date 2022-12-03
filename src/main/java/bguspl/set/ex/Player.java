@@ -149,7 +149,7 @@ public class Player implements Runnable {
                     try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}}catch(InterruptedException ignored){}
                 }
                 if(terminateAI) break;
-                waitForClaimSet();
+                if(terminateAI == false) waitForClaimSet();
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
@@ -201,7 +201,7 @@ public class Player implements Runnable {
         try{
             synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
         } catch(InterruptedException ignored){}
-        env.ui.setFreeze(id,0);
+        if(human)env.ui.setFreeze(id,0);
         // stopTimer();
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
@@ -217,7 +217,10 @@ public class Player implements Runnable {
         startTimer();
         try{
             synchronized(this){Thread.sleep(env.config.penaltyFreezeMillis);}
-        } catch(InterruptedException ignored){}
+        } catch(InterruptedException ignored){
+            if(human == false) aiThread.interrupt();
+            return;
+        }
         env.ui.setFreeze(id,0);
         // stopTimer();
 
