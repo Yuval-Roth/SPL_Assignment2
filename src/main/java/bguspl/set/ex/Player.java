@@ -116,7 +116,11 @@ public class Player implements Runnable {
                     keyPressed(generateKeyPress());
                 }
                 try {
-                    synchronized (this) { wait(); }
+                    synchronized (this){
+                        env.ui.setFreeze(id,Long.MAX_VALUE);
+                        wait();
+                        env.ui.setFreeze(id,0);
+                    }
                 } catch (InterruptedException ignored) {}
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
@@ -152,7 +156,11 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         clearPlacedTokens();
         try{
-            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
+            synchronized(this){
+                env.ui.setFreeze(id,Long.MAX_VALUE);
+                Thread.sleep(env.config.pointFreezeMillis);
+                env.ui.setFreeze(id,0);
+            }
         } catch(InterruptedException ignored){}
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
@@ -165,7 +173,11 @@ public class Player implements Runnable {
     public void penalty() {
         clearPlacedTokens();
         try{
-            synchronized(this){Thread.sleep(env.config.pointFreezeMillis);}
+            synchronized(this){
+                env.ui.setFreeze(id,Long.MAX_VALUE);
+                Thread.sleep(env.config.pointFreezeMillis);
+                env.ui.setFreeze(id,0);
+            }
         } catch(InterruptedException ignored){}
 
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
