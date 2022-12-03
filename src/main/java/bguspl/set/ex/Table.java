@@ -51,7 +51,6 @@ public class Table {
      * @param env - the game environment objects.
      */
     public Table(Env env) {
-
         this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize]);
     }
 
@@ -99,6 +98,39 @@ public class Table {
         env.ui.placeCard(card, slot); // UI update, this is shitty software design 
     }
 
+    /**
+     * Places a card on the table in the first available slot.
+     * @param cardToPlace - the card id to place in the slot.
+     * @post - the card placed is on the table, in the assigned slot.
+     */
+    public void placeCard(int cardToPlace) {
+        try {
+            Thread.sleep(env.config.tableDelayMillis);
+        } catch (InterruptedException ignored) {}
+
+        int suggestedSlot = findEmptySlot();
+
+        cardToSlot[cardToPlace] = suggestedSlot;
+        slotToCard[suggestedSlot] = cardToPlace;
+
+        env.ui.placeCard(cardToPlace, suggestedSlot); // UI update, this is shitty software design 
+    }
+
+    /*
+     * Finds the first empty slot on the table.
+     * @return - the first empty slot on the table.
+     */
+    private int findEmptySlot() {
+        int suggestedSlot  = -1;
+        for (Integer key : slotToCard) {
+            if (key == null) {
+                suggestedSlot = key;
+                break;
+            }
+        }
+        return suggestedSlot;
+    }
+
     /*
      * Replaces a card on the table with another card.
      */
@@ -142,11 +174,20 @@ public class Table {
     /*
      * Clears the table of all cards and tokens.
      */
-    public void clearTable() {
+    public Integer[] clearTable() {
+        Integer[] cardsRemoved = slotToCard.clone();
         slotToCard = new Integer[slotToCard.length];
         cardToSlot = new Integer[cardToSlot.length];
+        return cardsRemoved;
     }
 
+    public int getCurrentSize(){
+        int emptySlotCount = 0;
+        for (int i = 0; i < slotToCard.length; i ++)
+        if (slotToCard[i] != null)
+            emptySlotCount ++;
+        return emptySlotCount;
+    }
 
     
 }

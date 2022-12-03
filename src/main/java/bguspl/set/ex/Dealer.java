@@ -111,12 +111,15 @@ public class Dealer implements Runnable {
             // // -------------------------------
             stopPlayerThreads();      
             stopTimer();
-            removeCardsFromTable();
+            removeAllCardsFromTable();
             shuffleDeck();
             placeCardsOnTable();
         }
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private void stopTimer() {
         try{
             stopTimer = true;
@@ -124,6 +127,9 @@ public class Dealer implements Runnable {
         } catch (InterruptedException ignored){}
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private void startPlayerThreads() {
         for(Thread thread : playerThreads)
         {
@@ -131,6 +137,9 @@ public class Dealer implements Runnable {
         }
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private void stopPlayerThreads() {
         for(Player player: players)
         {
@@ -158,25 +167,34 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Checks if any cards should be removed from the table and returns them to the deck.
+     * Removes all cards from the table and returns them to the deck.
      */
-    private void removeCardsFromTable() {
-        table.clearTable();
+    private void removeAllCardsFromTable() {
+        Integer[] cardsRemoved = table.clearTable();
+        for (Integer card: cardsRemoved) {
+            deck.add(card);
+        }
     }
 
     /**
-     * Check if any cards can be removed from the deck and placed on the table.
+     * Checks how many empty slots are on the table and 
+     * places cards on the table for each empty slot.
      */
     private void placeCardsOnTable() {
-        // for card in deck table.placeCard()
-        int countToPlace = env.config.tableSize;
-        Iterator<Integer> iter = deck.iterator();
-        int index = 0;
-        while(index < countToPlace && iter.hasNext())
-        {
-            table.placeCard(iter.next(), index++);
-            // remove card from deck
+        int countToPlace = getEmptySlotCount();
+        for (int i = 0; i < countToPlace; i++) {
+            if (deck.size() > 0) {
+                placeNextCardOnTable();
+            }
+            else {
+                break; // Think about this
+            }
         }
+    }
+
+    private int getEmptySlotCount() {
+        int countToPlace = env.config.tableSize - table.getCurrentSize();
+        return countToPlace;
     }
 
     /**
@@ -201,18 +219,15 @@ public class Dealer implements Runnable {
         reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);   
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private void updateElapsedTimeDisplay(boolean reset){
 
         if(reset) elapsedTime = System.currentTimeMillis();   
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }
 
-    /**
-     * Returns all the cards from the table to the deck.
-     */
-    private void removeAllCardsFromTable() {
-        table.clearTable();
-    }
 
     /**
      * Check who is/are the winner/s and send them to the UI.
@@ -243,6 +258,9 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winnerIds);
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     public synchronized void claimSet(List<Integer> cards, Player claimer,int claimVersion){
         
 
@@ -296,15 +314,20 @@ public class Dealer implements Runnable {
         else claimer.penalty();       
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private void removeClaimedCards(List<Integer> cards, Player claimer) {
         for(int card : cards){ // remove cards from table
-            deck.remove(card); // cards is empty rn
+            // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
-            // TODO: replace the card at the actual table, needs to be implemented 
-            // placeNextCardOnTable();
-            // Place a card from the deck on the table
         }  
+        placeCardsOnTable();
     }
+
+    /*
+     * Why does this not have a javadoc?
+     */
     private boolean isIdenticalClaim( Integer[] claim1,Integer[] claim2){
         
         if(claim1.length != claim2.length) return false;
@@ -315,11 +338,18 @@ public class Dealer implements Runnable {
 
         return true;
     }
+
+    /*
+     * Why does this not have a javadoc?
+     */
     private void pushClaimToStack(List<Integer> cards, int claimVersion) {
         Integer[] claim = convertCardsListToClaim(cards, claimVersion);
         claimStack.push(claim);
     }
 
+    /*
+     * Why does this not have a javadoc?
+     */
     private Integer[] convertCardsListToClaim(List<Integer> cards, int claimVersion) {
         Integer[] claim = new Integer[SET_SIZE+1];
         Collections.sort(cards);
@@ -346,15 +376,18 @@ public class Dealer implements Runnable {
         return env.util.testSet(_cards);
     }
 
+    /*
+     * Removes one card from the deck and places it on the table.
+     */
     private void placeNextCardOnTable(){
-        // TODO implement me
-        // Integer cardToPlace = deck.get(0);
-        // deck.remove(0);
-        
-        // table.placeCard(cardToPlace);
-
+        Integer cardToPlace = deck.get(0);
+        deck.remove(0);
+        table.placeCard(cardToPlace);
     }
+
     public int getGameVersion() {
         return gameVersion;
     }
+
+    
 }
