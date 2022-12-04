@@ -1,7 +1,9 @@
 package bguspl.set.ex;
 
+import java.lang.Thread.State;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import bguspl.set.Env;
 import jdk.nashorn.internal.runtime.regexp.joni.Config;
@@ -86,6 +88,11 @@ public class Player implements Runnable {
     private Dealer dealer;
 
     /**
+     * Clicks queue
+     */
+    private volatile ConcurrentLinkedQueue<Integer> clickQueue;
+
+    /**
      * The class constructor.
      *
      * @param env    - the environment object.
@@ -101,6 +108,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
+        clickQueue = new ConcurrentLinkedQueue<>();
     }
 
     private Thread freezeTimer;
@@ -116,11 +124,30 @@ public class Player implements Runnable {
             playerThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
-            while (!terminatePlayer) {} // wait for interrupt from the dealer
+            while (!terminatePlayer) {
+                if(human){
+                    while (clickQueue.isEmpty() == false){
+                        Integer key = clickQueue.remove();
+                        placeOrRemoveToken(key);            
+                    } 
+                }
+            }
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
 
+    /**
+     * This method is called when a key is pressed.
+     *
+     * @param slot - the slot corresponding to the key pressed.
+     */
+    public void keyPressed(int slot) {
+
+        if(human){
+            if(playerThread.getState() == Thread.State.RUNNABLE)
+            clickQueue.add(slot);
+        }       
+    }
     /*
      * Updates the UI timer if the player is frozen
      */
@@ -145,7 +172,8 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminateAI) {
                 while(placedTokens.size() < SET_SIZE & !terminateAI){
-                    keyPressed(generateKeyPress());
+                    // keyPressed();
+                    placeOrRemoveToken(generateKeyPress()); 
                     // limit how fast the AI clicks buttons
                     try{synchronized(this){
                         wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
@@ -179,15 +207,6 @@ public class Player implements Runnable {
             playerThread.join();
         }catch(InterruptedException ignored){};
         clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
-    }
-
-    /**
-     * This method is called when a key is pressed.
-     *
-     * @param slot - the slot corresponding to the key pressed.
-     */
-    public void keyPressed(int slot) {
-        placeOrRemoveToken(slot);
     }
 
     /**
