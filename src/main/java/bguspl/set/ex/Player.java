@@ -27,7 +27,7 @@ public class Player implements Runnable {
     /**
      *
      */
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 100;
 
     /**
      * The game environment object.
@@ -196,40 +196,34 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-
-        // int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-        timerStopTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
-        startTimer();
-        // try{
-        //     if(human) synchronized(this){wait();}
-        // } catch(InterruptedException ignored){}
-        // stopTimer();
-
-        //at this point, aiThread is in wait() and needs to be interrupted to keep running
-        // if(human == false) aiThread.interrupt();
+        startTimer(env.config.pointFreezeMillis);
+        try{
+            Thread.sleep(env.config.pointFreezeMillis);
+        } catch(InterruptedException ignored){}
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        timerStopTime = System.currentTimeMillis()+ env.config.penaltyFreezeMillis;
-        startTimer();
+        startTimer(env.config.penaltyFreezeMillis);
         try{
             Thread.sleep(env.config.penaltyFreezeMillis);
         }catch(InterruptedException ignored){}
-        //at this point, aiThread is in wait() and needs to be interrupted to keep running
     }
 
 
     /**
      * Starts a freeze time thread and updates the UI timer
+     * @param timeToStop - future time to stop in milliseconds
+     * @pre - the freeze timer is stopped
      * @post - the freeze timer is started
      * @post - the UI timer is updated
      */
-    private void startTimer() {
+    private void startTimer(long timeToStop) {
         freezeTimer = new Thread(()->{
+            timerStopTime = System.currentTimeMillis()+ timeToStop;
             stopTimer = false;
             while(stopTimer == false & timerStopTime >= System.currentTimeMillis() ){
                 updateTimerDisplay();
@@ -238,10 +232,9 @@ public class Player implements Runnable {
                 } catch (InterruptedException ignored){}
             }
             env.ui.setFreeze(id,0);
-            // if(human == false) aiThread.interrupt();
-            // else playerThread.interrupt();
+            if(human == false) aiThread.interrupt();
+            else playerThread.interrupt();
         },"Freeze timer for player "+id);
-        // freezeTimer.setPriority(Thread.MAX_PRIORITY); 
         freezeTimer.start();
     }
 
@@ -292,7 +285,6 @@ public class Player implements Runnable {
     private void clearPlacedTokens(){
         while (placedTokens.isEmpty() == false){
             int token = placedTokens.pop();
-            env.ui.removeToken(id, token);
         }
     }
 
