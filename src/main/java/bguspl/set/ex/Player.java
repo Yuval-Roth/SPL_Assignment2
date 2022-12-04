@@ -106,6 +106,7 @@ public class Player implements Runnable {
     private Thread freezeTimer;
     private volatile boolean stopTimer;
     private volatile long timerStopTime;
+
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
@@ -115,13 +116,14 @@ public class Player implements Runnable {
             playerThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
-            while (!terminatePlayer) {
-                
-            }
+            while (!terminatePlayer) {} // wait for interrupt from the dealer
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
 
+    /*
+     * Updates the UI timer if the player is frozen
+     */
     private void updateTimerDisplay() { 
         env.ui.setFreeze(id,timerStopTime-System.currentTimeMillis());   
     }
@@ -130,23 +132,24 @@ public class Player implements Runnable {
     }
 
     /**
-     * Creates an additional thread for an AI (computer) player. The main loop of this thread repeatedly generates
-     * key presses. If the queue of key presses is full, the thread waits until it is not full.
+     * Creates an additional thread for an AI (computer) player. 
+     * The main loop of this thread repeatedly generates key presses. 
+     * If the queue of key presses is full, the thread waits until it is not full.
      */
     private void createArtificialIntelligence() {
-        // note: this is a very very smart AI (!)
+        // note: this is a very very basic AI (!)
         while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){}
         aiThread = new Thread(() -> {
             aiThread = Thread.currentThread();
             terminateAI = false;
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminateAI) {
-                while(placedTokens.size() < 3 & !terminateAI){
+                while(placedTokens.size() < SET_SIZE & !terminateAI){
                     keyPressed(generateKeyPress());
-
-
                     // limit how fast the AI clicks buttons
-                    try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}}catch(InterruptedException ignored){}
+                    try{synchronized(this){
+                        wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+                    } catch(InterruptedException ignored){}
                 }
                 // if(terminateAI) break;
                 // waitForClaimSet();
@@ -156,21 +159,10 @@ public class Player implements Runnable {
         aiThread.start();
     }
 
-    private void waitForClaimSet() {
-        //This is a freeze that unlocks after claimSet() is complete
-        try {
-            // env.ui.setFreeze(id,Long.MAX_VALUE);
-            synchronized (this){
-                wait();
-            }
-            // env.ui.setFreeze(id,0);
-        } catch (InterruptedException ignored) {
-            System.out.println("AI interrupted");
-        }
-    }
-
     /**
      * Called when the game should be terminated due to an external event.
+     * Interrupts the player thread and the AI thread (if any).
+     * Clears the queue of tokens placed.
      */
     public void terminate() {
         stopTimer();
@@ -186,7 +178,7 @@ public class Player implements Runnable {
             playerThread.interrupt();
             playerThread.join();
         }catch(InterruptedException ignored){};
-        clearPlacedTokens();
+        clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
     }
 
     /**
@@ -200,7 +192,6 @@ public class Player implements Runnable {
 
     /**
      * Award a point to a player and perform other related actions.
-     *
      * @post - the player's score is increased by 1.
      * @post - the player's score is updated in the ui.
      */
@@ -208,7 +199,6 @@ public class Player implements Runnable {
 
         // int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-        clearPlacedTokens();
         timerStopTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
         startTimer();
         // try{
@@ -224,7 +214,6 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        clearPlacedTokens();
         timerStopTime = System.currentTimeMillis()+ env.config.penaltyFreezeMillis;
         startTimer();
         try{
@@ -233,6 +222,12 @@ public class Player implements Runnable {
         //at this point, aiThread is in wait() and needs to be interrupted to keep running
     }
 
+
+    /**
+     * Starts a freeze time thread and updates the UI timer
+     * @post - the freeze timer is started
+     * @post - the UI timer is updated
+     */
     private void startTimer() {
         freezeTimer = new Thread(()->{
             stopTimer = false;
@@ -250,33 +245,60 @@ public class Player implements Runnable {
         freezeTimer.start();
     }
 
+    /**
+     * @return the player's score.
+     */
     public int getScore() {
         return score;
     }
-    private void placeOrRemoveToken(Integer tokenValue){
+
+    /*
+     * If a token is placed in the given slot, remove it.
+     * Otherwise, place a token in the given slot.
+     * Placing or removing a token sends a message to the table.
+     * Claims a set if the player has placed a full set.
+     * @post - the token is placed or removed from the given slot.
+     */
+    private void placeOrRemoveToken(Integer slot){
         
-        if(placedTokens.contains(tokenValue) == false){
-            table.placeToken(id, tokenValue);
-            placedTokens.addLast(tokenValue);
+        if(placedTokens.contains(slot) == false){
+            table.placeToken(id, slot);
+            placedTokens.addLast(slot);
             if(placedTokens.size() == SET_SIZE) ClaimSet();
         }
         else{
-            table.removeToken(id, tokenValue);
-            placedTokens.remove(tokenValue);
+            table.removeToken(id, slot);
+            placedTokens.remove(slot);
         } 
     }
 
+    /*
+     
+     * @pre - The player has a placedTokens list of size SET_SIZE.
+     * Claims a set if the player has placed a full set.
+     * @post - The dealer is notified about the set claim.
+     */
     private void ClaimSet() {
         int version = dealer.getGameVersion();
         dealer.claimSet(placedTokens, this,version);
+        clearPlacedTokens();
     }
 
+    /*
+     * Clears the queue of tokens placed.
+     * Updates the UI to remove the tokens.
+     * @post - the queue of tokens placed is cleared.
+     */
     private void clearPlacedTokens(){
         while (placedTokens.isEmpty() == false){
             int token = placedTokens.pop();
             env.ui.removeToken(id, token);
         }
     }
+
+    /**
+     * @return a random key press of size tableSize.
+     */
     private int generateKeyPress(){
         Random rand = new Random();
         return rand.nextInt(env.config.tableSize);
