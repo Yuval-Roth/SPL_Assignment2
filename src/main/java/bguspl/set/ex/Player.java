@@ -68,14 +68,9 @@ public class Player implements Runnable {
     public final boolean human;
 
     /**
-     * True iff game should be terminated due to an external event.
+     * True if game should be terminated due to an external event.
      */
-    private volatile Boolean terminatePlayer;
-
-    /**
-     * True iff game should be terminated due to an external event.
-     */
-    private volatile Boolean terminateAI;
+    private volatile Boolean terminate;
 
     /**
      * The current score of the player.
@@ -120,11 +115,11 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-            terminatePlayer = false;
+            terminate = false;
             playerThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
-            while (!terminatePlayer) {
+            while (!terminate) {
                 // if(human){
                     while (clickQueue.isEmpty() == false){
                         Integer key = clickQueue.remove();
@@ -165,24 +160,24 @@ public class Player implements Runnable {
      */
     private void createArtificialIntelligence() {
         // note: this is a very very basic AI (!)
-        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){}
+        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){
+            try{
+            synchronized(aiThread) {aiThread.wait();}
+            }catch(InterruptedException ignored){}
+        }
         aiThread = new Thread(() -> {
             aiThread = Thread.currentThread();
-            terminateAI = false;
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-            while (!terminateAI) {
-                while(placedTokens.size() < SET_SIZE & !terminateAI){
-                    keyPressed(generateKeyPress());
-                    // placeOrRemoveToken(); 
-                    // limit how fast the AI clicks buttons
-                    try{synchronized(this){
-                        wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
-                    } catch(InterruptedException ignored){}
-                }
-                // if(terminateAI) break;
-                // waitForClaimSet();
+            while (!terminate) {
+                keyPressed(generateKeyPress());
+
+                // limit how fast the AI clicks buttons
+                try{synchronized(this){
+                    wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+                } catch(InterruptedException ignored){}
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+            synchronized(aiThread) {aiThread.notifyAll();}
         }, "computer-" + id);
         aiThread.start();
     }
@@ -193,19 +188,9 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
-
-        //TODO needs to refactor this method and remove dedundant code
+        terminate = true;
         stopTimer();
-        terminatePlayer = true;
-        terminateAI = true;
-        if(human == false){
-            aiThread.interrupt();
-            try{
-                aiThread.join();
-            }catch(InterruptedException ignored){};
-        } 
         try{
-            playerThread.interrupt();
             playerThread.join();
         }catch(InterruptedException ignored){};
         clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
