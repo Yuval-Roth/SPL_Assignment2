@@ -105,7 +105,7 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
-        shuffleDeck();
+        //shuffleDeck();
         while (!shouldFinish()) {        
             timerLoop();
         }   
@@ -460,6 +460,7 @@ public class Dealer implements Runnable {
      * @return true iff there are no possible sets.
      */
     private boolean allSetsDepleted() {
+
         return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
     }
     
