@@ -1,11 +1,6 @@
 package bguspl.set.ex;
-
 import bguspl.set.Env;
-
-import java.io.Console;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -26,6 +21,10 @@ public class Dealer implements Runnable {
      * Game entities.
      */
     private final Table table;
+
+    /**
+     * Game Players
+     */
     private final Player[] players;
 
     /**
@@ -42,12 +41,42 @@ public class Dealer implements Runnable {
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     volatile private long reshuffleTime;
-    volatile private long elapsedTime;
-    private Thread[] playerThreads;
-    private Thread timer;
-    private boolean stopTimer;
 
+    /**
+     * TODO fill this doc
+     */
+    volatile private long elapsedTime;
+
+
+    /**
+     * The array that holds all of the player threads
+     */
+    private Thread[] playerThreads;
+
+    /**
+     * Timer thread
+     */
+    private Thread timer;
+
+    /**
+     * Indicates whether the timer should stop running
+     */
+    private volatile boolean stopTimer;
+
+    /**
+     * a version indicator for claimSet() actions
+     * resets each shuffle
+     * 
+     * @inv gameVersion >= 0
+     */
     private int gameVersion;
+
+    /**
+     * a linked list that holds a history of claimSet() actions
+     * like a stack. FIFO order on the objects inside.
+     * 
+     * @Note The cards inside each Integer[] are sorted with Collections.sort()
+     */
     private LinkedList<Integer[]> claimStack;
 
     private static final int SET_SIZE = 3;
