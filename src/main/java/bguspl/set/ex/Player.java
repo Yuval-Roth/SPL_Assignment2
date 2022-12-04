@@ -218,7 +218,6 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
-            // Thread.sleep(env.config.pointFreezeMillis);
             synchronized(this){wait();}
         } catch(InterruptedException ignored){}
     }
@@ -229,7 +228,6 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
-            // Thread.sleep(env.config.penaltyFreezeMillis);
             synchronized(this){wait();}
         }catch(InterruptedException ignored){}
     }
