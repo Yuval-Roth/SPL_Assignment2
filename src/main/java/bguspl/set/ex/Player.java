@@ -245,7 +245,7 @@ public class Player implements Runnable {
             env.ui.setFreeze(id,0);
             // if(human == false) aiThread.interrupt();
             // else playerThread.interrupt();
-        });
+        },"Freeze timer for player "+id);
         // freezeTimer.setPriority(Thread.MAX_PRIORITY); 
         freezeTimer.start();
     }

@@ -142,7 +142,7 @@ public class Dealer implements Runnable {
                 else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
             dealerThread.interrupt();
-        });     
+        },"Reshuffle timer");     
         timer.setPriority(Thread.MAX_PRIORITY);
         timer.start();
     }
@@ -179,7 +179,7 @@ public class Dealer implements Runnable {
         {    
             Thread terminatePlayer = new Thread(()->{
                 player.terminate();
-            });
+            },"terminating player "+player.id);
             terminatePlayer.start();
         }
     }
