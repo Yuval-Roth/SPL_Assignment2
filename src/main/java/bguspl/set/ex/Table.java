@@ -197,5 +197,16 @@ public class Table {
         return countToPlace;
     }
 
+
+    /*
+     * Returns the number of possible sets on the table.
+     */
+    public int getSetCount() {
+        Integer[] cardsOnTable = slotToCard.clone();
+        List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
+        return env.util.findSets(deck, 1).size();
+    }
+    
+
     
 }
