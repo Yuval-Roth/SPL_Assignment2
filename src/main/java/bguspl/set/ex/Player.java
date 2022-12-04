@@ -284,16 +284,24 @@ public class Player implements Runnable {
      */
     private void clearPlacedTokens(){
         while (placedTokens.isEmpty() == false){
-            int token = placedTokens.pop();
+            placedTokens.pop();
         }
     }
 
     /**
-     * @return a random key press of size tableSize.
+     * @return a random key press in the size of the current table size.
      */
     private int generateKeyPress(){
         Random rand = new Random();
-        return rand.nextInt(env.config.tableSize);
+        return rand.nextInt(getCurrentTableSize());
+    }
+
+
+    /**
+     * @return the current table size.
+     */
+    private int getCurrentTableSize(){
+        return table.getCurrentSize();
     }
 
     
