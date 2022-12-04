@@ -193,6 +193,8 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
+
+        //TODO needs to refactor this method and remove dedundant code
         stopTimer();
         terminatePlayer = true;
         terminateAI = true;
