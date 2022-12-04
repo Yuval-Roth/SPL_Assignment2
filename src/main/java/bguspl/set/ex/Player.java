@@ -27,7 +27,7 @@ public class Player implements Runnable {
     /**
      *
      */
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 100;
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
 
     /**
      * The game environment object.
@@ -199,7 +199,8 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
-            Thread.sleep(env.config.pointFreezeMillis);
+            // Thread.sleep(env.config.pointFreezeMillis);
+            synchronized(this){wait();}
         } catch(InterruptedException ignored){}
     }
 
@@ -209,7 +210,8 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
-            Thread.sleep(env.config.penaltyFreezeMillis);
+            // Thread.sleep(env.config.penaltyFreezeMillis);
+            synchronized(this){wait();}
         }catch(InterruptedException ignored){}
     }
 
