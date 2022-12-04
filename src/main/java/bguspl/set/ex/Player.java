@@ -125,12 +125,12 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
             while (!terminatePlayer) {
-                if(human){
+                // if(human){
                     while (clickQueue.isEmpty() == false){
                         Integer key = clickQueue.remove();
                         placeOrRemoveToken(key);            
                     } 
-                }
+                // }
             }
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
