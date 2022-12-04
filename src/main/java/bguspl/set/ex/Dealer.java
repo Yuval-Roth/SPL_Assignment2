@@ -15,7 +15,7 @@ public class Dealer implements Runnable {
     /**
      * The game environment object.
      */
-    private final Env env;
+    final Env env;
 
     /**
      * Game entities.
@@ -212,7 +212,7 @@ public class Dealer implements Runnable {
      * places cards on the table for each empty slot.
      */
     private void placeCardsOnTable() {
-        int countToPlace = getEmptySlotCount();
+        int countToPlace = table.getEmptySlotCount();
         for (int i = 0; i < countToPlace; i++) {
             if (deck.size() > 0) {
                 placeNextCardOnTable();
@@ -221,11 +221,6 @@ public class Dealer implements Runnable {
                 break; // Think about this
             }
         }
-    }
-
-    private int getEmptySlotCount() {
-        int countToPlace = env.config.tableSize - table.getCurrentSize();
-        return countToPlace;
     }
 
     /**
