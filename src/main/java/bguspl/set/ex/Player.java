@@ -112,7 +112,7 @@ public class Player implements Runnable {
     }
 
     private Thread freezeTimer;
-    private volatile boolean stopTimer;
+    private volatile Boolean stopTimer;
     private volatile long timerStopTime;
 
     /**
@@ -143,10 +143,10 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
-        if(human){
+        // if(human){
             if(playerThread.getState() == Thread.State.RUNNABLE)
             clickQueue.add(slot);
-        }       
+        // }       
     }
     /*
      * Updates the UI timer if the player is frozen
@@ -172,8 +172,8 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             while (!terminateAI) {
                 while(placedTokens.size() < SET_SIZE & !terminateAI){
-                    // keyPressed();
-                    placeOrRemoveToken(generateKeyPress()); 
+                    keyPressed(generateKeyPress());
+                    // placeOrRemoveToken(); 
                     // limit how fast the AI clicks buttons
                     try{synchronized(this){
                         wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
@@ -218,7 +218,7 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
-            synchronized(this){wait();}
+            synchronized(stopTimer){stopTimer.wait();}
         } catch(InterruptedException ignored){}
     }
 
@@ -228,7 +228,7 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
-            synchronized(this){wait();}
+            synchronized(stopTimer){stopTimer.wait();}
         }catch(InterruptedException ignored){}
     }
 
@@ -251,8 +251,11 @@ public class Player implements Runnable {
                 } catch (InterruptedException ignored){}
             }
             env.ui.setFreeze(id,0);
-            if(human == false) aiThread.interrupt();
-            else playerThread.interrupt();
+            // if(human == false) aiThread.interrupt();
+            // else playerThread.interrupt();
+            synchronized(stopTimer){
+                stopTimer.notifyAll();
+            }
         },"Freeze timer for player "+id);
         freezeTimer.start();
     }
