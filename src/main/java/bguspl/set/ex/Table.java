@@ -189,5 +189,13 @@ public class Table {
         return emptySlotCount;
     }
 
+    /*
+     * Returns the number of empty slots on the table.
+     */
+    int getEmptySlotCount() {
+        int countToPlace = env.config.tableSize - getCurrentSize();
+        return countToPlace;
+    }
+
     
 }
