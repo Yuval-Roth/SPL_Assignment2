@@ -33,7 +33,20 @@ public class Dealer implements Runnable {
     private final List<Integer> deck;
 
     /**
-     * True iff game should be terminated due to an external event.
+     * a linked list that holds a history of claimSet() actions
+     * like a stack. FIFO order on the objects inside.
+     * 
+     * @Note The cards inside each Integer[] are sorted with Collections.sort()
+     */
+    private LinkedList<Integer[]> claimStack;
+
+    /**
+     * The dealer's main thread
+     */
+    private Thread dealerThread;
+
+    /**
+     * True if game should be terminated due to an external event.
      */
     private volatile boolean terminate;
 
@@ -47,19 +60,18 @@ public class Dealer implements Runnable {
      */
     volatile private long elapsedTime;
 
-
     /**
-     * The array that holds all of the player threads
+     * Holds all of the player threads
      */
     private Thread[] playerThreads;
 
     /**
-     * Timer thread
+     * Reshuffle timer thread
      */
     private Thread timer;
 
     /**
-     * Indicates whether the timer should stop running
+     * Indicates whether the reshuffle timer should stop running
      */
     private volatile boolean stopTimer;
 
@@ -72,16 +84,10 @@ public class Dealer implements Runnable {
     private int gameVersion;
 
     /**
-     * a linked list that holds a history of claimSet() actions
-     * like a stack. FIFO order on the objects inside.
-     * 
-     * @Note The cards inside each Integer[] are sorted with Collections.sort()
+     * indicates how many cards in a valid set
      */
-    private LinkedList<Integer[]> claimStack;
-
     private static final int SET_SIZE = 3;
-
-    private Thread dealerThread;
+    
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -102,9 +108,7 @@ public class Dealer implements Runnable {
         shuffleDeck();
         while (!shouldFinish()) {        
             timerLoop();
-        }
-        // stopTimer();
-        stopPlayerThreads();    
+        }   
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -143,8 +147,8 @@ public class Dealer implements Runnable {
         timer.start();
     }
 
-    /*
-     * Why does this not have a javadoc?
+    /**
+     * Stops the reshuffle timer
      */
     private void stopTimer() {
         try{
@@ -153,8 +157,10 @@ public class Dealer implements Runnable {
         } catch (InterruptedException ignored){}
     }
 
-    /*
-     * Why does this not have a javadoc?
+    /**
+     * Starts the player threads 
+     * @note This instantiates new player threads and calls start()
+     * on the threads
      */
     private void startPlayerThreads() {
         for(int i = 0; i< playerThreads.length; i++)
@@ -165,20 +171,17 @@ public class Dealer implements Runnable {
         }
     }
 
-    /*
-     * Why does this not have a javadoc?
+    /**
+     * Terminates all the player threads
      */
     private void stopPlayerThreads() {
         for(Player player: players)
         {    
-            player.terminate();
+            Thread terminatePlayer = new Thread(()->{
+                player.terminate();
+            });
+            terminatePlayer.start();
         }
-        // for(Thread thread : playerThreads){
-        //     try {
-        //         thread.interrupt();
-        //         thread.join(); 
-        //     } catch (InterruptedException ignored) {}
-        // }
     }
 
     /**
