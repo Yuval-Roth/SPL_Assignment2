@@ -228,6 +228,7 @@ public class Dealer implements Runnable {
                     try{Thread.sleep(10);} catch (InterruptedException ignored){}
                 else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
+            env.ui.setCountdown(0,true);   
             synchronized(stopTimer){
                 stopTimer.notifyAll();
             }
