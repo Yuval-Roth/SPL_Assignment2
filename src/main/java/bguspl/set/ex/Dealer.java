@@ -105,7 +105,7 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
-        shuffleDeck();
+        //shuffleDeck();
         while (!shouldFinish()) {        
             timerLoop();
         }   
@@ -286,9 +286,10 @@ public class Dealer implements Runnable {
      * @return true iff the game should be finished.
      */
     private boolean shouldFinish() {
-        return terminate || env.util.findSets(deck, 1).size() == 0;
+        return terminate || allSetsDepleted();
     }
 
+    
     /**
      * Removes all cards from the table and returns them to the deck.
      */
@@ -314,7 +315,7 @@ public class Dealer implements Runnable {
             }
         }
     }
-
+    
     /**
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
@@ -330,7 +331,7 @@ public class Dealer implements Runnable {
             }
         }
     }
-
+    
     /**
      * Reset and/or update the countdown and the countdown display.
      */
@@ -344,12 +345,12 @@ public class Dealer implements Runnable {
      * Why does this not have a javadoc?
      */
     private void updateElapsedTimeDisplay(boolean reset){
-
+        
         if(reset) elapsedTime = System.currentTimeMillis();   
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }
 
-
+    
     
     
     private void handleClaimedSet(List<Integer> cards, Player claimer) {
@@ -379,7 +380,7 @@ public class Dealer implements Runnable {
         for (int i = 0; i< claim1.length; i ++){
             if(claim1[i] != claim2[i]) return false;
         }
-
+        
         return true;
     }
     
@@ -456,5 +457,13 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winnerIds);
     }
     
+    /**
+     * Checks if there are any set combinations left in the deck or on the table.
+     * @return true iff there are no possible sets.
+     */
+    private boolean allSetsDepleted() {
+
+        return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
+    }
     
 }
