@@ -129,14 +129,7 @@ public class Player implements Runnable {
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         playerThread = Thread.currentThread();
-        
-        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){
-            try{
-            synchronized(aiThread) {aiThread.wait();}
-            }catch(InterruptedException ignored){}
-        }
         terminate = false;
-
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             if(clickQueue.isEmpty() == false){
@@ -196,10 +189,8 @@ public class Player implements Runnable {
                 try{synchronized(this){
                     wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
                 } catch(InterruptedException ignored){}
-
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
-            synchronized(aiThread) {aiThread.notifyAll();}
         }, "computer-" + id);
         aiThread.start();
     }
