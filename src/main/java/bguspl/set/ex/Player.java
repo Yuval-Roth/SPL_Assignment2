@@ -1,12 +1,8 @@
 package bguspl.set.ex;
-
-import java.lang.Thread.State;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import bguspl.set.Env;
-import jdk.nashorn.internal.runtime.regexp.joni.Config;
 
 /**
  * This class manages the players' threads and data
@@ -16,19 +12,8 @@ import jdk.nashorn.internal.runtime.regexp.joni.Config;
  */
 public class Player implements Runnable {
 
-    /**
-     *
-     */
     private static final int SET_SIZE = 3;
-
-    /**
-     *
-     */
     private static final int CLOCK_UPDATE_INTERVAL = 900;
-
-    /**
-     *
-     */
     private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
 
     /**
@@ -102,8 +87,14 @@ public class Player implements Runnable {
      */
     private volatile long timerTimeoutTime;
     
+    /**
+     * Indicates whether the player should stop executing or not
+     */
     private volatile Boolean pauseExecution;
     
+    /**
+     * Object for breaking wait() when execution should start
+     */
     private volatile Object executionListener;
 
     /**
@@ -129,6 +120,9 @@ public class Player implements Runnable {
         executionListener = new Object();
     }
 
+    //===========================================================
+    //                      Threads
+    //===========================================================
 
     /**
      * The main player thread of each player starts here (main loop for the player thread).
@@ -158,35 +152,6 @@ public class Player implements Runnable {
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
 
-    public void pause(){
-        pauseExecution = true;
-        stopTimer();
-    }
-    public void resume(){
-        pauseExecution = false;
-        synchronized(executionListener){executionListener.notifyAll();}
-    }
-    /**
-     * This method is called when a key is pressed.
-     *
-     * @param slot - the slot corresponding to the key pressed.
-     */
-    public void keyPressed(int slot) {
-
-        if(terminate == false){
-            if(playerThread.getState() == Thread.State.RUNNABLE)
-            clickQueue.add(slot);
-        }       
-    }
-    /*
-     * Updates the UI timer if the player is frozen
-     */
-    private void updateTimerDisplay() { 
-        env.ui.setFreeze(id,timerTimeoutTime-System.currentTimeMillis());   
-    }
-    private void stopTimer() {     
-        stopfreezeTimer = true;
-    }
 
     /**
      * Creates an additional thread for an AI (computer) player. 
@@ -216,17 +181,62 @@ public class Player implements Runnable {
     }
 
     /**
-     * Called when the game should be terminated due to an external event.
-     * Interrupts the player thread and the AI thread (if any).
-     * Clears the queue of tokens placed.
+     * Starts a freeze time thread and updates the UI timer
+     * @param timeToStop - future time to stop in milliseconds
+     * @pre - the freeze timer is stopped
+     * @post - the freeze timer is started
+     * @post - the UI timer is updated
      */
-    public void terminate() {
-        terminate = true;
-        stopTimer();
-        try{
-            playerThread.join();
-        }catch(InterruptedException ignored){};
-        clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
+    private void startTimer(long timeToStop) {
+        freezeTimer = new Thread(()->{
+            timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
+            stopfreezeTimer = false;
+            while(stopfreezeTimer == false & timerTimeoutTime >= System.currentTimeMillis() ){
+                updateTimerDisplay();
+                try{
+                    Thread.sleep(CLOCK_UPDATE_INTERVAL);
+                } catch (InterruptedException ignored){}
+            }
+            env.ui.setFreeze(id,0);
+            synchronized(stopfreezeTimer){
+                stopfreezeTimer.notifyAll();
+            }
+        },"Freeze timer for player "+id);
+        freezeTimer.start();
+    }
+
+    //===========================================================
+    //                      Main methods
+    //===========================================================
+
+
+    /**
+     * Pauses the player's ability to interact with the game
+     */
+    public void pause(){
+        pauseExecution = true;
+        stopFreezeTimer();
+    }
+
+    /**
+     * Resumes the player's ability to interact with the game
+     */
+    public void resume(){
+        pauseExecution = false;
+        synchronized(executionListener){executionListener.notifyAll();}
+    }
+
+    /**
+     * This method is called when a key is pressed.
+     *
+     * @param slot - the slot corresponding to the key pressed.
+     */
+    public void keyPressed(int slot) {
+
+        if(terminate == false){
+            if(playerThread.getState() == Thread.State.RUNNABLE)
+            clickQueue.add(slot);
+        }       
     }
 
     /**
@@ -252,40 +262,7 @@ public class Player implements Runnable {
         }catch(InterruptedException ignored){}
     }
 
-
     /**
-     * Starts a freeze time thread and updates the UI timer
-     * @param timeToStop - future time to stop in milliseconds
-     * @pre - the freeze timer is stopped
-     * @post - the freeze timer is started
-     * @post - the UI timer is updated
-     */
-    private void startTimer(long timeToStop) {
-        freezeTimer = new Thread(()->{
-            timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
-            stopfreezeTimer = false;
-            while(stopfreezeTimer == false & timerTimeoutTime >= System.currentTimeMillis() ){
-                updateTimerDisplay();
-                try{
-                    Thread.sleep(CLOCK_UPDATE_INTERVAL);
-                } catch (InterruptedException ignored){}
-            }
-            env.ui.setFreeze(id,0);
-            synchronized(stopfreezeTimer){
-                stopfreezeTimer.notifyAll();
-            }
-        },"Freeze timer for player "+id);
-        freezeTimer.start();
-    }
-
-    /**
-     * @return the player's score.
-     */
-    public int getScore() {
-        return score;
-    }
-
-    /*
      * If a token is placed in the given slot, remove it.
      * Otherwise, place a token in the given slot.
      * Placing or removing a token sends a message to the table.
@@ -306,9 +283,8 @@ public class Player implements Runnable {
             }
         } 
     }
-
-    /*
-     
+    
+    /**
      * @pre - The player has a placedTokens list of size SET_SIZE.
      * Claims a set if the player has placed a full set.
      * @post - The dealer is notified about the set claim.
@@ -319,7 +295,40 @@ public class Player implements Runnable {
         clearPlacedTokens();
     }
 
-    /*
+    /**
+     * Called when the game should be terminated due to an external event.
+     * Interrupts the player thread and the AI thread (if any).
+     * Clears the queue of tokens placed.
+     */
+    public void terminate() {
+        terminate = true;
+        stopFreezeTimer();
+        try{
+            playerThread.join();
+        }catch(InterruptedException ignored){};
+        clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
+    }
+
+    //===========================================================
+    //                  utility methods
+    //===========================================================
+
+
+    /**
+     * Updates the UI timer if the player is frozen
+     */
+    private void updateTimerDisplay() { 
+        env.ui.setFreeze(id,timerTimeoutTime-System.currentTimeMillis());   
+    }
+
+    /**
+     * Stops the freeze timer
+     */
+    private void stopFreezeTimer() {     
+        stopfreezeTimer = true;
+    }
+
+    /**
      * Clears the queue of tokens placed.
      * Updates the UI to remove the tokens.
      * @post - the queue of tokens placed is cleared.
@@ -330,6 +339,9 @@ public class Player implements Runnable {
         }
     }
 
+    /**
+     * Clears the pending clicks queue
+     */
     private void clearClickQueue() {
         while(clickQueue.isEmpty() == false){
             clickQueue.remove();
@@ -352,5 +364,14 @@ public class Player implements Runnable {
         return table.getCurrentSize();
     }
 
+    //===========================================================
+    //                  Getters / Setters
+    //===========================================================
     
+    /**
+     * @return the player's score.
+     */
+    public int getScore() {
+        return score;
+    }
 }
