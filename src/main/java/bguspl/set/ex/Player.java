@@ -203,7 +203,8 @@ public class Player implements Runnable {
      * @post - the freeze timer is started
      * @post - the UI timer is updated
      */
-    private void startTimer(long timeToStop) {
+    private void startFreezeTimer(long timeToStop) {
+        frozen = true;   
         timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
         while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
             updateTimerDisplay();
@@ -212,6 +213,7 @@ public class Player implements Runnable {
             } catch (InterruptedException ignored){}
         }
         env.ui.setFreeze(id,0);
+        frozen = false;
     }
 
     //===========================================================
@@ -266,12 +268,7 @@ public class Player implements Runnable {
     public void point() {
         env.ui.setScore(id, ++score);
         clearPlacedTokens();
-        startTimer(env.config.pointFreezeMillis);
-        try{
-            frozen = true;
-            synchronized(executionListener){executionListener.wait();}
-            frozen = false;
-        } catch(InterruptedException ignored){}
+        startFreezeTimer(env.config.pointFreezeMillis);
     }
 
     /**
@@ -279,12 +276,7 @@ public class Player implements Runnable {
      */
     public void penalty() {
         clearPlacedTokens();
-        startTimer(env.config.penaltyFreezeMillis);
-        try{
-            frozen = true;
-            synchronized(executionListener){executionListener.wait();}
-            frozen = false;
-        }catch(InterruptedException ignored){}
+        startFreezeTimer(env.config.penaltyFreezeMillis);
     }
 
     /**
