@@ -102,6 +102,8 @@ public class Player implements Runnable {
      */
     private volatile long timerTimeoutTime;
     
+    private volatile Boolean pauseExecution;
+
     /**
      * The class constructor.
      *
@@ -120,6 +122,8 @@ public class Player implements Runnable {
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
         stopfreezeTimer = false;
+        pauseExecution = true;
+        terminate = false;
     }
 
 
@@ -130,20 +134,34 @@ public class Player implements Runnable {
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         playerThread = Thread.currentThread();
-        terminate = false;
         if (!human) createArtificialIntelligence();
         while (!terminate) {
+            if(pauseExecution){
+                clearPlacedTokens();
+                clearClickQueue();
+                try{
+                    synchronized(pauseExecution){
+                        pauseExecution.wait();
+                    }
+                }catch(InterruptedException ignored){}
+            }
             if(clickQueue.isEmpty() == false){
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);            
             } 
         }
-        clearPlacedTokens();
-        clearClickQueue();
+        
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
 
+    public void pause(){
+        pauseExecution = true;
+    }
+    public void resume(){
+        pauseExecution = false;
+        synchronized(pauseExecution){pauseExecution.notifyAll();}
+    }
     /**
      * This method is called when a key is pressed.
      *
@@ -249,8 +267,6 @@ public class Player implements Runnable {
                 } catch (InterruptedException ignored){}
             }
             env.ui.setFreeze(id,0);
-            // if(human == false) aiThread.interrupt();
-            // else playerThread.interrupt();
             synchronized(stopfreezeTimer){
                 stopfreezeTimer.notifyAll();
             }

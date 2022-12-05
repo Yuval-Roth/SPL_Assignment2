@@ -103,6 +103,7 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+        createPlayerThreads();
         dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
         shuffleDeck();
@@ -122,9 +123,10 @@ public class Dealer implements Runnable {
         claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             placeCardsOnTable();
-            startPlayerThreads();
+            try{Thread.sleep(1000);}catch(InterruptedException ignored){}
+            resumePlayerThreads();
             sleepUntilWokenOrTimeout();
-            stopPlayerThreads();      
+            pausePlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
         }
@@ -251,7 +253,13 @@ public class Dealer implements Runnable {
      * @note This instantiates new player threads and calls start()
      * on the threads
      */
-    private void startPlayerThreads() {
+    private void resumePlayerThreads() {
+        for(Player player : players){
+            player.resume();
+        }
+    }
+
+    private void createPlayerThreads() {
         for(int i = 0; i< playerThreads.length; i++)
         {
             String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
@@ -263,13 +271,16 @@ public class Dealer implements Runnable {
     /**
      * Terminates all the player threads
      */
-    private void stopPlayerThreads() {
-        for(Player player: players)
-        {    
-            Thread terminatePlayer = new Thread(()->{
-                player.terminate();
-            },"terminating player "+player.id);
-            terminatePlayer.start();
+    private void pausePlayerThreads() {
+        // for(Player player: players)
+        // {    
+        //     Thread terminatePlayer = new Thread(()->{
+        //         player.terminate();
+        //     },"terminating player "+player.id);
+        //     terminatePlayer.start();
+        // }
+        for(Player player : players){
+            player.pause();
         }
     }
 
