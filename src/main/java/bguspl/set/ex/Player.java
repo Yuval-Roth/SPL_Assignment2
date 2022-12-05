@@ -103,12 +103,14 @@ public class Player implements Runnable {
     private volatile Boolean waitForKeyPress;
 
     private volatile Boolean frozen;
+    
 
     /**
      * Object for breaking wait() when execution should start
      */
     private volatile Object executionListener;
     private volatile Object keyPressListener;
+    private volatile Object claimSetListener;
 
     /**
      * The class constructor.
@@ -134,6 +136,7 @@ public class Player implements Runnable {
         frozen = false;
         executionListener = new Object();
         keyPressListener = new Object();
+        claimSetListener = new Object();
     }
 
     //===========================================================
@@ -241,8 +244,9 @@ public class Player implements Runnable {
                 table.removeToken(id,token);
             }
         }
-        if(playerThread.getState() == Thread.State.WAITING)
-            playerThread.interrupt();
+        // if(playerThread.getState() == Thread.State.WAITING)
+        //     playerThread.interrupt();
+        synchronized(claimSetListener){claimSetListener.notifyAll();}
     }
 
     /**
@@ -282,6 +286,7 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(id, ++score);
+        clearPlacedTokens();
         startTimer(env.config.pointFreezeMillis);
         try{
             frozen = true;
@@ -294,6 +299,7 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
+        clearPlacedTokens();
         startTimer(env.config.penaltyFreezeMillis);
         try{
             frozen = true;
@@ -315,11 +321,10 @@ public class Player implements Runnable {
             if(table.placeToken(id, slot)){
                 synchronized(placedTokens){placedTokens.addLast(slot);}
                 while(placedTokens.size() == SET_SIZE){
-                    if(ClaimSet())
-                        clearPlacedTokens();  
+                    if(ClaimSet()){}
                     else{
                         try{
-                            synchronized(this) {wait();}
+                            synchronized(claimSetListener) {claimSetListener.wait();}
                         }catch(InterruptedException ignored){}
                     }
                 } 
