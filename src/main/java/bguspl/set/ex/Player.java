@@ -119,6 +119,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
+        stopfreezeTimer = false;
     }
 
 
@@ -274,13 +275,15 @@ public class Player implements Runnable {
     private void placeOrRemoveToken(Integer slot){
         
         if(placedTokens.contains(slot) == false){
-            table.placeToken(id, slot);
-            placedTokens.addLast(slot);
-            if(placedTokens.size() == SET_SIZE) ClaimSet();
+            if(table.placeToken(id, slot)){
+                placedTokens.addLast(slot);
+                if(placedTokens.size() == SET_SIZE) ClaimSet();
+            }
         }
         else{
-            table.removeToken(id, slot);
-            placedTokens.remove(slot);
+            if(table.removeToken(id, slot)){
+                placedTokens.remove(slot);
+            }
         } 
     }
 

@@ -155,9 +155,13 @@ public class Table {
      * Places a player token on a grid slot.
      * @param player - the player the token belongs to.
      * @param slot   - the slot on which to place the token.
+     * @returns true if action was successful and false otherwise
      */
-    public void placeToken(int player, int slot) {
-        env.ui.placeToken(player, slot);
+    public boolean placeToken(int player, int slot) {       
+        if(slotToCard[slot] != null){
+            env.ui.placeToken(player, slot);
+            return true;
+        }else return false;
     }
 
     /**
@@ -165,10 +169,14 @@ public class Table {
      * @param player - the player the token belongs to.
      * @param slot   - the slot from which to remove the token.
      * @return       - true iff a token was successfully removed.
+     * @returns true if action was successful and false otherwise
      */
     // used to be boolean return archetype
-    public void removeToken(int player, int slot) {
-        env.ui.removeToken(player, slot);
+    public boolean removeToken(int player, int slot) {
+        if(slotToCard[slot] != null){
+            env.ui.removeToken(player, slot);
+            return true;
+        } else return false;
     }
 
     /*
