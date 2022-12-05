@@ -5,10 +5,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * This class manages the dealer's threads and data
@@ -56,16 +54,6 @@ public class Dealer implements Runnable {
     private Thread[] playerThreads;
 
     /**
-     * Reshuffle timer thread
-     */
-    private Thread timer;
-
-    /**
-     * Object for breaking wait() when execution should resume
-     */
-    private volatile Object executionListener;
-
-    /**
      * a version indicator for claimSet() actions
      * resets each shuffle
      * 
@@ -79,7 +67,6 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
-        executionListener = new Object();
     }
     
     //===========================================================
@@ -109,9 +96,6 @@ public class Dealer implements Runnable {
             sleepUntilWokenOrTimeout();
         }
         env.ui.setCountdown(0,true);   
-        synchronized(executionListener){
-            executionListener.notifyAll();
-        }
     }
 
 
@@ -155,16 +139,12 @@ public class Dealer implements Runnable {
             }
             else return false;    
         }
-                   
-        
+                    
         clearClaimFromUI(cards, claimer);
         if(correct){
-            Thread notifyClaim = new Thread(()->{
-                for(Player player : players){
-                    if(player!=claimer) player.notifyClaim(cards); 
-                }
-            });
-            notifyClaim.start();     
+            for(Player player : players){
+                if(player!=claimer) player.notifyClaim(cards); 
+            }     
             claimer.point();
         } 
         else claimer.penalty();
