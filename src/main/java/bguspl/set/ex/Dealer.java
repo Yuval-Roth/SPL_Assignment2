@@ -183,7 +183,12 @@ public class Dealer implements Runnable {
         else return false;       
 
         clearClaimFromUI(cards, claimer);
-        if(correct) claimer.point();
+        if(correct){
+            claimer.point();
+            for(Player player : players){
+                player.notifyClaim(cards);
+            }
+        } 
         else claimer.penalty();
         return true;
 

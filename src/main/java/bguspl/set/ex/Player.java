@@ -1,5 +1,6 @@
 package bguspl.set.ex;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import bguspl.set.Env;
@@ -209,6 +210,12 @@ public class Player implements Runnable {
     //                      Main methods
     //===========================================================
 
+    public void notifyClaim(List<Integer> claim){
+        for(Integer token : claim){
+            if(placedTokens.contains(token))
+                placedTokens.remove(token);
+        }
+    }
 
     /**
      * Pauses the player's ability to interact with the game
