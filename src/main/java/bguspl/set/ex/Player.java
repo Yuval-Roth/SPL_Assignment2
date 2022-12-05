@@ -127,20 +127,27 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-            terminate = false;
-            playerThread = Thread.currentThread();
-            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-            if (!human) createArtificialIntelligence();
-            while (!terminate) {
-                if(clickQueue.isEmpty() == false){
-                    Integer key = clickQueue.remove();
-                    placeOrRemoveToken(key);            
-                } 
-            }
-            clearPlacedTokens();
-            clearClickQueue();
-            if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
-            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
+        System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+        playerThread = Thread.currentThread();
+        
+        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){
+            try{
+            synchronized(aiThread) {aiThread.wait();}
+            }catch(InterruptedException ignored){}
+        }
+        terminate = false;
+
+        if (!human) createArtificialIntelligence();
+        while (!terminate) {
+            if(clickQueue.isEmpty() == false){
+                Integer key = clickQueue.remove();
+                placeOrRemoveToken(key);            
+            } 
+        }
+        clearPlacedTokens();
+        clearClickQueue();
+        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+        System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
 
 
@@ -175,15 +182,10 @@ public class Player implements Runnable {
      */
     private void createArtificialIntelligence() {
         // note: this is a very very basic AI (!)
-        while(aiThread != null && aiThread.getState() != Thread.State.TERMINATED){
-            try{
-            synchronized(aiThread) {aiThread.wait();}
-            }catch(InterruptedException ignored){}
-        }
         aiThread = new Thread(() -> {
-            aiThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-            
+            aiThread = Thread.currentThread();
+
             try{synchronized(this){
                 wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
             } catch(InterruptedException ignored){}
