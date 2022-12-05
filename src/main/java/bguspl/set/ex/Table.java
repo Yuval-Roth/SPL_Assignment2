@@ -131,12 +131,6 @@ public class Table {
         return suggestedSlot;
     }
 
-    /*
-     * Replaces a card on the table with another card.
-     */
-    public void replaceCard(int card, int slot) {
-        // TODO: implement this method
-    }
     /**
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
@@ -189,7 +183,13 @@ public class Table {
         return cardsRemoved;
     }
 
+    /**
+     * returns the current size
+     */
     public int getCurrentSize(){
+
+        //TODO replace this with a size field
+        
         int emptySlotCount = 0;
         for (int i = 0; i < slotToCard.length; i ++)
         if (slotToCard[i] != null)
