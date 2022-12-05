@@ -73,7 +73,7 @@ public class Dealer implements Runnable {
     /**
      * Indicates whether the reshuffle timer should stop running
      */
-    private volatile boolean stopTimer;
+    private volatile Boolean stopTimer = false;
 
     /**
      * a version indicator for claimSet() actions
@@ -228,9 +228,11 @@ public class Dealer implements Runnable {
                     try{Thread.sleep(10);} catch (InterruptedException ignored){}
                 else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
-            dealerThread.interrupt();
+            env.ui.setCountdown(0,true);   
+            synchronized(stopTimer){
+                stopTimer.notifyAll();
+            }
         },"Reshuffle timer");     
-        timer.setPriority(Thread.MAX_PRIORITY);
         timer.start();
     }
 
@@ -322,7 +324,7 @@ public class Dealer implements Runnable {
         if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
                 startTimer();
-                synchronized(this){wait();}
+                synchronized(stopTimer){stopTimer.wait();}
             }
             catch(InterruptedException e){
                 stopTimer();
