@@ -1,7 +1,12 @@
 package bguspl.set.ex;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
+
 import bguspl.set.Env;
 
 /**
@@ -228,6 +233,17 @@ public class Player implements Runnable {
     //                      Main methods
     //===========================================================
 
+    public void  notifyClaim(Integer[] claim){
+        synchronized(placedTokens){
+            for(Integer token : claim){
+                if(placedTokens.contains(token))
+                placedTokens.remove(token);
+                table.removeToken(id,token);
+            }
+        }
+        if(playerThread.getState() == Thread.State.WAITING)
+            playerThread.interrupt();
+    }
 
     /**
      * Pauses the player's ability to interact with the game
@@ -297,13 +313,21 @@ public class Player implements Runnable {
         
         if(placedTokens.contains(slot) == false){
             if(table.placeToken(id, slot)){
-                placedTokens.addLast(slot);
-                if(placedTokens.size() == SET_SIZE) ClaimSet();
+                synchronized(placedTokens){placedTokens.addLast(slot);}
+                while(placedTokens.size() == SET_SIZE){
+                    if(ClaimSet())
+                        clearPlacedTokens();  
+                    else{
+                        try{
+                            synchronized(this) {wait();}
+                        }catch(InterruptedException ignored){}
+                    }
+                } 
             }
         }
         else{
             if(table.removeToken(id, slot)){
-                placedTokens.remove(slot);
+               synchronized(placedTokens){placedTokens.remove(slot);}
             }
         } 
     }
@@ -313,10 +337,12 @@ public class Player implements Runnable {
      * Claims a set if the player has placed a full set.
      * @post - The dealer is notified about the set claim.
      */
-    private void ClaimSet() {
+    private boolean ClaimSet() {
+        synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
         int version = dealer.getGameVersion();
-        dealer.claimSet(placedTokens, this,version);
-        clearPlacedTokens();
+        Integer[] array = new Integer[placedTokens.size()];
+        return dealer.claimSet(placedTokens.toArray(array), this,version);
+        
     }
 
     /**
@@ -358,8 +384,10 @@ public class Player implements Runnable {
      * @post - the queue of tokens placed is cleared.
      */
     private void clearPlacedTokens(){
-        while (placedTokens.isEmpty() == false){
-            placedTokens.pop();
+        synchronized(placedTokens){
+            while (placedTokens.isEmpty() == false){
+                placedTokens.pop();
+            }
         }
     }
 

@@ -1,11 +1,14 @@
 package bguspl.set.ex;
 import bguspl.set.Env;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * This class manages the dealer's threads and data
@@ -81,7 +84,7 @@ public class Dealer implements Runnable {
      * 
      * @inv gameVersion >= 0
      */
-    private int gameVersion;
+    private volatile Integer gameVersion;
     
     /**
      * indicates how many cards in a valid set
@@ -164,64 +167,36 @@ public class Dealer implements Runnable {
      * @param claimer - The player who claims the set
      * @param claimVersion - The gameVersion according to getGameVersion()
      */
-    public void claimSet(List<Integer> cards, Player claimer,int claimVersion){
-        
-        //TODO revise this method because the whole mechanism is probably not working anyway
+    public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
 
         boolean correct = false;
-        
-        if (isValidSet(cards)){
-            synchronized(this){
-            
-                //the claim matches the game version, pretty straight forward procedure from here
-                if(gameVersion == claimVersion){
+
+        synchronized(this){
+            if(claimVersion == gameVersion){
+                if (isValidSet(cards)){ 
                     handleClaimedSet(cards, claimer);
                     gameVersion++;
                     pushClaimToStack(cards, claimVersion);
-                    correct = true;
-                }
-    
-                //Decide what to do if received a claim from an older gameVersion
-                else{
-    
-                    Integer[] claim = convertCardsListToClaim(cards, claimVersion);
-                    ListIterator<Integer[]> iter = claimStack.listIterator();
-    
-    
-                    while(iter.hasNext()){
-                        Integer[] next = iter.next();
-    
-                        //find the first claim that has the same version
-                        if(next[next.length-1] > claimVersion) continue;
-                        
-                        else {
-    
-                            //found a claim from the same gameVersion
-                            if(next[next.length-1] == claimVersion){
-    
-                                //check if the claim is identical
-                                if(isIdenticalClaim(next, claim)){
-                                    break; //found an identical claim, continue the game without penalizing the claimer
-                                }
-                                else continue; // keep looking for identical claims
-                            }
-    
-                            //at this point, we've went through all the claims with the same claimVersion 
-                            // and decided that they are not indentical claims, thus this is a new legit claim
-                            // from an older gameVersion
-                            else if(next[next.length-1] < claimVersion){
-                                iter.add(claim);
-                                handleClaimedSet(cards, claimer);
-                                correct = true;
-                            };
-                        }
-                    }
-                }
+                    correct = true;           
+                }    
             }
-        }       
+            else return false;    
+        }
+                   
+        
         clearClaimFromUI(cards, claimer);
-        if(correct) claimer.point();
+        if(correct){
+            Thread notifyClaim = new Thread(()->{
+                for(Player player : players){
+                    if(player!=claimer) player.notifyClaim(cards); 
+                }
+            });
+            notifyClaim.start();     
+            claimer.point();
+        } 
         else claimer.penalty();
+
+        return true;
     }
 
     /**
@@ -256,9 +231,9 @@ public class Dealer implements Runnable {
     /**
     * Checks if the given set of cards is a valid set.
     */
-    private boolean isValidSet(List<Integer> cards) {
+    private boolean isValidSet(Integer[] cards) {
         synchronized(cards){
-            int[] _cards = cards.stream().mapToInt(i -> i).toArray();
+            int[] _cards = Arrays.stream(cards).mapToInt(i->i).toArray();
             return env.util.testSet(_cards);
         }
     }
@@ -268,7 +243,7 @@ public class Dealer implements Runnable {
      * @param cards - the cards in the claim
      * @param claimer - the player who claimed the set
      */
-    private void clearClaimFromUI(List<Integer> cards, Player claimer) {
+    private void clearClaimFromUI(Integer[] cards, Player claimer) {
         for (int token : cards){
             env.ui.removeToken(claimer.id, token);
         }
@@ -381,7 +356,7 @@ public class Dealer implements Runnable {
      * @param cards
      * @param claimer
      */
-    private void handleClaimedSet(List<Integer> cards, Player claimer) {
+    private void handleClaimedSet(Integer[] cards, Player claimer) {
         removeClaimedCards(cards, claimer);
         placeCardsOnTable();
         updateTimerDisplay(true);
@@ -390,7 +365,7 @@ public class Dealer implements Runnable {
     /*
     * Why does this not have a javadoc?
     */
-    private void removeClaimedCards(List<Integer> cards, Player claimer) {
+    private void removeClaimedCards(Integer[] cards, Player claimer) {
         for(int card : cards){ // remove cards from table
             // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
@@ -415,23 +390,16 @@ public class Dealer implements Runnable {
     /*
     * Why does this not have a javadoc?
     */
-    private void pushClaimToStack(List<Integer> cards, int claimVersion) {
-        Integer[] claim = convertCardsListToClaim(cards, claimVersion);
-        claimStack.push(claim);
-    }
-    
-    /*
-    * Why does this not have a javadoc?
-    */
-    private Integer[] convertCardsListToClaim(List<Integer> cards, int claimVersion) {
+    private void pushClaimToStack(Integer[] cards, int claimVersion) {
+        
         Integer[] claim = new Integer[SET_SIZE+1];
-        Collections.sort(cards);
+        Arrays.sort(cards);
         int i = 0;
         for(Integer card : cards){
             claim[i++] = card;
         }
         claim[claim.length-1] = claimVersion;
-        return claim;
+        claimStack.push(claim);
     }
     
     /*
