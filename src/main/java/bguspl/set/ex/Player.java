@@ -71,22 +71,37 @@ public class Player implements Runnable {
      * True if game should be terminated due to an external event.
      */
     private volatile Boolean terminate;
-
+    
     /**
      * The current score of the player.
      */
     private int score;
-
+    
     /**
      * The game's dealer
      */
     private Dealer dealer;
-
+    
     /**
      * Clicks queue
      */
     private volatile ConcurrentLinkedQueue<Integer> clickQueue;
 
+    /**
+     * Player freeze timer thread
+     */
+    private Thread freezeTimer;
+
+    /**
+     * Stops the player freeze timer
+     */
+    private volatile Boolean stopfreezeTimer;
+
+    /**
+     * Future timeout time for player freeze timer
+     */
+    private volatile long timerTimeoutTime;
+    
     /**
      * The class constructor.
      *
@@ -106,9 +121,6 @@ public class Player implements Runnable {
         clickQueue = new ConcurrentLinkedQueue<>();
     }
 
-    private Thread freezeTimer;
-    private volatile Boolean stopTimer;
-    private volatile long timerStopTime;
 
     /**
      * The main player thread of each player starts here (main loop for the player thread).
@@ -120,16 +132,19 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             if (!human) createArtificialIntelligence();
             while (!terminate) {
-                // if(human){
-                    while (clickQueue.isEmpty() == false){
-                        Integer key = clickQueue.remove();
-                        placeOrRemoveToken(key);            
-                    } 
-                // }
+                if(clickQueue.isEmpty() == false){
+                    Integer key = clickQueue.remove();
+                    placeOrRemoveToken(key);            
+                } 
             }
+            clearPlacedTokens();
+            clearClickQueue();
             if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
+
+
+    
 
     /**
      * This method is called when a key is pressed.
@@ -138,19 +153,19 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
-        // if(human){
+        if(terminate == false){
             if(playerThread.getState() == Thread.State.RUNNABLE)
             clickQueue.add(slot);
-        // }       
+        }       
     }
     /*
      * Updates the UI timer if the player is frozen
      */
     private void updateTimerDisplay() { 
-        env.ui.setFreeze(id,timerStopTime-System.currentTimeMillis());   
+        env.ui.setFreeze(id,timerTimeoutTime-System.currentTimeMillis());   
     }
     private void stopTimer() {     
-        stopTimer = true;
+        stopfreezeTimer = true;
     }
 
     /**
@@ -168,13 +183,18 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             aiThread = Thread.currentThread();
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+            
+            try{synchronized(this){
+                wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+            } catch(InterruptedException ignored){}
+
             while (!terminate) {
                 keyPressed(generateKeyPress());
-
                 // limit how fast the AI clicks buttons
                 try{synchronized(this){
                     wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
                 } catch(InterruptedException ignored){}
+
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
             synchronized(aiThread) {aiThread.notifyAll();}
@@ -205,7 +225,7 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
-            synchronized(stopTimer){stopTimer.wait();}
+            synchronized(stopfreezeTimer){stopfreezeTimer.wait();}
         } catch(InterruptedException ignored){}
     }
 
@@ -215,7 +235,7 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
-            synchronized(stopTimer){stopTimer.wait();}
+            synchronized(stopfreezeTimer){stopfreezeTimer.wait();}
         }catch(InterruptedException ignored){}
     }
 
@@ -229,9 +249,9 @@ public class Player implements Runnable {
      */
     private void startTimer(long timeToStop) {
         freezeTimer = new Thread(()->{
-            timerStopTime = System.currentTimeMillis()+ timeToStop;
-            stopTimer = false;
-            while(stopTimer == false & timerStopTime >= System.currentTimeMillis() ){
+            timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
+            stopfreezeTimer = false;
+            while(stopfreezeTimer == false & timerTimeoutTime >= System.currentTimeMillis() ){
                 updateTimerDisplay();
                 try{
                     Thread.sleep(CLOCK_UPDATE_INTERVAL);
@@ -240,8 +260,8 @@ public class Player implements Runnable {
             env.ui.setFreeze(id,0);
             // if(human == false) aiThread.interrupt();
             // else playerThread.interrupt();
-            synchronized(stopTimer){
-                stopTimer.notifyAll();
+            synchronized(stopfreezeTimer){
+                stopfreezeTimer.notifyAll();
             }
         },"Freeze timer for player "+id);
         freezeTimer.start();
@@ -294,6 +314,12 @@ public class Player implements Runnable {
     private void clearPlacedTokens(){
         while (placedTokens.isEmpty() == false){
             placedTokens.pop();
+        }
+    }
+
+    private void clearClickQueue() {
+        while(clickQueue.isEmpty() == false){
+            clickQueue.remove();
         }
     }
 
