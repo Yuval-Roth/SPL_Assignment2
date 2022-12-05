@@ -103,6 +103,8 @@ public class Player implements Runnable {
     private volatile long timerTimeoutTime;
     
     private volatile Boolean pauseExecution;
+    
+    private volatile Object executionListener;
 
     /**
      * The class constructor.
@@ -124,6 +126,7 @@ public class Player implements Runnable {
         stopfreezeTimer = false;
         pauseExecution = true;
         terminate = false;
+        executionListener = new Object();
     }
 
 
@@ -140,8 +143,8 @@ public class Player implements Runnable {
                 clearPlacedTokens();
                 clearClickQueue();
                 try{
-                    synchronized(pauseExecution){
-                        pauseExecution.wait();
+                    synchronized(executionListener){
+                        executionListener.wait();
                     }
                 }catch(InterruptedException ignored){}
             }
@@ -157,10 +160,11 @@ public class Player implements Runnable {
 
     public void pause(){
         pauseExecution = true;
+        stopTimer();
     }
     public void resume(){
         pauseExecution = false;
-        synchronized(pauseExecution){pauseExecution.notifyAll();}
+        synchronized(executionListener){executionListener.notifyAll();}
     }
     /**
      * This method is called when a key is pressed.
