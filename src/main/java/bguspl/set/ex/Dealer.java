@@ -36,14 +36,6 @@ public class Dealer implements Runnable {
     private final List<Integer> deck;
 
     /**
-     * a linked list that holds a history of claimSet() actions
-     * like a stack. FIFO order on the objects inside.
-     * 
-     * @Note The cards inside each Integer[] are sorted with Collections.sort()
-     */
-    private LinkedList<Integer[]> claimStack;
-
-    /**
      * True if game should be terminated due to an external event.
      */
     private volatile boolean terminate;
@@ -85,13 +77,7 @@ public class Dealer implements Runnable {
      * @inv gameVersion >= 0
      */
     private volatile Integer gameVersion;
-    
-    /**
-     * indicates how many cards in a valid set
-     */
-    private static final int SET_SIZE = 3;
-    
-    
+       
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -150,7 +136,6 @@ public class Dealer implements Runnable {
     private void timerLoop() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         gameVersion = 0;
-        claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             placeCardsOnTable();
             resumePlayerThreads();
@@ -176,7 +161,6 @@ public class Dealer implements Runnable {
                 if (isValidSet(cards)){ 
                     handleClaimedSet(cards, claimer);
                     gameVersion++;
-                    pushClaimToStack(cards, claimVersion);
                     correct = true;           
                 }    
             }
@@ -372,35 +356,6 @@ public class Dealer implements Runnable {
         }  
         
     }
-
-    /*
-    * Why does this not have a javadoc?
-    */
-    private boolean isIdenticalClaim( Integer[] claim1,Integer[] claim2){
-        
-        if(claim1.length != claim2.length) return false;
-        
-        for (int i = 0; i< claim1.length; i ++){
-            if(claim1[i] != claim2[i]) return false;
-        }
-        
-        return true;
-    }
-    
-    /*
-    * Why does this not have a javadoc?
-    */
-    private void pushClaimToStack(Integer[] cards, int claimVersion) {
-        
-        Integer[] claim = new Integer[SET_SIZE+1];
-        Arrays.sort(cards);
-        int i = 0;
-        for(Integer card : cards){
-            claim[i++] = card;
-        }
-        claim[claim.length-1] = claimVersion;
-        claimStack.push(claim);
-    }
     
     /*
     * Shuffles the deck
@@ -408,9 +363,7 @@ public class Dealer implements Runnable {
     private void shuffleDeck() {
         Collections.shuffle(deck);
     }
-    
-    
-    
+       
     /*
     * Removes one card from the deck and places it on the table.
     */
