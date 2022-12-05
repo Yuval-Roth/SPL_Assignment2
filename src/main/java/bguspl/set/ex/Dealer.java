@@ -183,14 +183,17 @@ public class Dealer implements Runnable {
             else return false;    
         }
                    
+        
         clearClaimFromUI(cards, claimer);
-        Thread notifyClaim = new Thread(()->{
-            for(Player player : players){
-                if(player!=claimer) player.notifyClaim(cards); 
-            }
-        });
-        notifyClaim.start();     
-        if(correct) claimer.point();
+        if(correct){
+            Thread notifyClaim = new Thread(()->{
+                for(Player player : players){
+                    if(player!=claimer) player.notifyClaim(cards); 
+                }
+            });
+            notifyClaim.start();     
+            claimer.point();
+        } 
         else claimer.penalty();
 
         return true;
