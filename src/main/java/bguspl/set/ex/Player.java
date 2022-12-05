@@ -93,9 +93,17 @@ public class Player implements Runnable {
     private volatile Boolean pauseExecution;
     
     /**
+     * Indicates whether the player should stop executing or not
+     */
+    private volatile Boolean waitForKeyPress;
+
+    private volatile Boolean frozen;
+
+    /**
      * Object for breaking wait() when execution should start
      */
     private volatile Object executionListener;
+    private volatile Object keyPressListener;
 
     /**
      * The class constructor.
@@ -116,8 +124,11 @@ public class Player implements Runnable {
         clickQueue = new ConcurrentLinkedQueue<>();
         stopfreezeTimer =  false;
         pauseExecution = true;
+        waitForKeyPress = true;
         terminate = false;
+        frozen = false;
         executionListener = new Object();
+        keyPressListener = new Object();
     }
 
     //===========================================================
@@ -142,10 +153,18 @@ public class Player implements Runnable {
                     }
                 }catch(InterruptedException ignored){}
             }
-            if(clickQueue.isEmpty() == false){
+            while(clickQueue.isEmpty() == false){
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);            
             } 
+            if(waitForKeyPress){
+                try{
+                    synchronized(keyPressListener){
+                        keyPressListener.wait();
+                    }
+                }catch(InterruptedException ignored){}
+            }
+            
         }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -234,8 +253,9 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
 
         if(terminate == false){
-            if(playerThread.getState() == Thread.State.RUNNABLE)
-            clickQueue.add(slot);
+            if(frozen == false & pauseExecution == false)
+                clickQueue.add(slot);
+            synchronized(keyPressListener){keyPressListener.notifyAll();}
         }       
     }
 
@@ -248,7 +268,9 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
+            frozen = true;
             synchronized(executionListener){executionListener.wait();}
+            frozen = false;
         } catch(InterruptedException ignored){}
     }
 
@@ -258,7 +280,9 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
+            frozen = true;
             synchronized(executionListener){executionListener.wait();}
+            frozen = false;
         }catch(InterruptedException ignored){}
     }
 
