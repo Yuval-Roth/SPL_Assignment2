@@ -41,11 +41,6 @@ public class Dealer implements Runnable {
     private LinkedList<Integer[]> claimStack;
 
     /**
-     * The dealer's main thread
-     */
-    private Thread dealerThread;
-
-    /**
      * True if game should be terminated due to an external event.
      */
     private volatile boolean terminate;
@@ -97,6 +92,10 @@ public class Dealer implements Runnable {
         playerThreads = new Thread[players.length];
     }
     
+    //===========================================================
+    //                      Threads
+    //===========================================================
+
     /**
      * The dealer thread starts here (main loop for the dealer thread).
      */
@@ -104,7 +103,6 @@ public class Dealer implements Runnable {
     public void run() {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         createPlayerThreads();
-        dealerThread = Thread.currentThread();
         elapsedTime = System.currentTimeMillis();
         shuffleDeck();
         while (!shouldFinish()) {        
@@ -113,7 +111,30 @@ public class Dealer implements Runnable {
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
-    
+
+    private void startTimer() {
+        timer = new Thread(()-> {        
+            stopTimer = false;
+            updateTimerDisplay(true);
+            while(stopTimer == false & reshuffleTime > System.currentTimeMillis()){
+                updateTimerDisplay(false);
+                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
+                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
+                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
+            }
+            env.ui.setCountdown(0,true);   
+            synchronized(stopTimer){
+                stopTimer.notifyAll();
+            }
+        },"Reshuffle timer");     
+        timer.start();
+    }
+
+
+    //===========================================================
+    //                      Main methods
+    //===========================================================
+
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
@@ -197,46 +218,6 @@ public class Dealer implements Runnable {
         if(correct) claimer.point();
         else claimer.penalty();
     }
-    /**
-     * clears the claim from the UI
-     * @param cards - the cards in the claim
-     * @param claimer - the player who claimed the set
-     */
-    private void clearClaimFromUI(List<Integer> cards, Player claimer) {
-        for (int token : cards){
-            env.ui.removeToken(claimer.id, token);
-        }
-    }
-    /*
-    * Checks if the given set of cards is a valid set.
-    */
-    private boolean isValidSet(List<Integer> cards) {
-
-
-        synchronized(cards){
-            int[] _cards = cards.stream().mapToInt(i -> i).toArray();
-            return env.util.testSet(_cards);
-        }
-    }
-
-
-    private void startTimer() {
-        timer = new Thread(()-> {        
-            stopTimer = false;
-            updateTimerDisplay(true);
-            while(stopTimer == false & reshuffleTime > System.currentTimeMillis()){
-                updateTimerDisplay(false);
-                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
-                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
-                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
-            }
-            env.ui.setCountdown(0,true);   
-            synchronized(stopTimer){
-                stopTimer.notifyAll();
-            }
-        },"Reshuffle timer");     
-        timer.start();
-    }
 
     /**
      * Stops the reshuffle timer
@@ -246,6 +227,46 @@ public class Dealer implements Runnable {
             stopTimer = true;
             timer.join();
         } catch (InterruptedException ignored){}
+    }
+
+    /**
+     * current reshuffle game version
+     * @return
+     */
+    public int getGameVersion() {
+        return gameVersion;
+    }
+
+    /**
+     * Called when the game should be terminated due to an external event.
+     */
+    public void terminate() {
+        terminate = true;
+    }
+
+    //===========================================================
+    //                  utility methods
+    //===========================================================
+
+    /**
+    * Checks if the given set of cards is a valid set.
+    */
+    private boolean isValidSet(List<Integer> cards) {
+        synchronized(cards){
+            int[] _cards = cards.stream().mapToInt(i -> i).toArray();
+            return env.util.testSet(_cards);
+        }
+    }
+
+    /**
+     * clears the claim from the UI
+     * @param cards - the cards in the claim
+     * @param claimer - the player who claimed the set
+     */
+    private void clearClaimFromUI(List<Integer> cards, Player claimer) {
+        for (int token : cards){
+            env.ui.removeToken(claimer.id, token);
+        }
     }
 
     /**
@@ -259,6 +280,9 @@ public class Dealer implements Runnable {
         }
     }
 
+    /**
+     * Instantiates and starts all the player threads
+     */
     private void createPlayerThreads() {
         for(int i = 0; i< playerThreads.length; i++)
         {
@@ -272,23 +296,9 @@ public class Dealer implements Runnable {
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {
-        // for(Player player: players)
-        // {    
-        //     Thread terminatePlayer = new Thread(()->{
-        //         player.terminate();
-        //     },"terminating player "+player.id);
-        //     terminatePlayer.start();
-        // }
         for(Player player : players){
             player.pause();
         }
-    }
-
-    /**
-     * Called when the game should be terminated due to an external event.
-     */
-    public void terminate() {
-        terminate = true;
     }
 
     /**
@@ -299,8 +309,7 @@ public class Dealer implements Runnable {
     private boolean shouldFinish() {
         return terminate || allSetsDepleted();
     }
-
-    
+ 
     /**
      * Removes all cards from the table and returns them to the deck.
      */
@@ -361,9 +370,12 @@ public class Dealer implements Runnable {
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }
 
-    
-    
-    
+    /**
+     * handles a claim that was verified as a true set
+     * 
+     * @param cards
+     * @param claimer
+     */
     private void handleClaimedSet(List<Integer> cards, Player claimer) {
         removeClaimedCards(cards, claimer);
         placeCardsOnTable();
@@ -380,7 +392,7 @@ public class Dealer implements Runnable {
         }  
         
     }
-    
+
     /*
     * Why does this not have a javadoc?
     */
@@ -433,10 +445,6 @@ public class Dealer implements Runnable {
         Integer cardToPlace = deck.get(0);
         deck.remove(0);
         table.placeCard(cardToPlace);
-    }
-    
-    public int getGameVersion() {
-        return gameVersion;
     }
 
     /**
