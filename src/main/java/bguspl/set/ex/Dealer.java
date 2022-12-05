@@ -66,6 +66,11 @@ public class Dealer implements Runnable {
     private Thread timer;
 
     /**
+     * Object for breaking wait() when execution should resume
+     */
+    private volatile Object executionListener;
+
+    /**
      * Indicates whether the reshuffle timer should stop running
      */
     private volatile Boolean stopTimer = false;
@@ -90,6 +95,7 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
+        executionListener = new Object();
     }
     
     //===========================================================
@@ -123,8 +129,8 @@ public class Dealer implements Runnable {
                 else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
             }
             env.ui.setCountdown(0,true);   
-            synchronized(stopTimer){
-                stopTimer.notifyAll();
+            synchronized(executionListener){
+                executionListener.notifyAll();
             }
         },"Reshuffle timer");     
         timer.start();
@@ -144,7 +150,6 @@ public class Dealer implements Runnable {
         claimStack = new LinkedList<>();
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             placeCardsOnTable();
-            try{Thread.sleep(1000);}catch(InterruptedException ignored){}
             resumePlayerThreads();
             sleepUntilWokenOrTimeout();
             pausePlayerThreads();      
@@ -344,7 +349,7 @@ public class Dealer implements Runnable {
         if(reshuffleTime-System.currentTimeMillis() > 0){
             try{
                 startTimer();
-                synchronized(stopTimer){stopTimer.wait();}
+                synchronized(executionListener){executionListener.wait();}
             }
             catch(InterruptedException e){
                 stopTimer();

@@ -114,7 +114,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        stopfreezeTimer = false;
+        stopfreezeTimer =  false;
         pauseExecution = true;
         terminate = false;
         executionListener = new Object();
@@ -198,8 +198,8 @@ public class Player implements Runnable {
                 } catch (InterruptedException ignored){}
             }
             env.ui.setFreeze(id,0);
-            synchronized(stopfreezeTimer){
-                stopfreezeTimer.notifyAll();
+            synchronized(executionListener){
+                executionListener.notifyAll();
             }
         },"Freeze timer for player "+id);
         freezeTimer.start();
@@ -248,7 +248,7 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         startTimer(env.config.pointFreezeMillis);
         try{
-            synchronized(stopfreezeTimer){stopfreezeTimer.wait();}
+            synchronized(executionListener){executionListener.wait();}
         } catch(InterruptedException ignored){}
     }
 
@@ -258,7 +258,7 @@ public class Player implements Runnable {
     public void penalty() {
         startTimer(env.config.penaltyFreezeMillis);
         try{
-            synchronized(stopfreezeTimer){stopfreezeTimer.wait();}
+            synchronized(executionListener){executionListener.wait();}
         }catch(InterruptedException ignored){}
     }
 
