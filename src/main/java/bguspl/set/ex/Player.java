@@ -78,16 +78,6 @@ public class Player implements Runnable {
     private volatile ConcurrentLinkedQueue<Integer> clickQueue;
 
     /**
-     * Player freeze timer thread
-     */
-    private Thread freezeTimer;
-
-    /**
-     * Stops the player freeze timer
-     */
-    private volatile Boolean stopfreezeTimer;
-
-    /**
      * Future timeout time for player freeze timer
      */
     private volatile long timerTimeoutTime;
@@ -129,7 +119,6 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        stopfreezeTimer =  false;
         pauseExecution = true;
         waitForKeyPress = true;
         terminate = false;
@@ -215,21 +204,14 @@ public class Player implements Runnable {
      * @post - the UI timer is updated
      */
     private void startTimer(long timeToStop) {
-        freezeTimer = new Thread(()->{
-            timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
-            stopfreezeTimer = false;
-            while(stopfreezeTimer == false & timerTimeoutTime >= System.currentTimeMillis() ){
-                updateTimerDisplay();
-                try{
-                    Thread.sleep(CLOCK_UPDATE_INTERVAL);
-                } catch (InterruptedException ignored){}
-            }
-            env.ui.setFreeze(id,0);
-            synchronized(executionListener){
-                executionListener.notifyAll();
-            }
-        },"Freeze timer for player "+id);
-        freezeTimer.start();
+        timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
+        while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
+            updateTimerDisplay();
+            try{
+                Thread.sleep(CLOCK_UPDATE_INTERVAL);
+            } catch (InterruptedException ignored){}
+        }
+        env.ui.setFreeze(id,0);
     }
 
     //===========================================================
@@ -244,8 +226,6 @@ public class Player implements Runnable {
                 table.removeToken(id,token);
             }
         }
-        // if(playerThread.getState() == Thread.State.WAITING)
-        //     playerThread.interrupt();
         synchronized(claimSetListener){claimSetListener.notifyAll();}
     }
 
@@ -254,7 +234,6 @@ public class Player implements Runnable {
      */
     public void pause(){
         pauseExecution = true;
-        stopFreezeTimer();
     }
 
     /**
@@ -346,8 +325,7 @@ public class Player implements Runnable {
         synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
         int version = dealer.getGameVersion();
         Integer[] array = new Integer[placedTokens.size()];
-        return dealer.claimSet(placedTokens.toArray(array), this,version);
-        
+        return dealer.claimSet(placedTokens.toArray(array), this,version);     
     }
 
     /**
@@ -357,7 +335,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        stopFreezeTimer();
+        pauseExecution = true;
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
@@ -374,13 +352,6 @@ public class Player implements Runnable {
      */
     private void updateTimerDisplay() { 
         env.ui.setFreeze(id,timerTimeoutTime-System.currentTimeMillis());   
-    }
-
-    /**
-     * Stops the freeze timer
-     */
-    private void stopFreezeTimer() {     
-        stopfreezeTimer = true;
     }
 
     /**
