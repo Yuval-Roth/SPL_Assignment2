@@ -66,11 +66,6 @@ public class Dealer implements Runnable {
     private volatile Object executionListener;
 
     /**
-     * Indicates whether the reshuffle timer should stop running
-     */
-    private volatile Boolean stopTimer = false;
-
-    /**
      * a version indicator for claimSet() actions
      * resets each shuffle
      * 
@@ -107,22 +102,16 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
 
-    private void startTimer() {
-        timer = new Thread(()-> {        
-            stopTimer = false;
-            updateTimerDisplay(true);
-            while(stopTimer == false & reshuffleTime > System.currentTimeMillis()){
-                updateTimerDisplay(false);
-                if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
-                    try{Thread.sleep(10);} catch (InterruptedException ignored){}
-                else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
-            }
-            env.ui.setCountdown(0,true);   
-            synchronized(executionListener){
-                executionListener.notifyAll();
-            }
-        },"Reshuffle timer");     
-        timer.start();
+    private void startTimer() {     
+        updateTimerDisplay(true);
+        while(terminate == false & reshuffleTime > System.currentTimeMillis()){
+            updateTimerDisplay(false);
+            sleepUntilWokenOrTimeout();
+        }
+        env.ui.setCountdown(0,true);   
+        synchronized(executionListener){
+            executionListener.notifyAll();
+        }
     }
 
 
@@ -139,7 +128,7 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             placeCardsOnTable();
             resumePlayerThreads();
-            sleepUntilWokenOrTimeout();
+            startTimer();
             pausePlayerThreads();      
             removeAllCardsFromTable();
             shuffleDeck();
@@ -181,16 +170,6 @@ public class Dealer implements Runnable {
         else claimer.penalty();
 
         return true;
-    }
-
-    /**
-     * Stops the reshuffle timer
-     */
-    private void stopTimer() {
-        try{
-            stopTimer = true;
-            timer.join();
-        } catch (InterruptedException ignored){}
     }
 
     /**
@@ -295,7 +274,7 @@ public class Dealer implements Runnable {
                 placeNextCardOnTable();
             }
             else {
-                break; // Think about this
+                break; //TODO Think about this
             }
         }
     }
@@ -306,13 +285,9 @@ public class Dealer implements Runnable {
     private void sleepUntilWokenOrTimeout() {
         
         if(reshuffleTime-System.currentTimeMillis() > 0){
-            try{
-                startTimer();
-                synchronized(executionListener){executionListener.wait();}
-            }
-            catch(InterruptedException e){
-                stopTimer();
-            }
+            if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
+                try{Thread.sleep(10);} catch (InterruptedException ignored){}
+            else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
         }
     }
     
