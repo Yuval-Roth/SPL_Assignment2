@@ -274,7 +274,9 @@ public class Player implements Runnable {
         if(placedTokens.contains(slot) == false){
             if(table.placeToken(id, slot)){
                 placedTokens.addLast(slot);
-                if(placedTokens.size() == SET_SIZE) ClaimSet();
+                while(placedTokens.size() == SET_SIZE){
+                  if(ClaimSet()) clearPlacedTokens();  
+                } 
             }
         }
         else{
@@ -289,10 +291,9 @@ public class Player implements Runnable {
      * Claims a set if the player has placed a full set.
      * @post - The dealer is notified about the set claim.
      */
-    private void ClaimSet() {
+    private boolean ClaimSet() {
         int version = dealer.getGameVersion();
-        dealer.claimSet(placedTokens, this,version);
-        clearPlacedTokens();
+        return dealer.claimSet(placedTokens, this,version);
     }
 
     /**
