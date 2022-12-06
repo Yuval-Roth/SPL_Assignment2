@@ -92,8 +92,9 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
     }
     
+    
     //===========================================================
-    //                      Threads
+    //                      Main methods
     //===========================================================
 
     /**
@@ -130,11 +131,6 @@ public class Dealer implements Runnable {
         }
         env.ui.setCountdown(0,true);   
     }
-
-
-    //===========================================================
-    //                      Main methods
-    //===========================================================
 
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
@@ -178,19 +174,17 @@ public class Dealer implements Runnable {
      */
     private void handleClaimedSet(Claim claim) {
 
-        
         if(isValidSet(claim.cards)){
             removeClaimedCards(claim.cards, claim.claimer);
             placeCardsOnTable();
             updateTimerDisplay(true);
-            claim.claimer.point();
+            claim.validSet = true;
             for(Player player : players){
-                if(player!=claim.claimer) player.notifyClaim(claim.cards); 
+                player.notifyClaim(claim); 
             }
         } else{
-            claim.claimer.penalty();
-        }
-        
+            claim.claimer.notifyClaim(claim);
+        }   
     }
 
     /**
@@ -339,7 +333,7 @@ public class Dealer implements Runnable {
         for(int card : cards){ // remove cards from table
             // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
-            env.ui.removeToken(claimer.id, card);
+            // env.ui.removeToken(claimer.id, card);
         }  
         
     }

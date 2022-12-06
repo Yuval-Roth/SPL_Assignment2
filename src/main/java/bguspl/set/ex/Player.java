@@ -84,7 +84,7 @@ public class Player implements Runnable {
     /**
      * Future timeout time for player freeze timer
      */
-    private volatile long timerTimeoutTime;
+    private long timerTimeoutTime;
     
     /**
      * Indicates whether the player should stop executing or not
@@ -98,9 +98,9 @@ public class Player implements Runnable {
 
     private volatile Boolean frozen;
 
-    private volatile LinkedList<Integer[]> claimNotificationQueue;
+    private volatile LinkedList<Claim> claimNotificationQueue;
 
-    private volatile boolean claimNotification;
+    private volatile Boolean claimNotification;
     
 
     /**
@@ -109,6 +109,7 @@ public class Player implements Runnable {
     private volatile Object executionListener;
     private volatile Object activityListener;
     private volatile Object claimSetListener;
+    private volatile boolean blockKeyPress;
 
     /**
      * The class constructor.
@@ -127,14 +128,15 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
+        claimNotificationQueue = new LinkedList<>();
         pauseExecution = true;
         waitForActivity = true;
         terminate = false;
         frozen = false;
+        claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
         claimSetListener = new Object();
-        claimNotificationQueue = new LinkedList<>();
     }
 
     //===========================================================
@@ -151,7 +153,7 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             if(pauseExecution){
-                clearPlacedTokens();
+                clearAllPlacedTokens();
                 clearClickQueue();
                 try{
                     synchronized(executionListener){
@@ -169,10 +171,7 @@ public class Player implements Runnable {
                         activityListener.wait();
                     }
                 }catch(InterruptedException ignored){}
-                if(frozen){
-                    clearPlacedTokens();
-                    startFreezeTimer();
-                }
+                if(claimNotification) handleNotifiedClaim();
             }
             
         }
@@ -209,23 +208,7 @@ public class Player implements Runnable {
         aiThread.start();
     }
 
-    /**
-     * Starts a freeze time thread and updates the UI timer
-     * @param timeToStop - future time to stop in milliseconds
-     * @pre - the freeze timer is stopped
-     * @post - the freeze timer is started
-     * @post - the UI timer is updated
-     */
-    private void startFreezeTimer() {
-        while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
-            updateTimerDisplay();
-            try{
-                Thread.sleep(CLOCK_UPDATE_INTERVAL);
-            } catch (InterruptedException ignored){}
-        }
-        env.ui.setFreeze(id,0);
-        frozen = false;
-    }
+    
 
     //===========================================================
     //                      Main methods
@@ -242,58 +225,94 @@ public class Player implements Runnable {
         
         if(placedTokens.contains(slot) == false){
             if(table.placeToken(id, slot)){
-                synchronized(placedTokens){placedTokens.addLast(slot);}
+                placedTokens.addLast(slot);
                 while(placedTokens.size() == SET_SIZE){    
-                    if(ClaimSet()){clearPlacedTokens();}
-                    else{
-                        if(claimNotification){
-                            checkNotifiedClaim();
-                        }
-                        // try{
-                        //     synchronized(claimSetListener) {claimSetListener.wait();}
-                        // }catch(InterruptedException ignored){}
-                    }
+                    blockKeyPress = true;
+                    clearClickQueue();
+                    if (ClaimSet()) {break;}
+                    else if(claimNotification)
+                        handleNotifiedClaim();
                 } 
             }
         }
-        else{
-            if(table.removeToken(id, slot)){
-               synchronized(placedTokens){placedTokens.remove(slot);}
-            }
-        } 
+        else clearPlacedToken(slot);          
     }
-    
+
     /**
      * @pre - The player has a placedTokens list of size SET_SIZE.
      * Claims a set if the player has placed a full set.
      * @post - The dealer is notified about the set claim.
      */
     private boolean ClaimSet() {
-        synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
-        int version = dealer.getGameVersion();
+        if (placedTokens.size()!= SET_SIZE) return false;
         Integer[] array = new Integer[placedTokens.size()];
+        int version = dealer.getGameVersion();
         try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
         return dealer.claimSet(placedTokens.toArray(array), this,version);     
     }
 
-    public void  notifyClaim(Integer[] claim){
-        claimNotificationQueue.add(claim);
-        claimNotification = true;
-        synchronized(claimSetListener){claimSetListener.notifyAll();}
-    }
-
-    private void checkNotifiedClaim() {
-        while(claimNotificationQueue.isEmpty() == false){
-            Integer[] cards = claimNotificationQueue.remove();
-            synchronized(placedTokens){
-                for(Integer card : cards){
-                    if(placedTokens.contains(card))
-                    placedTokens.remove(card);
-                    table.removeToken(id,card);
-                }
-            }
+    public void notifyClaim(Claim claim){
+        if(frozen == false){
+            claimNotificationQueue.add(claim);
+            synchronized(claimNotification){claimNotification = true;}
+            synchronized(claimSetListener){claimSetListener.notifyAll();}
         }
         
+    }
+
+    private void handleNotifiedClaim() {
+
+        int action = 0;
+        boolean cardsRemoved = false;
+
+        while(claimNotificationQueue.isEmpty() == false){
+            Claim claim = claimNotificationQueue.remove();
+
+            if(claim.claimer == this){
+                action = claim.validSet ? 1:-1;
+                clearAllPlacedTokens();
+            }
+            else if(claim.validSet){             
+                for(Integer card : claim.cards){
+                    if(placedTokens.contains(card)){
+                        clearPlacedToken(card);
+                        cardsRemoved = true;
+                    }
+                }
+            }        
+        }
+        if(cardsRemoved) blockKeyPress = false;
+        synchronized(claimNotification){claimNotification = false;}
+        switch(action){
+            case 0 : break;
+            case 1:{
+                point();
+                break;
+            } 
+            case -1: {
+                penalty();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Starts a freeze time thread and updates the UI timer
+     * @param timeToStop - future time to stop in milliseconds
+     * @pre - the freeze timer is stopped
+     * @post - the freeze timer is started
+     * @post - the UI timer is updated
+     */
+    private void startFreezeTimer() {
+        while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
+            updateTimerDisplay();
+            try{
+                synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
+            } catch (InterruptedException ignored){}
+        }
+        env.ui.setFreeze(id,0);
+        frozen = false;
+        blockKeyPress = false;
     }
 
     /**
@@ -319,14 +338,14 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
 
         if(terminate == false & human){
-            if(frozen == false & pauseExecution == false)
+            if(blockKeyPress == false & frozen == false & pauseExecution == false)
                 clickQueue.add(slot);
             synchronized(activityListener){activityListener.notifyAll();}
         }       
     }
     private void keyPressed_AI(int slot) {
         if(terminate == false){
-            if(frozen == false & pauseExecution == false)
+            if(blockKeyPress == false & frozen == false & pauseExecution == false)
                 clickQueue.add(slot);
             synchronized(activityListener){activityListener.notifyAll();}
         }       
@@ -340,8 +359,7 @@ public class Player implements Runnable {
     public void point() {
         env.ui.setScore(id, ++score);
         timerTimeoutTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
-        frozen = true;
-        synchronized(activityListener){activityListener.notifyAll();}
+        startFreezeTimer();
     }
 
     /**
@@ -349,11 +367,8 @@ public class Player implements Runnable {
      */
     public void penalty() {
         timerTimeoutTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
-        frozen = true;
-        synchronized(activityListener){activityListener.notifyAll();}
+        startFreezeTimer();
     }
-
-
 
     /**
      * Called when the game should be terminated due to an external event.
@@ -366,7 +381,7 @@ public class Player implements Runnable {
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
-        clearPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
+        clearAllPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
     }
 
     //===========================================================
@@ -386,12 +401,18 @@ public class Player implements Runnable {
      * Updates the UI to remove the tokens.
      * @post - the queue of tokens placed is cleared.
      */
-    private void clearPlacedTokens(){
-        synchronized(placedTokens){
-            while (placedTokens.isEmpty() == false){
-                Integer token = placedTokens.removeFirst();
-                table.removeToken(id, token);
+    private void clearAllPlacedTokens(){
+        while(placedTokens.isEmpty() == false){
+            Integer token = placedTokens.remove();
+            if(table.removeToken(id, token)){
+                placedTokens.remove(token);
             }
+        }    
+    }
+
+    private void clearPlacedToken(Integer slot) {
+        if(table.removeToken(id, slot)){
+           placedTokens.remove(slot);
         }
     }
 

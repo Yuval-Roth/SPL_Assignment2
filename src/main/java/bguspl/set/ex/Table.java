@@ -165,7 +165,6 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      * @returns true if action was successful and false otherwise
      */
-    // used to be boolean return archetype
     public boolean removeToken(int player, int slot) {
         if(slotToCard[slot] != null){
             env.ui.removeToken(player, slot);
