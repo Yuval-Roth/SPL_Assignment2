@@ -97,6 +97,10 @@ public class Player implements Runnable {
     private volatile Boolean waitForActivity;
 
     private volatile Boolean frozen;
+
+    private volatile LinkedList<Integer[]> claimNotificationQueue;
+
+    private volatile boolean claimNotification;
     
 
     /**
@@ -130,6 +134,7 @@ public class Player implements Runnable {
         executionListener = new Object();
         activityListener = new Object();
         claimSetListener = new Object();
+        claimNotificationQueue = new LinkedList<>();
     }
 
     //===========================================================
@@ -226,15 +231,70 @@ public class Player implements Runnable {
     //                      Main methods
     //===========================================================
 
-    public void  notifyClaim(Integer[] claim){
-        synchronized(placedTokens){
-            for(Integer token : claim){
-                if(placedTokens.contains(token))
-                placedTokens.remove(token);
-                table.removeToken(id,token);
+    /**
+     * If a token is placed in the given slot, remove it.
+     * Otherwise, place a token in the given slot.
+     * Placing or removing a token sends a message to the table.
+     * Claims a set if the player has placed a full set.
+     * @post - the token is placed or removed from the given slot.
+     */
+    private void placeOrRemoveToken(Integer slot){
+        
+        if(placedTokens.contains(slot) == false){
+            if(table.placeToken(id, slot)){
+                synchronized(placedTokens){placedTokens.addLast(slot);}
+                while(placedTokens.size() == SET_SIZE){
+                    if(claimNotification){
+                        checkNotifiedClaim();
+                        continue;
+                    }
+                    if(ClaimSet()){clearPlacedTokens();}
+                    else{
+                        try{
+                            synchronized(claimSetListener) {claimSetListener.wait();}
+                        }catch(InterruptedException ignored){}
+                    }
+                } 
             }
         }
-        synchronized(claimSetListener){claimSetListener.notifyAll();}
+        else{
+            if(table.removeToken(id, slot)){
+               synchronized(placedTokens){placedTokens.remove(slot);}
+            }
+        } 
+    }
+    
+    /**
+     * @pre - The player has a placedTokens list of size SET_SIZE.
+     * Claims a set if the player has placed a full set.
+     * @post - The dealer is notified about the set claim.
+     */
+    private boolean ClaimSet() {
+        synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
+        int version = dealer.getGameVersion();
+        Integer[] array = new Integer[placedTokens.size()];
+        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
+        return dealer.claimSet(placedTokens.toArray(array), this,version);     
+    }
+
+    public void  notifyClaim(Integer[] claim){
+        claimNotificationQueue.add(claim);
+        claimNotification = true;
+
+    }
+
+    private void checkNotifiedClaim() {
+        while(claimNotificationQueue.isEmpty() == false){
+            Integer[] cards = claimNotificationQueue.remove();
+            synchronized(placedTokens){
+                for(Integer card : cards){
+                    if(placedTokens.contains(card))
+                    placedTokens.remove(card);
+                    table.removeToken(id,card);
+                }
+            }
+        }
+        // synchronized(claimSetListener){claimSetListener.notifyAll();}
     }
 
     /**
@@ -287,47 +347,7 @@ public class Player implements Runnable {
         synchronized(activityListener){activityListener.notifyAll();}
     }
 
-    /**
-     * If a token is placed in the given slot, remove it.
-     * Otherwise, place a token in the given slot.
-     * Placing or removing a token sends a message to the table.
-     * Claims a set if the player has placed a full set.
-     * @post - the token is placed or removed from the given slot.
-     */
-    private void placeOrRemoveToken(Integer slot){
-        
-        if(placedTokens.contains(slot) == false){
-            if(table.placeToken(id, slot)){
-                synchronized(placedTokens){placedTokens.addLast(slot);}
-                while(placedTokens.size() == SET_SIZE){
-                    if(ClaimSet()){clearPlacedTokens();}
-                    else{
-                        try{
-                            synchronized(claimSetListener) {claimSetListener.wait();}
-                        }catch(InterruptedException ignored){}
-                    }
-                } 
-            }
-        }
-        else{
-            if(table.removeToken(id, slot)){
-               synchronized(placedTokens){placedTokens.remove(slot);}
-            }
-        } 
-    }
-    
-    /**
-     * @pre - The player has a placedTokens list of size SET_SIZE.
-     * Claims a set if the player has placed a full set.
-     * @post - The dealer is notified about the set claim.
-     */
-    private boolean ClaimSet() {
-        synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
-        int version = dealer.getGameVersion();
-        Integer[] array = new Integer[placedTokens.size()];
-        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
-        return dealer.claimSet(placedTokens.toArray(array), this,version);     
-    }
+
 
     /**
      * Called when the game should be terminated due to an external event.

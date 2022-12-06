@@ -16,6 +16,11 @@ import java.util.stream.IntStream;
 public class Dealer implements Runnable {
 
     /**
+     *
+     */
+    private static final int timerUpdateTickTime = 500;
+
+    /**
      * The game environment object.
      */
     final Env env;
@@ -105,7 +110,7 @@ public class Dealer implements Runnable {
     private void startTimer() {     
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
-            nextWakeTime = System.currentTimeMillis()+900;
+            nextWakeTime = System.currentTimeMillis()+timerUpdateTickTime;
             while(reshuffleTime > System.currentTimeMillis() && nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
