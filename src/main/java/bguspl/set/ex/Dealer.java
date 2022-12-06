@@ -166,8 +166,7 @@ public class Dealer implements Runnable {
      */
     private void handleClaimedSet(Claim claim) {
 
-        clearClaimFromUI(claim);
-
+        
         if(isValidSet(claim.cards)){
             removeClaimedCards(claim.cards, claim.claimer);
             placeCardsOnTable();
@@ -176,7 +175,10 @@ public class Dealer implements Runnable {
             for(Player player : players){
                 if(player!=claim.claimer) player.notifyClaim(claim.cards); 
             }
-        } else claim.claimer.penalty();
+        } else{
+            claim.claimer.penalty();
+        }
+        
     }
 
     /**
@@ -208,16 +210,16 @@ public class Dealer implements Runnable {
         }
     }
 
-    /**
-     * clears the claim from the UI
-     * @param cards - the cards in the claim
-     * @param claimer - the player who claimed the set
-     */
-    private void clearClaimFromUI(Claim claim) {
-        for (int token : claim.cards){
-            env.ui.removeToken(claim.claimer.id, token);
-        }
-    }
+    // /**
+    //  * clears the claim from the UI
+    //  * @param cards - the cards in the claim
+    //  * @param claimer - the player who claimed the set
+    //  */
+    // private void clearClaimFromUI(Claim claim) {
+    //     for (int token : claim.cards){
+    //         env.ui.removeToken(claim.claimer.id, token);
+    //     }
+    // }
 
     /**
      * Starts the player threads 
@@ -325,6 +327,7 @@ public class Dealer implements Runnable {
         for(int card : cards){ // remove cards from table
             // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
+            env.ui.removeToken(claimer.id, card);
         }  
         
     }

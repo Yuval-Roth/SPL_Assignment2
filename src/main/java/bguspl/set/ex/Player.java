@@ -17,6 +17,10 @@ import bguspl.set.Env;
  */
 public class Player implements Runnable {
 
+    /**
+     *
+     */
+    private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 900;
     private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
@@ -296,7 +300,7 @@ public class Player implements Runnable {
             if(table.placeToken(id, slot)){
                 synchronized(placedTokens){placedTokens.addLast(slot);}
                 while(placedTokens.size() == SET_SIZE){
-                    if(ClaimSet()){}
+                    if(ClaimSet()){clearPlacedTokens();}
                     else{
                         try{
                             synchronized(claimSetListener) {claimSetListener.wait();}
@@ -321,6 +325,7 @@ public class Player implements Runnable {
         synchronized(placedTokens){if (placedTokens.size()!= SET_SIZE) return false;}
         int version = dealer.getGameVersion();
         Integer[] array = new Integer[placedTokens.size()];
+        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
         return dealer.claimSet(placedTokens.toArray(array), this,version);     
     }
 
@@ -358,7 +363,8 @@ public class Player implements Runnable {
     private void clearPlacedTokens(){
         synchronized(placedTokens){
             while (placedTokens.isEmpty() == false){
-                placedTokens.pop();
+                Integer token = placedTokens.removeFirst();
+                table.removeToken(id, token);
             }
         }
     }
