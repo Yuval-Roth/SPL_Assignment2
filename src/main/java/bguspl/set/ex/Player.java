@@ -173,13 +173,11 @@ public class Player implements Runnable {
                 }catch(InterruptedException ignored){}
                 if(claimNotification) handleNotifiedClaim();
             }
-            
         }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
-
 
     /**
      * Creates an additional thread for an AI (computer) player. 
@@ -256,8 +254,7 @@ public class Player implements Runnable {
             claimNotificationQueue.add(claim);
             synchronized(claimNotification){claimNotification = true;}
             synchronized(claimSetListener){claimSetListener.notifyAll();}
-        }
-        
+        } 
     }
 
     private void handleNotifiedClaim() {
@@ -304,6 +301,7 @@ public class Player implements Runnable {
      * @post - the UI timer is updated
      */
     private void startFreezeTimer() {
+        frozen = true;
         while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
