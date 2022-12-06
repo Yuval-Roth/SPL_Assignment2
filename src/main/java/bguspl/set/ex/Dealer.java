@@ -120,9 +120,10 @@ public class Dealer implements Runnable {
             while(reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
-                if(claimQueue.isEmpty() == false){
+                while(claimQueue.isEmpty() == false){
                     Claim claim = claimQueue.remove();
                     handleClaimedSet(claim);
+                    updateTimerDisplay(false);
                 }
             } 
                 

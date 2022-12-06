@@ -243,16 +243,15 @@ public class Player implements Runnable {
         if(placedTokens.contains(slot) == false){
             if(table.placeToken(id, slot)){
                 synchronized(placedTokens){placedTokens.addLast(slot);}
-                while(placedTokens.size() == SET_SIZE){
-                    if(claimNotification){
-                        checkNotifiedClaim();
-                        continue;
-                    }
+                while(placedTokens.size() == SET_SIZE){    
                     if(ClaimSet()){clearPlacedTokens();}
                     else{
-                        try{
-                            synchronized(claimSetListener) {claimSetListener.wait();}
-                        }catch(InterruptedException ignored){}
+                        if(claimNotification){
+                            checkNotifiedClaim();
+                        }
+                        // try{
+                        //     synchronized(claimSetListener) {claimSetListener.wait();}
+                        // }catch(InterruptedException ignored){}
                     }
                 } 
             }
@@ -280,7 +279,7 @@ public class Player implements Runnable {
     public void  notifyClaim(Integer[] claim){
         claimNotificationQueue.add(claim);
         claimNotification = true;
-
+        synchronized(claimSetListener){claimSetListener.notifyAll();}
     }
 
     private void checkNotifiedClaim() {
@@ -294,7 +293,7 @@ public class Player implements Runnable {
                 }
             }
         }
-        // synchronized(claimSetListener){claimSetListener.notifyAll();}
+        
     }
 
     /**
@@ -410,7 +409,7 @@ public class Player implements Runnable {
      */
     private int generateKeyPress(){
         Random rand = new Random();
-        return rand.nextInt(getCurrentTableSize());
+        return rand.nextInt(12/*getCurrentTableSize()*/);
     }
 
 
