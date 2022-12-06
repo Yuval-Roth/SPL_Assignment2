@@ -44,6 +44,11 @@ public class Dealer implements Runnable {
     volatile private long reshuffleTime;
 
     /**
+     * The time when the dealer needs to reshuffle the deck due to turn timeout.
+     */
+    volatile private long nextWakeTime;
+
+    /**
      * TODO fill this doc
      */
     volatile private long elapsedTime;
@@ -265,9 +270,11 @@ public class Dealer implements Runnable {
     private void sleepUntilWokenOrTimeout() {
         
         if(reshuffleTime-System.currentTimeMillis() > 0){
-            if(reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis)
-                try{Thread.sleep(10);} catch (InterruptedException ignored){}
-            else  try{Thread.sleep(1000);} catch (InterruptedException ignored){}
+            if(nextWakeTime-System.currentTimeMillis() > 0)
+                try{
+                    synchronized(this){wait(nextWakeTime-System.currentTimeMillis());
+                    }
+            }catch(InterruptedException ignored){}
         }
     }
     
