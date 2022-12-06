@@ -90,7 +90,7 @@ public class Player implements Runnable {
     /**
      * Indicates whether the player should stop executing or not
      */
-    private volatile Boolean waitForKeyPress;
+    private volatile Boolean waitForActivity;
 
     private volatile Boolean frozen;
     
@@ -99,7 +99,7 @@ public class Player implements Runnable {
      * Object for breaking wait() when execution should start
      */
     private volatile Object executionListener;
-    private volatile Object keyPressListener;
+    private volatile Object activityListener;
     private volatile Object claimSetListener;
 
     /**
@@ -120,11 +120,11 @@ public class Player implements Runnable {
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
         pauseExecution = true;
-        waitForKeyPress = true;
+        waitForActivity = true;
         terminate = false;
         frozen = false;
         executionListener = new Object();
-        keyPressListener = new Object();
+        activityListener = new Object();
         claimSetListener = new Object();
     }
 
@@ -154,12 +154,16 @@ public class Player implements Runnable {
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);            
             } 
-            if(waitForKeyPress){
+            if(waitForActivity){
                 try{
-                    synchronized(keyPressListener){
-                        keyPressListener.wait();
+                    synchronized(activityListener){
+                        activityListener.wait();
                     }
                 }catch(InterruptedException ignored){}
+                if(frozen){
+                    clearPlacedTokens();
+                    startFreezeTimer();
+                }
             }
             
         }
@@ -203,9 +207,7 @@ public class Player implements Runnable {
      * @post - the freeze timer is started
      * @post - the UI timer is updated
      */
-    private void startFreezeTimer(long timeToStop) {
-        frozen = true;   
-        timerTimeoutTime = System.currentTimeMillis()+ timeToStop;
+    private void startFreezeTimer() {
         while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
@@ -256,7 +258,7 @@ public class Player implements Runnable {
         if(terminate == false){
             if(frozen == false & pauseExecution == false)
                 clickQueue.add(slot);
-            synchronized(keyPressListener){keyPressListener.notifyAll();}
+            synchronized(activityListener){activityListener.notifyAll();}
         }       
     }
 
@@ -267,16 +269,18 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(id, ++score);
-        clearPlacedTokens();
-        startFreezeTimer(env.config.pointFreezeMillis);
+        timerTimeoutTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
+        frozen = true;
+        synchronized(activityListener){activityListener.notifyAll();}
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        clearPlacedTokens();
-        startFreezeTimer(env.config.penaltyFreezeMillis);
+        timerTimeoutTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
+        frozen = true;
+        synchronized(activityListener){activityListener.notifyAll();}
     }
 
     /**

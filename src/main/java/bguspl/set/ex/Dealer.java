@@ -105,11 +105,11 @@ public class Dealer implements Runnable {
     private void startTimer() {     
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
-            nextWakeTime = System.currentTimeMillis()+1000;
-            updateTimerDisplay(false);
+            nextWakeTime = System.currentTimeMillis()+900;
             while(reshuffleTime > System.currentTimeMillis() && nextWakeTime > System.currentTimeMillis()){
+                updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
-                while(claimQueue.isEmpty() == false){
+                if(claimQueue.isEmpty() == false){
                     Claim claim = claimQueue.remove();
                     handleClaimedSet(claim);
                 }
@@ -155,30 +155,28 @@ public class Dealer implements Runnable {
             claimQueue.add(new Claim(cards,claimer,claimVersion));
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      
-            
-        // boolean correct = false;
+    }
 
-        // synchronized(this){
-        //     if(claimVersion == gameVersion){
-        //         if (isValidSet(cards)){ 
-        //             handleClaimedSet(cards, claimer);
-        //             gameVersion++;
-        //             correct = true;           
-        //         }    
-        //     }
-        //     else return false;    
-        // }
-                    
-        // clearClaimFromUI(cards, claimer);
-        // if(correct){
-        //     for(Player player : players){
-        //         if(player!=claimer) player.notifyClaim(cards); 
-        //     }     
-        //     claimer.point();
-        // } 
-        // else claimer.penalty();
+    
+    /**
+     * handles a claim that was verified as a true set
+     * 
+     * @param cards
+     * @param claimer
+     */
+    private void handleClaimedSet(Claim claim) {
 
-        // return true;
+        clearClaimFromUI(claim);
+
+        if(isValidSet(claim.cards)){
+            removeClaimedCards(claim.cards, claim.claimer);
+            placeCardsOnTable();
+            updateTimerDisplay(true);
+            claim.claimer.point();
+            for(Player player : players){
+                if(player!=claim.claimer) player.notifyClaim(claim.cards); 
+            }
+        } else claim.claimer.penalty();
     }
 
     /**
@@ -318,24 +316,6 @@ public class Dealer implements Runnable {
         
         if(reset) elapsedTime = System.currentTimeMillis();   
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
-    }
-
-    /**
-     * handles a claim that was verified as a true set
-     * 
-     * @param cards
-     * @param claimer
-     */
-    private void handleClaimedSet(Claim claim) {
-
-        clearClaimFromUI(claim);
-
-        if(isValidSet(claim.cards)){
-            removeClaimedCards(claim.cards, claim.claimer);
-            placeCardsOnTable();
-            updateTimerDisplay(true);
-            claim.claimer.point();
-        } else claim.claimer.penalty();
     }
 
     /*
