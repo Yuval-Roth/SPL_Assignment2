@@ -1,10 +1,12 @@
 package bguspl.set.ex;
 import bguspl.set.Env;
+import bguspl.set.ex.Claim;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -65,6 +67,10 @@ public class Dealer implements Runnable {
      * @inv gameVersion >= 0
      */
     private volatile Integer gameVersion;
+
+    private volatile Object wakeListener;
+
+    private volatile ConcurrentLinkedQueue<Claim> claimQueue;
        
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -72,6 +78,8 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         playerThreads = new Thread[players.length];
+        wakeListener = new Object();
+        claimQueue = new ConcurrentLinkedQueue<>();
     }
     
     //===========================================================
@@ -97,8 +105,16 @@ public class Dealer implements Runnable {
     private void startTimer() {     
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
+            nextWakeTime = System.currentTimeMillis()+1000;
             updateTimerDisplay(false);
-            sleepUntilWokenOrTimeout();
+            while(reshuffleTime > System.currentTimeMillis() && nextWakeTime > System.currentTimeMillis()){
+                sleepUntilWokenOrTimeout();
+                while(claimQueue.isEmpty() == false){
+                    Claim claim = claimQueue.remove();
+                    handleClaimedSet(claim);
+                }
+            } 
+                
         }
         env.ui.setCountdown(0,true);   
     }
@@ -132,29 +148,37 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
 
-        boolean correct = false;
-
-        synchronized(this){
-            if(claimVersion == gameVersion){
-                if (isValidSet(cards)){ 
-                    handleClaimedSet(cards, claimer);
-                    gameVersion++;
-                    correct = true;           
-                }    
-            }
-            else return false;    
+        synchronized(gameVersion){
+            if(claimVersion == gameVersion) gameVersion++;
+            else return false;
         }
-                    
-        clearClaimFromUI(cards, claimer);
-        if(correct){
-            for(Player player : players){
-                if(player!=claimer) player.notifyClaim(cards); 
-            }     
-            claimer.point();
-        } 
-        else claimer.penalty();
+            claimQueue.add(new Claim(cards,claimer,claimVersion));
+            synchronized(wakeListener){wakeListener.notifyAll();}
+            return true;      
+            
+        // boolean correct = false;
 
-        return true;
+        // synchronized(this){
+        //     if(claimVersion == gameVersion){
+        //         if (isValidSet(cards)){ 
+        //             handleClaimedSet(cards, claimer);
+        //             gameVersion++;
+        //             correct = true;           
+        //         }    
+        //     }
+        //     else return false;    
+        // }
+                    
+        // clearClaimFromUI(cards, claimer);
+        // if(correct){
+        //     for(Player player : players){
+        //         if(player!=claimer) player.notifyClaim(cards); 
+        //     }     
+        //     claimer.point();
+        // } 
+        // else claimer.penalty();
+
+        // return true;
     }
 
     /**
@@ -191,9 +215,9 @@ public class Dealer implements Runnable {
      * @param cards - the cards in the claim
      * @param claimer - the player who claimed the set
      */
-    private void clearClaimFromUI(Integer[] cards, Player claimer) {
-        for (int token : cards){
-            env.ui.removeToken(claimer.id, token);
+    private void clearClaimFromUI(Claim claim) {
+        for (int token : claim.cards){
+            env.ui.removeToken(claim.claimer.id, token);
         }
     }
 
@@ -272,7 +296,7 @@ public class Dealer implements Runnable {
         if(reshuffleTime-System.currentTimeMillis() > 0){
             if(nextWakeTime-System.currentTimeMillis() > 0)
                 try{
-                    synchronized(this){wait(nextWakeTime-System.currentTimeMillis());
+                    synchronized(wakeListener){wakeListener.wait(nextWakeTime-System.currentTimeMillis());
                     }
             }catch(InterruptedException ignored){}
         }
@@ -302,10 +326,16 @@ public class Dealer implements Runnable {
      * @param cards
      * @param claimer
      */
-    private void handleClaimedSet(Integer[] cards, Player claimer) {
-        removeClaimedCards(cards, claimer);
-        placeCardsOnTable();
-        updateTimerDisplay(true);
+    private void handleClaimedSet(Claim claim) {
+
+        clearClaimFromUI(claim);
+
+        if(isValidSet(claim.cards)){
+            removeClaimedCards(claim.cards, claim.claimer);
+            placeCardsOnTable();
+            updateTimerDisplay(true);
+            claim.claimer.point();
+        } else claim.claimer.penalty();
     }
 
     /*
