@@ -18,6 +18,11 @@ public class Dealer implements Runnable {
     /**
      *
      */
+    private static final int timerUpdateCriticalTickTime = 25;
+
+    /**
+     *
+     */
     private static final int timerUpdateTickTime = 500;
 
     /**
@@ -110,8 +115,9 @@ public class Dealer implements Runnable {
     private void startTimer() {     
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
-            nextWakeTime = System.currentTimeMillis()+timerUpdateTickTime;
-            while(reshuffleTime > System.currentTimeMillis() && nextWakeTime > System.currentTimeMillis()){
+            nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
+                                System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime; 
+            while(reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
                 if(claimQueue.isEmpty() == false){
