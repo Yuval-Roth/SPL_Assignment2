@@ -198,7 +198,7 @@ public class Player implements Runnable {
             } catch(InterruptedException ignored){}
 
             while (!terminate) {
-                keyPressed(generateKeyPress());
+                keyPressed_AI(generateKeyPress());
                 // limit how fast the AI clicks buttons
                 try{synchronized(this){
                     wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
@@ -319,6 +319,13 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
+        if(terminate == false & human){
+            if(frozen == false & pauseExecution == false)
+                clickQueue.add(slot);
+            synchronized(activityListener){activityListener.notifyAll();}
+        }       
+    }
+    private void keyPressed_AI(int slot) {
         if(terminate == false){
             if(frozen == false & pauseExecution == false)
                 clickQueue.add(slot);
