@@ -401,9 +401,9 @@ public class Player implements Runnable {
      */
     private void clearAllPlacedTokens(){
         while(placedTokens.isEmpty() == false){
-            Integer token = placedTokens.remove();
+            Integer token = placedTokens.peekFirst();
             if(table.removeToken(id, token)){
-                placedTokens.remove(token);
+                placedTokens.removeFirst();
             }
         }    
     }
