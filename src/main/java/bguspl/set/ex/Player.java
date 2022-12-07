@@ -26,9 +26,6 @@ public class Player implements Runnable {
         terminated
     }
     
-    /**
-     *
-     */
     private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 900;
@@ -69,11 +66,6 @@ public class Player implements Runnable {
      * True iff the player is human (not a computer player).
      */
     public final boolean human;
-
-    /**
-     * True if game should be terminated due to an external event.
-     */
-    private volatile Boolean terminate;
     
     /**
      * The current score of the player.
@@ -107,9 +99,13 @@ public class Player implements Runnable {
     private volatile State state;
 
     /**
-     * Object for breaking wait() when execution should start
+     * Object for breaking wait() when game execution should resume
      */
     private volatile Object executionListener;
+
+    /**
+     * Object for breaking wait() when waiting for general activity
+     */
     private volatile Object activityListener;
 
     /**
@@ -130,7 +126,6 @@ public class Player implements Runnable {
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
         claimNotificationQueue = new LinkedList<>();
-        terminate = false;
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
@@ -191,7 +186,7 @@ public class Player implements Runnable {
                 wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
             } catch(InterruptedException ignored){}
 
-            while (!terminate) {
+            while (state!=State.terminated) {
                 keyPressed_AI(generateKeyPress());
                 // limit how fast the AI clicks buttons
                 try{synchronized(this){
