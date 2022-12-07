@@ -204,28 +204,36 @@ public class Player implements Runnable {
     private void placeOrRemoveToken(Integer slot){
 
         if(placedTokens.contains(slot) == false){
-            table.placeToken(id, slot);
-            placedTokens.addLast(slot);
-            while(placedTokens.size() == SET_SIZE){    
-                state = State.waitingForClaim;
-                clearClickQueue();
-                if (ClaimSet()) {    
-                    break;
-                }
-                else if(claimNotification){
-                    handleNotifiedClaim();
-                }
-                else {
-                    try{
-                        synchronized(activityListener){activityListener.wait();}
-                    }catch(InterruptedException ignored){}
-                    handleNotifiedClaim();
-                }
-            } 
+            boolean insertState = false;
+            int tries = 0;
+            while(insertState == false & tries <=5){
+                insertState = table.placeToken(id, slot);
+                tries++;
+                try{Thread.sleep(10);}catch(InterruptedException ignored){}
+            }
+            if(insertState){
+                placedTokens.addLast(slot);
+                while(placedTokens.size() == SET_SIZE){    
+                    state = State.waitingForClaim;
+                    clearClickQueue();
+                    if (ClaimSet()) {    
+                        break;
+                    }
+                    else if(claimNotification){
+                        handleNotifiedClaim();
+                    }
+                    else {
+                        try{
+                            synchronized(activityListener){activityListener.wait();}
+                        }catch(InterruptedException ignored){}
+                        handleNotifiedClaim();
+                    }
+                } 
+            }
         }
         else {
             clearPlacedToken(slot);
-            state = State.waitingForActivity;        
+            // state = State.waitingForActivity;        
         }
     }
 

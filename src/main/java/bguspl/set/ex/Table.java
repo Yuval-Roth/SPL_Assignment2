@@ -151,8 +151,11 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      * @returns true if action was successful and false otherwise
      */
-    public void placeToken(int player, int slot) {       
+    public boolean placeToken(int player, int slot) {       
+        if(slotToCard[slot] != null){
             env.ui.placeToken(player, slot);
+            return true;
+        }else return false;
     }
 
     /**
