@@ -306,14 +306,15 @@ public class Player implements Runnable {
      */
     private void startFreezeTimer() {
         state = State.frozen;
-        while(state != State.executionPaused & timerTimeoutTime >= System.currentTimeMillis() ){
+        while(state == State.frozen & timerTimeoutTime >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
             } catch (InterruptedException ignored){}
         }
+        
         env.ui.setFreeze(id,0);
-        state = State.waitingForActivity;
+        if(state == State.frozen){state = State.waitingForActivity;}
     }
 
     /**
@@ -321,6 +322,8 @@ public class Player implements Runnable {
      */
     public void pause(){
         state = State.executionPaused;
+        synchronized(this){notifyAll();}
+        synchronized(activityListener){activityListener.notifyAll();}
     }
 
     /**
