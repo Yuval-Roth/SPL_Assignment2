@@ -86,11 +86,6 @@ public class Player implements Runnable {
      * Future timeout time for player freeze timer
      */
     private long timerTimeoutTime;
-    
-    // /**
-    //  * Indicates whether the player should stop executing or not
-    //  */
-    // private volatile Boolean pauseExecution;
 
     private volatile LinkedList<Claim> claimNotificationQueue;
 
