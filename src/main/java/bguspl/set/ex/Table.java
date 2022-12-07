@@ -151,11 +151,8 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      * @returns true if action was successful and false otherwise
      */
-    public boolean placeToken(int player, int slot) {       
-        if(slotToCard[slot] != null){
+    public void placeToken(int player, int slot) {       
             env.ui.placeToken(player, slot);
-            return true;
-        }else return false;
     }
 
     /**
@@ -165,11 +162,8 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      * @returns true if action was successful and false otherwise
      */
-    public boolean removeToken(int player, int slot) {
-        if(slotToCard[slot] != null){
-            env.ui.removeToken(player, slot);
-            return true;
-        } else return false;
+    public void removeToken(int player, int slot) {
+        env.ui.removeToken(player, slot);
     }
 
     /*

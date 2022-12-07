@@ -219,20 +219,19 @@ public class Player implements Runnable {
     private void placeOrRemoveToken(Integer slot){
 
         if(placedTokens.contains(slot) == false){
-            if(table.placeToken(id, slot)){
-                placedTokens.addLast(slot);
-                while(placedTokens.size() == SET_SIZE){    
-                    state = State.waitingForClaim;
-                    clearClickQueue();
-                    if (ClaimSet()) {    
-                        break;
-                    }
-                    else if(claimNotification){
-                        handleNotifiedClaim();
-                    }
-                    else {/*try again*/}
-                } 
-            }
+            table.placeToken(id, slot);
+            placedTokens.addLast(slot);
+            while(placedTokens.size() == SET_SIZE){    
+                state = State.waitingForClaim;
+                clearClickQueue();
+                if (ClaimSet()) {    
+                    break;
+                }
+                else if(claimNotification){
+                    handleNotifiedClaim();
+                }
+                else {/*try again*/}
+            } 
         }
         else {
             clearPlacedToken(slot);
@@ -406,16 +405,14 @@ public class Player implements Runnable {
     private void clearAllPlacedTokens(){
         while(placedTokens.isEmpty() == false){
             Integer token = placedTokens.peekFirst();
-            if(table.removeToken(id, token)){
-                placedTokens.removeFirst();
-            }
+            table.removeToken(id, token);
+            placedTokens.removeFirst();
         }    
     }
 
     private void clearPlacedToken(Integer slot) {
-        if(table.removeToken(id, slot)){
-           placedTokens.remove(slot);
-        }
+        table.removeToken(id, slot);
+        placedTokens.remove(slot);
     }
 
     /**
