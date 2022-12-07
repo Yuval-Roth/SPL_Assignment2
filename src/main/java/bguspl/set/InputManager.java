@@ -35,8 +35,9 @@ class InputManager extends KeyAdapter {
         // dispatch the key event to the player according to the key map
         int keyCode = e.getKeyCode();
         int player = keyMap[keyCode] - 1;
-        if (player >= 0)
+        if (player >= 0){
             env.logger.log(Level.SEVERE, "Key " + keyCode + " was pressed by player " + player);
             players[player].keyPressed(keyToSlot[keyCode]);
+        }
     }
 }
