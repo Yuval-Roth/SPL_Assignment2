@@ -230,7 +230,12 @@ public class Player implements Runnable {
                 else if(claimNotification){
                     handleNotifiedClaim();
                 }
-                else {/*try again*/}
+                else {
+                    try{
+                        synchronized(activityListener){activityListener.wait();}
+                    }catch(InterruptedException ignored){}
+                    handleNotifiedClaim();
+                }
             } 
         }
         else {

@@ -158,7 +158,8 @@ public class Dealer implements Runnable {
     public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
 
         synchronized(gameVersion){
-            if(claimVersion == gameVersion) gameVersion++;
+            if(claimVersion == gameVersion) 
+                gameVersion++;
             else return false;
         }
             claimQueue.add(new Claim(cards,claimer,claimVersion));
