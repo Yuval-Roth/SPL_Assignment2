@@ -378,7 +378,7 @@ public class Dealer implements Runnable {
      * @return true iff there are no possible sets.
      */
     private boolean allSetsDepleted() {
-
+        //TODO 
         return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
     }
     

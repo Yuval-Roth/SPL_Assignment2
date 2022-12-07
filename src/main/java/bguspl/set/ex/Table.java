@@ -173,7 +173,7 @@ public class Table {
      * Clears the table of all cards and tokens.
      */
     public Integer[] clearTable() {
-        Integer[] cardsRemoved = slotToCard.clone();
+        Integer[] cardsRemoved = Arrays.stream(slotToCard).filter(Objects::nonNull).toArray(Integer[]::new);
         slotToCard = new Integer[slotToCard.length];
         cardToSlot = new Integer[cardToSlot.length];
         return cardsRemoved;
@@ -200,8 +200,6 @@ public class Table {
         int countToPlace = env.config.tableSize - getCurrentSize();
         return countToPlace;
     }
-
-
     /*
      * Returns the number of possible sets on the table.
      */
@@ -209,6 +207,15 @@ public class Table {
         Integer[] cardsOnTable = slotToCard.clone();
         List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
         return env.util.findSets(deck, 1).size();
+    }
+
+    /*
+     * Returns the number of possible sets on the table.
+     */
+    public List<Integer> getCardsOnTable() {
+        Integer[] cardsOnTable = slotToCard.clone();
+        List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
+        return deck;
     }
     
 
