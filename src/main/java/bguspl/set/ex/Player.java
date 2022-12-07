@@ -19,18 +19,13 @@ import bguspl.set.Env;
 public class Player implements Runnable {
 
     public enum State{
-        busy,
         waitingForActivity,
         waitingForClaim,
         frozen,
         executionPaused,
         terminated
     }
-        
     
-        
-    
-
     /**
      *
      */
