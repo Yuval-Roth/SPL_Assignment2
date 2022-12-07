@@ -236,12 +236,6 @@ public class Player implements Runnable {
                         handleNotifiedClaim();
                     }
                     else {/*try again*/}
-                        
-
-                        // try{
-                        //     synchronized(activityListener){activityListener.wait();}
-                        // }catch(InterruptedException ignored){}
-
                 } 
             }
         }
