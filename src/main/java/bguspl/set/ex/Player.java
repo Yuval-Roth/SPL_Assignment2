@@ -110,13 +110,12 @@ public class Player implements Runnable {
     private volatile Boolean claimNotification;
 
     private volatile State state;
-    
+
     /**
      * Object for breaking wait() when execution should start
      */
     private volatile Object executionListener;
     private volatile Object activityListener;
-    private volatile Object claimSetListener;
 
     /**
      * The class constructor.
@@ -140,7 +139,6 @@ public class Player implements Runnable {
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
-        claimSetListener = new Object();
         state = State.executionPaused;
     }
 
@@ -262,7 +260,7 @@ public class Player implements Runnable {
         if (placedTokens.size()!= SET_SIZE) return false;
         Integer[] array = new Integer[placedTokens.size()];
         int version = dealer.getGameVersion();
-        // try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
+        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
         return dealer.claimSet(placedTokens.toArray(array), this,version);     
     }
 
@@ -462,5 +460,9 @@ public class Player implements Runnable {
      */
     public int getScore() {
         return score;
+    }
+
+    public State getState() {
+        return state;
     }
 }

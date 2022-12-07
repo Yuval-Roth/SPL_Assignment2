@@ -1,6 +1,7 @@
 package bguspl.set.ex;
 import bguspl.set.Env;
 import bguspl.set.ex.Claim;
+import bguspl.set.ex.Player.State;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -180,7 +181,8 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             claim.validSet = true;
             for(Player player : players){
-                player.notifyClaim(claim); 
+                if(player.getState() == Player.State.waitingForActivity | player.getState() == State.waitingForClaim)
+                    player.notifyClaim(claim); 
             }
         } else{
             claim.claimer.notifyClaim(claim);
