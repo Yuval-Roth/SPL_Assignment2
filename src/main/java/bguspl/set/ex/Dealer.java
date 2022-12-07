@@ -1,7 +1,5 @@
 package bguspl.set.ex;
 import bguspl.set.Env;
-import bguspl.set.ex.Claim;
-import bguspl.set.ex.Player.State;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,7 +22,7 @@ public class Dealer implements Runnable {
     /**
      *
      */
-    private static final int timerUpdateTickTime = 500;
+    private static final int timerUpdateTickTime = 250;
 
     /**
      * The game environment object.
@@ -182,7 +180,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             claim.validSet = true;
             for(Player player : players){
-                if(player.getState() == Player.State.waitingForActivity | player.getState() == State.waitingForClaim)
+                if(player.getState() == Player.State.waitingForActivity | player.getState() == Player.State.waitingForClaim)
                     player.notifyClaim(claim); 
             }
         } else{
@@ -218,17 +216,6 @@ public class Dealer implements Runnable {
             return env.util.testSet(_cards);
         }
     }
-
-    // /**
-    //  * clears the claim from the UI
-    //  * @param cards - the cards in the claim
-    //  * @param claimer - the player who claimed the set
-    //  */
-    // private void clearClaimFromUI(Claim claim) {
-    //     for (int token : claim.cards){
-    //         env.ui.removeToken(claim.claimer.id, token);
-    //     }
-    // }
 
     /**
      * Starts the player threads 

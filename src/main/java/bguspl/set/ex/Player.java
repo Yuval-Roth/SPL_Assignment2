@@ -1,12 +1,7 @@
 package bguspl.set.ex;
-import java.rmi.UnexpectedException;
-import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 
 import bguspl.set.Env;
 
@@ -28,7 +23,7 @@ public class Player implements Runnable {
     
     private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
-    private static final int CLOCK_UPDATE_INTERVAL = 900;
+    private static final int CLOCK_UPDATE_INTERVAL = 250;
     private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
 
     /**
@@ -240,7 +235,7 @@ public class Player implements Runnable {
      * @post - The dealer is notified about the set claim.
      */
     private boolean ClaimSet() {
-        if (placedTokens.size()!= SET_SIZE) return false;
+        // if (placedTokens.size()!= SET_SIZE) return false;
         Integer[] array = new Integer[placedTokens.size()];
         int version = dealer.getGameVersion();
         try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
@@ -267,7 +262,7 @@ public class Player implements Runnable {
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
             }
-            else if(claim.validSet){             
+            else{             
                 for(Integer card : claim.cards){
                     if(placedTokens.contains(card)){
                         clearPlacedToken(card);
@@ -425,14 +420,6 @@ public class Player implements Runnable {
     private int generateKeyPress(){
         Random rand = new Random();
         return rand.nextInt(12/*getCurrentTableSize()*/);
-    }
-
-
-    /**
-     * @return the current table size.
-     */
-    private int getCurrentTableSize(){
-        return table.getCurrentSize();
     }
 
     //===========================================================
