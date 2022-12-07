@@ -1,4 +1,4 @@
 {
     "java.configuration.updateBuildConfiguration": "disabled",
-    "java.jdt.ls.java.home": "c:\\Program Files\\Java\\jdk-8.0.352.8-hotspot"
+    "java.jdt.ls.java.home": "/usr/lib/jvm/java-8-openjdk-amd64",
 }
