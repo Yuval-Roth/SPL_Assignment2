@@ -376,7 +376,8 @@ public class Player implements Runnable {
      */
     public void terminate() {
         state = State.terminated;
-        synchronized(executionListener){executionListener.notifyAll();}
+        synchronized(this){notifyAll();}
+        synchronized(activityListener){activityListener.notifyAll();}
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
