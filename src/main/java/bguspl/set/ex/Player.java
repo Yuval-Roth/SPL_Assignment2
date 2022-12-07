@@ -1,4 +1,5 @@
 package bguspl.set.ex;
+import java.rmi.UnexpectedException;
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,19 @@ import bguspl.set.Env;
  * @inv score >= 0
  */
 public class Player implements Runnable {
+
+    public enum State{
+        busy,
+        waitingForActivity,
+        waitingForClaim,
+        frozen,
+        executionPaused,
+        terminated
+    }
+        
+    
+        
+    
 
     /**
      *
@@ -86,30 +100,23 @@ public class Player implements Runnable {
      */
     private long timerTimeoutTime;
     
-    /**
-     * Indicates whether the player should stop executing or not
-     */
-    private volatile Boolean pauseExecution;
-    
-    /**
-     * Indicates whether the player should stop executing or not
-     */
-    private volatile Boolean waitForActivity;
-
-    private volatile Boolean frozen;
+    // /**
+    //  * Indicates whether the player should stop executing or not
+    //  */
+    // private volatile Boolean pauseExecution;
 
     private volatile LinkedList<Claim> claimNotificationQueue;
 
     private volatile Boolean claimNotification;
-    
 
+    private volatile State state;
+    
     /**
      * Object for breaking wait() when execution should start
      */
     private volatile Object executionListener;
     private volatile Object activityListener;
     private volatile Object claimSetListener;
-    private volatile boolean blockKeyPress;
 
     /**
      * The class constructor.
@@ -129,14 +136,12 @@ public class Player implements Runnable {
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
         claimNotificationQueue = new LinkedList<>();
-        pauseExecution = true;
-        waitForActivity = true;
         terminate = false;
-        frozen = false;
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
         claimSetListener = new Object();
+        state = State.executionPaused;
     }
 
     //===========================================================
@@ -151,8 +156,8 @@ public class Player implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         playerThread = Thread.currentThread();
         if (!human) createArtificialIntelligence();
-        while (!terminate) {
-            if(pauseExecution){
+        while (state != State.terminated) {
+            if(state == State.executionPaused){
                 clearAllPlacedTokens();
                 clearClickQueue();
                 try{
@@ -163,16 +168,15 @@ public class Player implements Runnable {
             }
             while(clickQueue.isEmpty() == false){
                 Integer key = clickQueue.remove();
-                placeOrRemoveToken(key);            
+                placeOrRemoveToken(key);
             } 
-            if(waitForActivity){
-                try{
-                    synchronized(activityListener){
-                        activityListener.wait();
-                    }
-                }catch(InterruptedException ignored){}
-                if(claimNotification) handleNotifiedClaim();
-            }
+            try{
+                synchronized(activityListener){
+                    activityListener.wait();
+                }
+            }catch(InterruptedException ignored){}
+            if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
+                handleNotifiedClaim();         
         }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -220,20 +224,33 @@ public class Player implements Runnable {
      * @post - the token is placed or removed from the given slot.
      */
     private void placeOrRemoveToken(Integer slot){
-        
+
         if(placedTokens.contains(slot) == false){
             if(table.placeToken(id, slot)){
                 placedTokens.addLast(slot);
                 while(placedTokens.size() == SET_SIZE){    
-                    blockKeyPress = true;
+                    state = State.waitingForClaim;
                     clearClickQueue();
-                    if (ClaimSet()) {break;}
-                    else if(claimNotification)
+                    if (ClaimSet()) {    
+                        break;
+                    }
+                    else if(claimNotification){
                         handleNotifiedClaim();
+                    }
+                    else {/*try again*/}
+                        
+
+                        // try{
+                        //     synchronized(activityListener){activityListener.wait();}
+                        // }catch(InterruptedException ignored){}
+
                 } 
             }
         }
-        else clearPlacedToken(slot);          
+        else {
+            clearPlacedToken(slot);
+            state = State.waitingForActivity;        
+        }
     }
 
     /**
@@ -245,15 +262,15 @@ public class Player implements Runnable {
         if (placedTokens.size()!= SET_SIZE) return false;
         Integer[] array = new Integer[placedTokens.size()];
         int version = dealer.getGameVersion();
-        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
+        // try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
         return dealer.claimSet(placedTokens.toArray(array), this,version);     
     }
 
     public void notifyClaim(Claim claim){
-        if(frozen == false){
+        if(state == State.waitingForActivity | state == State.waitingForClaim){
             claimNotificationQueue.add(claim);
             synchronized(claimNotification){claimNotification = true;}
-            synchronized(claimSetListener){claimSetListener.notifyAll();}
+            synchronized(activityListener){activityListener.notifyAll();}
         } 
     }
 
@@ -278,7 +295,7 @@ public class Player implements Runnable {
                 }
             }        
         }
-        if(cardsRemoved) blockKeyPress = false;
+        if(cardsRemoved) state = State.waitingForActivity;
         synchronized(claimNotification){claimNotification = false;}
         switch(action){
             case 0 : break;
@@ -301,30 +318,29 @@ public class Player implements Runnable {
      * @post - the UI timer is updated
      */
     private void startFreezeTimer() {
-        frozen = true;
-        while(pauseExecution == false & timerTimeoutTime >= System.currentTimeMillis() ){
+        state = State.frozen;
+        while(state != State.executionPaused & timerTimeoutTime >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
             } catch (InterruptedException ignored){}
         }
         env.ui.setFreeze(id,0);
-        frozen = false;
-        blockKeyPress = false;
+        state = State.waitingForActivity;
     }
 
     /**
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
-        pauseExecution = true;
+        state = State.executionPaused;
     }
 
     /**
      * Resumes the player's ability to interact with the game
      */
     public void resume(){
-        pauseExecution = false;
+        state = State.waitingForActivity;
         synchronized(executionListener){executionListener.notifyAll();}
     }
 
@@ -335,18 +351,16 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
-        if(terminate == false & human){
-            if(blockKeyPress == false & frozen == false & pauseExecution == false)
+        if(human){
+            if(state == State.waitingForActivity)
                 clickQueue.add(slot);
             synchronized(activityListener){activityListener.notifyAll();}
         }       
     }
     private void keyPressed_AI(int slot) {
-        if(terminate == false){
-            if(blockKeyPress == false & frozen == false & pauseExecution == false)
-                clickQueue.add(slot);
-            synchronized(activityListener){activityListener.notifyAll();}
-        }       
+        if(state == State.waitingForActivity)
+            clickQueue.add(slot);
+        synchronized(activityListener){activityListener.notifyAll();}    
     }
 
     /**
@@ -374,8 +388,8 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
-        terminate = true;
-        pauseExecution = true;
+        state = State.terminated;
+        synchronized(executionListener){executionListener.notifyAll();}
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
