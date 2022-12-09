@@ -7,10 +7,11 @@ public class AISuperSecretIntelligenceService{
     private enum IntelligenceStrength{
         weak,
         medium,
-        shabac
+        shabac,
+        illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.shabac;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
     int[][][] sets;
     int cardsCount = 12;
@@ -38,6 +39,12 @@ public class AISuperSecretIntelligenceService{
                 isSetTries = 10;
                 isPotentialSetTries = 20;
                 Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
+                break;
+            }
+            case illuminati:{
+                isSetTries = 100;
+                isPotentialSetTries = 200;
+                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
                 break;
             }
         }
