@@ -177,7 +177,7 @@ public class Player implements Runnable {
      * If the queue of key presses is full, the thread waits until it is not full.
      */
     private void createArtificialIntelligence() {
-        // note: this is a very very basic AI (!)
+        // note: this is a very secretive AI.... SHHH!
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
@@ -198,6 +198,7 @@ public class Player implements Runnable {
 
                 if (env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()))
                     secretService.reportSetClaimed(keys);
+                else secretService.sendIntel(keys,false); 
 
                 while(state == State.frozen){
                     keys = secretService.drawPotentialSet();
