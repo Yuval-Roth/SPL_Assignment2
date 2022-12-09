@@ -30,9 +30,9 @@ public class Player implements Runnable {
     private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 25;
-    private static final int WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
-
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
+    public static int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
+    
     /**
      * The game environment object.
      */
@@ -186,7 +186,7 @@ public class Player implements Runnable {
             } catch(InterruptedException ignored){}
             
             while (state!=State.terminated) {
-                Integer[] keys = secretService.getRecommendation();
+                Integer[] keys = secretService.getIntel();
                 
                 for(Integer key : keys ){
                     keyPressed_AI(key);
@@ -200,7 +200,7 @@ public class Player implements Runnable {
 
                 while(state == State.frozen){
                     keys = secretService.drawPotentialSet();
-                    secretService.insertIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
+                    secretService.sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
                     try{synchronized(this){wait(WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                 }

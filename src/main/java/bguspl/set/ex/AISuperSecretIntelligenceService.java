@@ -4,11 +4,44 @@ import java.util.Random;
 
 public class AISuperSecretIntelligenceService{
 
+    public enum IntelligenceStrength{
+        weak,
+        medium,
+        shabac
+    }
+
+    public static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.shabac;
+
     int[][][] sets;
     int cardsCount = 12;
 
+    int isSetTries;
+    int isPotentialSetTries;
+
     public AISuperSecretIntelligenceService(){
         sets = new int[cardsCount][cardsCount][cardsCount];
+
+        switch(intelligenceStrength){
+            case weak:{
+                isSetTries = 2;
+                isPotentialSetTries = 5;
+                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 100;
+                break;
+            }
+            case medium:{
+                isSetTries = 5;
+                isPotentialSetTries = 10;
+                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 50;
+                break;
+            }
+            case shabac:{
+                isSetTries = 10;
+                isPotentialSetTries = 20;
+                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
+                break;
+            }
+        }
+
     }
 
     private boolean isSet(int i, int j, int k){
@@ -20,7 +53,7 @@ public class AISuperSecretIntelligenceService{
         return sets[i][j][k] != -1;
     }
 
-    public void insertIntel(Integer[] cards,boolean truthValue){
+    public void sendIntel(Integer[] cards,boolean truthValue){
 
         if(truthValue == false){
             for(int i = 0; i < 3 ;i ++){
@@ -67,10 +100,11 @@ public class AISuperSecretIntelligenceService{
         return new Integer[]{i,j,k};
     } 
 
-    public Integer[] getRecommendation(){
+    public Integer[] getIntel(){
         Random rand = new Random();
         int i,j,k;
         int tries = 0;
+
         do{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
@@ -78,11 +112,21 @@ public class AISuperSecretIntelligenceService{
             k = rand.nextInt(cardsCount);
             while(k == i | k == j) k = rand.nextInt(cardsCount);
             tries++;
-        }while((isSet(i, j,k) == false & tries <= 5) | (isPotentialSet(i, j,k) == false & tries <= 10));
+        }while((isSet(i, j,k) == false & tries <= isSetTries));
         
+        if(isSet(i, j,k) == false){
+            do{
+                i = rand.nextInt(cardsCount);
+                j = rand.nextInt(cardsCount);
+                while(i == j) j = rand.nextInt(cardsCount);
+                k = rand.nextInt(cardsCount);
+                while(k == i | k == j) k = rand.nextInt(cardsCount);
+                tries++;
+            }while((isPotentialSet(i, j,k) == false & tries <= isPotentialSetTries));
+        }
 
-        // if(sets[i][j][k] == 1) System.out.println(Thread.currentThread().getName()+" Got intel about a confirmed set!");
-        // else if(sets[i][j][k] == 0) System.out.println(Thread.currentThread().getName()+" Got intel about a potential set!");
+        if(sets[i][j][k] == 1) System.out.println(Thread.currentThread().getName()+" Got intel about a confirmed set!");
+        else if(sets[i][j][k] == 0) System.out.println(Thread.currentThread().getName()+" Got intel about a potential set!");
 
         return new Integer[]{i,j,k};
     }
