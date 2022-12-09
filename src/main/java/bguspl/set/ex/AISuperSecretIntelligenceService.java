@@ -54,21 +54,19 @@ public class AISuperSecretIntelligenceService{
 
     public void sendIntel(Integer[] cards,boolean truthValue){
 
-        if(truthValue == false){
-            for(int i = 0; i < 3 ;i ++){
-                sets[cards[(i)%3]][cards[(i+1)%3]][cards[(i+2)%3]] = -1;  // 0,1,2 -> 1,2,0 -> 2,0,1
-                sets[cards[(i+1)%3]][cards[(i)%3]][cards[(i+2)%3]] = -1; // 1,0,2 -> 2,1,0 -> 0,2,1
-            }
-        }
-        else{
-            for(int i = 0; i < 3 ;i ++){
-                sets[cards[(i)%3]][cards[(i+1)%3]][cards[(i+2)%3]] = 1;  // 0,1,2 -> 1,2,0 -> 2,0,1
-                sets[cards[(i+1)%3]][cards[(i)%3]][cards[(i+2)%3]] = 1; // 1,0,2 -> 2,1,0 -> 0,2,1
-            }
+        int value = truthValue ? 1:-1;
+
+        for(int i = 0; i < 3 ;i ++){
+            sets[cards[(i)%3]][cards[(i+1)%3]][cards[(i+2)%3]] = value;  // 0,1,2 -> 1,2,0 -> 2,0,1
+            sets[cards[(i+1)%3]][cards[(i)%3]][cards[(i+2)%3]] = value; // 1,0,2 -> 2,1,0 -> 0,2,1
         }
     }
 
     public void reportSetClaimed(Integer[] cards) {
+
+        //reportSetClaimed costs exactly 3630 operations.....
+        //small price to pay for high quality intelligence...
+
         for(Integer card : cards){
             for(int i = 0; i < cardsCount ;i ++){
                 if(i == card) continue;
