@@ -3,11 +3,9 @@ package bguspl.set.ex;
 
 public class Tree<T>{
 
-    TreeNode root;
-    int nodeSize;
+    private TreeNode root;
 
     public Tree(int nodeSize){
-        this.nodeSize = nodeSize;
         root = new TreeNode(null,null,nodeSize);
     }
 

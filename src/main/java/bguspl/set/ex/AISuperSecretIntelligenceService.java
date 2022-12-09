@@ -2,21 +2,41 @@ package bguspl.set.ex;
 
 public class AISuperSecretIntelligenceService{
 
-    Tree<Integer> tree;
+    int[][][] sets;
+    int cardsCount = 12;
 
     public AISuperSecretIntelligenceService(){
-        int cardsCount = 12;
-        tree = new Tree<Integer>(cardsCount);
-        Tree<Integer>.TreeNode root = tree.getRoot();
-        for(int i = 0; i < cardsCount; i++){
-            root.insertNewChildAt(i, null, cardsCount);
-            for(int j = 0 ; i< cardsCount-1;j++){
-                root.children[i].insertNewChildAt(j, null, cardsCount);
-                for(int k = 0 ; i< cardsCount-2;j++){
-                    root.children[i].children[j].insertNewChildAt(k, null, 1);
-                    root.children[i].children[j].children[0].insertNewChildAt(0, 0, 0);
+        sets = new int[cardsCount][cardsCount][cardsCount];
+    }
+
+    public void insertIntel(Integer[] cards,boolean truthValue){
+
+        if(truthValue == false){
+            for(int i = 0; i < 3 ;i ++){
+                sets[cards[(i)%3]][cards[(i+1)%3]][cards[(i+2)%3]] = -1;  // 0,1,2 -> 1,2,0 -> 2,0,1
+                sets[cards[(i+1)%3]][cards[(i)%3]][cards[(i+2)%3]] = -1; // 1,0,2 -> 2,1,0 -> 0,2,1
+            }
+        }
+        else{
+            for(Integer card : cards){
+                for(int i = 0; i < cardsCount ;i ++){
+                    if(i == card) continue;
+                    for(int j = 0; j < cardsCount ;j ++){
+                        if(j == card) continue;
+
+                        sets[card][i][j] = 0;
+                        sets[i][card][j] = 0;
+                        sets[i][j][card] = 0;
+                        sets[i][card][j] = 0;
+                        sets[j][i][card] = 0;
+                        sets[card][j][i] = 0;               
+                    }
                 }
             }
         }
+    }
+
+    public void getRecommendation(){
+
     }
 }
