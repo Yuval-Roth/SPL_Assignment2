@@ -2,6 +2,8 @@ package bguspl.set.ex;
 
 import java.util.Random;
 
+import bguspl.set.Env;
+
 public class AISuperSecretIntelligenceService{
 
     private enum IntelligenceStrength{
@@ -19,32 +21,39 @@ public class AISuperSecretIntelligenceService{
     int isSetTries;
     int isPotentialSetTries;
 
-    public AISuperSecretIntelligenceService(){
+    public int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
+
+    public int AI_WAIT_BETWEEN_KEY_PRESSES;
+
+
+    public AISuperSecretIntelligenceService(Env env){
         sets = new int[cardsCount][cardsCount][cardsCount];
+
+        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 50 : 1000;
 
         switch(intelligenceStrength){
             case weak:{
                 isSetTries = 2;
                 isPotentialSetTries = 5;
-                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 100;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 100;
                 break;
             }
             case medium:{
                 isSetTries = 5;
                 isPotentialSetTries = 10;
-                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 50;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 50;
                 break;
             }
             case shabac:{
                 isSetTries = 10;
                 isPotentialSetTries = 20;
-                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
                 break;
             }
             case illuminati:{
                 isSetTries = 100;
                 isPotentialSetTries = 200;
-                Player.WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
                 break;
             }
         }

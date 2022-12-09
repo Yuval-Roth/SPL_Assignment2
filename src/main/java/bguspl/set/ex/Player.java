@@ -30,8 +30,9 @@ public class Player implements Runnable {
     private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
-    public static int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
+
+    public static AISuperSecretIntelligenceService secretService;
+    
     
     /**
      * The game environment object.
@@ -105,7 +106,7 @@ public class Player implements Runnable {
      */
     private volatile Object activityListener;
 
-    private static AISuperSecretIntelligenceService secretService = new AISuperSecretIntelligenceService();
+    
 
     /**
      * The class constructor.
@@ -182,7 +183,7 @@ public class Player implements Runnable {
             aiThread = Thread.currentThread();
 
             try{synchronized(this){
-                wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+                wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
             } catch(InterruptedException ignored){}
             
             while (state!=State.terminated) {
@@ -191,7 +192,7 @@ public class Player implements Runnable {
                 for(Integer key : keys ){
                     keyPressed_AI(key);
                     // limit how fast the AI clicks buttons
-                    try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+                    try{synchronized(this){wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
                     } catch(InterruptedException ignored){}
                 }
 
@@ -201,7 +202,7 @@ public class Player implements Runnable {
                 while(state == State.frozen){
                     keys = secretService.drawPotentialSet();
                     secretService.sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
-                    try{synchronized(this){wait(WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                    try{synchronized(this){wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                 }
                     

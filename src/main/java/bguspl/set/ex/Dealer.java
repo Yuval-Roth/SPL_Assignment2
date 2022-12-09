@@ -235,6 +235,9 @@ public class Dealer implements Runnable {
      * Instantiates and starts all the player threads
      */
     private void createPlayerThreads() {
+        if(env.config.computerPlayers > 0) 
+            Player.secretService = new AISuperSecretIntelligenceService(env);
+
         for(int i = 0; i< playerThreads.length; i++)
         {
             String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
