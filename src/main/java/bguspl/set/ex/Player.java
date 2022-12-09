@@ -1,4 +1,5 @@
 package bguspl.set.ex;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -13,6 +14,11 @@ import bguspl.set.Env;
  */
 public class Player implements Runnable {
 
+    /**
+     *
+     */
+    
+
     public enum State{
         waitingForActivity,
         waitingForClaim,
@@ -24,7 +30,8 @@ public class Player implements Runnable {
     private static final int CLICK_TIME_PADDING = 100;
     private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
-    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 1000;
+    private static final int AI_WAIT_BETWEEN_KEY_PRESSES = 25;
+    private static final int WAIT_BETWEEN_INTELLIGENCE_GATHERING = 25;
 
     /**
      * The game environment object.
@@ -97,6 +104,8 @@ public class Player implements Runnable {
      * Object for breaking wait() when waiting for general activity
      */
     private volatile Object activityListener;
+
+    private static AISuperSecretIntelligenceService secretService = new AISuperSecretIntelligenceService();
 
     /**
      * The class constructor.
@@ -175,13 +184,27 @@ public class Player implements Runnable {
             try{synchronized(this){
                 wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
             } catch(InterruptedException ignored){}
-
+            
             while (state!=State.terminated) {
-                keyPressed_AI(generateKeyPress());
-                // limit how fast the AI clicks buttons
-                try{synchronized(this){
-                    wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
-                } catch(InterruptedException ignored){}
+                Integer[] keys = secretService.getRecommendation();
+                
+                for(Integer key : keys ){
+                    keyPressed_AI(key);
+                    // limit how fast the AI clicks buttons
+                    try{synchronized(this){wait(AI_WAIT_BETWEEN_KEY_PRESSES);}
+                    } catch(InterruptedException ignored){}
+                }
+
+                if (env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()))
+                    secretService.reportSetClaimed(keys);
+
+                while(state == State.frozen){
+                    keys = secretService.drawPotentialSet();
+                    secretService.insertIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
+                    try{synchronized(this){wait(WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                    } catch(InterruptedException ignored){}
+                }
+                    
             }
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
@@ -232,8 +255,7 @@ public class Player implements Runnable {
             }
         }
         else {
-            clearPlacedToken(slot);
-            // state = State.waitingForActivity;        
+            clearPlacedToken(slot);       
         }
     }
 
