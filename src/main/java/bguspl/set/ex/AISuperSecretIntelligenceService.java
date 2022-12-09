@@ -4,13 +4,13 @@ import java.util.Random;
 
 public class AISuperSecretIntelligenceService{
 
-    public enum IntelligenceStrength{
+    private enum IntelligenceStrength{
         weak,
         medium,
         shabac
     }
 
-    public static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.shabac;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.shabac;
 
     int[][][] sets;
     int cardsCount = 12;
@@ -49,8 +49,7 @@ public class AISuperSecretIntelligenceService{
     }
 
     private boolean isPotentialSet(int i, int j, int k){
-        
-        return sets[i][j][k] != -1;
+        return sets[i][j][k] == 0;
     }
 
     public void sendIntel(Integer[] cards,boolean truthValue){
@@ -90,13 +89,14 @@ public class AISuperSecretIntelligenceService{
     public Integer[] drawPotentialSet(){
         Random rand = new Random();
         int i,j,k;
+        int tries = 0;
         do{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
             while(i == j) j = rand.nextInt(cardsCount);
             k = rand.nextInt(cardsCount);
             while(k == i | k == j) k = rand.nextInt(cardsCount);
-        }while(isPotentialSet(i, j,k) == false);
+        }while(isPotentialSet(i, j,k) == false & tries++ <= isPotentialSetTries);
         return new Integer[]{i,j,k};
     } 
 
@@ -125,8 +125,12 @@ public class AISuperSecretIntelligenceService{
             }while((isPotentialSet(i, j,k) == false & tries <= isPotentialSetTries));
         }
 
-        if(sets[i][j][k] == 1) System.out.println(Thread.currentThread().getName()+" Got intel about a confirmed set!");
-        else if(sets[i][j][k] == 0) System.out.println(Thread.currentThread().getName()+" Got intel about a potential set!");
+        boolean announce_to_console = false;
+        if(announce_to_console){
+            if(sets[i][j][k] == 1) System.out.println(Thread.currentThread().getName()+" Got intel about a confirmed set!");
+            if(sets[i][j][k] == 0) System.out.println(Thread.currentThread().getName()+" Got intel about a potential set!");
+            if(sets[i][j][k] == -1) System.out.println(Thread.currentThread().getName()+" Got intel about a non-set!");
+        }
 
         return new Integer[]{i,j,k};
     }
