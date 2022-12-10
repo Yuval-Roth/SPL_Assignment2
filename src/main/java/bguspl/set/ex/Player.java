@@ -201,10 +201,7 @@ public class Player implements Runnable {
                 else secretService.sendIntel(keys,false); 
 
                 while(state == State.frozen){
-                    keys = secretService.drawPotentialSet();
-                    secretService.sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
-                    try{synchronized(this){wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-                    } catch(InterruptedException ignored){}
+                    secretService.gatherIntel();
                 }
                     
             }

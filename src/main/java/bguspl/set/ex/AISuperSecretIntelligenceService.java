@@ -13,7 +13,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.medium;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;
@@ -98,6 +98,14 @@ public class AISuperSecretIntelligenceService{
                 }
             }
         }
+    }
+
+    public void gatherIntel() {
+        Integer[] keys;
+        keys = secretService.drawPotentialSet();
+        secretService.sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
+        try{synchronized(this){wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+        } catch(InterruptedException ignored){}
     }
 
     public Integer[] drawPotentialSet(){
