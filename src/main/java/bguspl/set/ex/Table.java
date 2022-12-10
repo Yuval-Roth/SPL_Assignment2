@@ -139,10 +139,11 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-
-        cardToSlot[slotToCard[slot]] = null;
-        slotToCard[slot] = null;
-        env.ui.removeCard(slot);
+        if(slotToCard[slot]!= null){
+            cardToSlot[slotToCard[slot]] = null;
+            slotToCard[slot] = null;
+            env.ui.removeCard(slot);
+        }
     }
 
     /**

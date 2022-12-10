@@ -108,6 +108,7 @@ public class Dealer implements Runnable {
         while (!shouldFinish()) {        
             timerLoop();
         }   
+        terminatePlayers();
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -117,7 +118,7 @@ public class Dealer implements Runnable {
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
             nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
                                 System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime; 
-            while(reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
+            while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
                 while(claimQueue.isEmpty() == false){
@@ -200,9 +201,6 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        for(Player player : players){
-            player.terminate();
-        }
         terminate = true;
     }
 
@@ -262,6 +260,12 @@ public class Dealer implements Runnable {
      */
     private boolean shouldFinish() {
         return terminate || allSetsDepleted();
+    }
+
+    private void terminatePlayers() {
+        for(Player player : players){
+            player.terminate();
+        }
     }
  
     /**

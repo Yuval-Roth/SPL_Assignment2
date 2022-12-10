@@ -2,6 +2,7 @@ package bguspl.set.ex;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 
 import bguspl.set.Env;
 
@@ -17,7 +18,8 @@ public class Player implements Runnable {
         waitingForActivity,
         waitingForClaim,
         frozen,
-        executionPaused,
+        pausingExecution,
+        Paused,
         terminated
     }
     
@@ -123,7 +125,7 @@ public class Player implements Runnable {
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
-        state = State.executionPaused;
+        state = State.pausingExecution;
     }
 
     //===========================================================
@@ -139,24 +141,28 @@ public class Player implements Runnable {
         playerThread = Thread.currentThread();
         if (!human) createArtificialIntelligence();
         while (state != State.terminated) {
-            if(state == State.executionPaused){
+            if(state == State.pausingExecution){
                 clearAllPlacedTokens();
                 clearClickQueue();
                 try{
                     synchronized(executionListener){
+                        state = State.Paused;
                         executionListener.wait();
                     }
+                    if(state == State.terminated) break;
                 }catch(InterruptedException ignored){}
             }
             while(clickQueue.isEmpty() == false){
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);
             } 
-            try{
-                synchronized(activityListener){
-                    activityListener.wait();
-                }
-            }catch(InterruptedException ignored){}
+            if(state != State.pausingExecution & state != State.terminated){
+                try{
+                    synchronized(activityListener){
+                        activityListener.wait();
+                    }
+                }catch(InterruptedException ignored){}
+            }
             if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
                 handleNotifiedClaim();         
         }
@@ -335,9 +341,9 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
-        state = State.executionPaused;
-        synchronized(this){notifyAll();}
-        synchronized(activityListener){activityListener.notifyAll();}
+            state = State.pausingExecution;
+            synchronized(activityListener){activityListener.notifyAll();}
+            
     }
 
     /**
@@ -394,11 +400,11 @@ public class Player implements Runnable {
     public void terminate() {
         state = State.terminated;
         synchronized(this){notifyAll();}
-        synchronized(activityListener){activityListener.notifyAll();}
+        synchronized(executionListener){executionListener.notifyAll();}
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
-        clearAllPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
+        // clearAllPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
     }
 
     //===========================================================

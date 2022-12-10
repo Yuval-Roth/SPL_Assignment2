@@ -14,7 +14,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.weak;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;
