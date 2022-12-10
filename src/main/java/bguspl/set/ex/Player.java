@@ -1,8 +1,7 @@
 package bguspl.set.ex;
 import java.util.LinkedList;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
+
 
 import bguspl.set.Env;
 
@@ -86,7 +85,7 @@ public class Player implements Runnable {
      */
     private long timerTimeoutTime;
 
-    private volatile LinkedList<Claim> claimNotificationQueue;
+    private volatile ConcurrentLinkedQueue<Claim> claimNotificationQueue;
 
     private volatile Boolean claimNotification;
 
@@ -126,7 +125,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        claimNotificationQueue = new LinkedList<>();
+        claimNotificationQueue = new ConcurrentLinkedQueue<>();
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
@@ -143,36 +142,36 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-        System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-        playerThread = Thread.currentThread();
-        if (!human) createArtificialIntelligence();
-        while (state != State.terminated) {
-            if(state == State.pausingExecution){
-                clearAllPlacedTokens();
-                clearClickQueue();
-                try{
-                    state = State.Paused;
-                    synchronized(waitForPause){waitForPause.notifyAll();}
-                    synchronized(executionListener){
-                        executionListener.wait();
-                    }
-                    if(state == State.terminated) break;
-                }catch(InterruptedException ignored){}
+            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+            playerThread = Thread.currentThread();
+            if (!human) createArtificialIntelligence();
+            while (state != State.terminated) {
+                if(state == State.pausingExecution){
+                    clearAllPlacedTokens();
+                    clearClickQueue();
+                    try{
+                        state = State.Paused;
+                        synchronized(waitForPause){waitForPause.notifyAll();}
+                        synchronized(executionListener){
+                            executionListener.wait();
+                        }
+                        if(state == State.terminated) break;
+                    }catch(InterruptedException ignored){}
+                }
+                if(state != State.pausingExecution & state != State.terminated){
+                    while(clickQueue.isEmpty() == false){
+                        Integer key = clickQueue.remove();
+                        placeOrRemoveToken(key);
+                    } 
+                    try{
+                        synchronized(activityListener){
+                            activityListener.wait();
+                        }
+                    }catch(InterruptedException ignored){}
+                }
+                if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
+                    handleNotifiedClaim();         
             }
-            while(clickQueue.isEmpty() == false){
-                Integer key = clickQueue.remove();
-                placeOrRemoveToken(key);
-            } 
-            if(state != State.pausingExecution & state != State.terminated){
-                try{
-                    synchronized(activityListener){
-                        activityListener.wait();
-                    }
-                }catch(InterruptedException ignored){}
-            }
-            if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
-                handleNotifiedClaim();         
-        }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
@@ -237,7 +236,7 @@ public class Player implements Runnable {
         if(placedTokens.contains(slot) == false){
             boolean insertState = false;
             int tries = 0;
-            while(insertState == false & tries <=5){
+            while(insertState == false & tries <=5 & state != State.pausingExecution){
                 insertState = table.placeToken(id, slot);
                 tries++;
                 try{Thread.sleep(10);}catch(InterruptedException ignored){}
@@ -273,7 +272,6 @@ public class Player implements Runnable {
      * @post - The dealer is notified about the set claim.
      */
     private boolean ClaimSet() {
-        // if (placedTokens.size()!= SET_SIZE) return false;
         Integer[] array = new Integer[placedTokens.size()];
         int version = dealer.getGameVersion();
         try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
@@ -292,10 +290,8 @@ public class Player implements Runnable {
 
         int action = 0;
         boolean cardsRemoved = false;
-
         while(claimNotificationQueue.isEmpty() == false){
             Claim claim = claimNotificationQueue.remove();
-
             if(claim.claimer == this){
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
@@ -309,6 +305,7 @@ public class Player implements Runnable {
                 }
             }        
         }
+
         if(cardsRemoved) state = State.waitingForActivity;
         synchronized(claimNotification){claimNotification = false;}
         switch(action){
@@ -349,10 +346,11 @@ public class Player implements Runnable {
      */
     public void pause(){
         state = State.pausingExecution;
-        synchronized(activityListener){activityListener.notifyAll();}
-        try{
-            synchronized(waitForPause){waitForPause.wait();}
-        }catch(InterruptedException ignored){}
+        
+        do {
+            synchronized(activityListener){activityListener.notifyAll();}
+            try{Thread.sleep(10);}catch(InterruptedException ignored){}
+        }while(state != State.Paused);
     }
 
     /**
@@ -409,6 +407,7 @@ public class Player implements Runnable {
     public void terminate() {
         state = State.terminated;
         synchronized(this){notifyAll();}
+        synchronized(activityListener){activityListener.notifyAll();}
         synchronized(executionListener){executionListener.notifyAll();}
         try{
             playerThread.join();
