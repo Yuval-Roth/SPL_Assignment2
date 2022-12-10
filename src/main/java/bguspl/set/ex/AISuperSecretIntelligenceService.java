@@ -14,7 +14,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.medium;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;
@@ -97,12 +97,12 @@ public class AISuperSecretIntelligenceService{
                 for(int j = 0; j < cardsCount ;j ++){
                     if(j == card) continue;
 
-                    sets[card][i][j] = 0;
-                    sets[i][card][j] = 0;
-                    sets[i][j][card] = 0;
-                    sets[i][card][j] = 0;
-                    sets[j][i][card] = 0;
-                    sets[card][j][i] = 0;               
+                    sets[card][i][j] = 0; // 0,1,2
+                    sets[i][card][j] = 0; // 1,2,0
+                    sets[i][j][card] = 0; // 2,0,1
+                    sets[i][card][j] = 0; // 1,0,2
+                    sets[j][i][card] = 0; // 2,1,0
+                    sets[card][j][i] = 0; // 0,2,1
                 }
             }
         }
@@ -134,7 +134,7 @@ public class AISuperSecretIntelligenceService{
         Random rand = new Random();
         int i,j,k;
         int tries = 0;
-
+        
         do{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);

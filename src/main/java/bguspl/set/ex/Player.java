@@ -13,11 +13,6 @@ import bguspl.set.Env;
  */
 public class Player implements Runnable {
 
-    /**
-     *
-     */
-    
-
     public enum State{
         waitingForActivity,
         waitingForClaim,
@@ -193,8 +188,9 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
                 }
                 while(state == State.waitingForClaim){
-                    try{synchronized(activityListener){activityListener.wait();};
-                    }catch(InterruptedException ignored){}
+                    // try{synchronized(activityListener){activityListener.wait();};
+                    // }catch(InterruptedException ignored){}
+                    secretService.gatherIntel();
                 }
                 if (currentScore < score)
                     secretService.reportSetClaimed(keys);
