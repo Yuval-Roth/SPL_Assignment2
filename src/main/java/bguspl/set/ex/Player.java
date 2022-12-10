@@ -102,6 +102,11 @@ public class Player implements Runnable {
      */
     private volatile Object activityListener;
 
+    /**
+     *
+     */
+    private volatile Object waitForPause;
+
     
 
     /**
@@ -125,6 +130,7 @@ public class Player implements Runnable {
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
+        waitForPause = new Object();
         state = State.pausingExecution;
     }
 
@@ -145,8 +151,9 @@ public class Player implements Runnable {
                 clearAllPlacedTokens();
                 clearClickQueue();
                 try{
+                    state = State.Paused;
+                    synchronized(waitForPause){waitForPause.notifyAll();}
                     synchronized(executionListener){
-                        state = State.Paused;
                         executionListener.wait();
                     }
                     if(state == State.terminated) break;
@@ -237,7 +244,7 @@ public class Player implements Runnable {
             }
             if(insertState){
                 placedTokens.addLast(slot);
-                while(placedTokens.size() == SET_SIZE){    
+                while(placedTokens.size() == SET_SIZE & state != State.pausingExecution){    
                     state = State.waitingForClaim;
                     clearClickQueue();
                     if (ClaimSet()) {    
@@ -341,9 +348,13 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
-            state = State.pausingExecution;
+        state = State.pausingExecution;
+        // do{
             synchronized(activityListener){activityListener.notifyAll();}
-            
+            try{
+                synchronized(waitForPause){waitForPause.wait();}
+            }catch(InterruptedException ignored){}
+        // }while(state!=State.Paused);
     }
 
     /**
