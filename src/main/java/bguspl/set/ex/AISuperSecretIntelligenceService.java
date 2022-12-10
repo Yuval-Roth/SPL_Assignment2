@@ -15,11 +15,11 @@ public class AISuperSecretIntelligenceService{
 
     private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
-    int[][][] sets;
-    int cardsCount = 12;
+    private volatile int[][][] sets;
+    private int cardsCount = 12;
 
-    int isSetTries;
-    int isPotentialSetTries;
+    private int isSetTries;
+    private int isPotentialSetTries;
 
     public int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
 
