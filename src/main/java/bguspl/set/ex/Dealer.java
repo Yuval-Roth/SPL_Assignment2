@@ -243,21 +243,13 @@ public class Dealer implements Runnable {
             playerThreads[i].start();
         }
     }
-    
-
-    static int counter = 0;
 
     /**
      * Terminates all the player threads
      */
-    private void pausePlayerThreads() {
-        
+    private void pausePlayerThreads() {    
         for(Player player : players){
             player.pause();
-        }
-        System.out.println(counter++);
-        for(Player player : players){
-            System.out.println("Player "+player.id+": "+player.getState());
         }
     }
 
@@ -273,9 +265,6 @@ public class Dealer implements Runnable {
     private void terminatePlayers() {
         for(Player player : players){
             player.terminate();
-        }
-        for(Player player : players){
-            System.out.println("Player "+player.id+": "+player.getState());
         }
     }
  
@@ -345,8 +334,7 @@ public class Dealer implements Runnable {
             // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
             // env.ui.removeToken(claimer.id, card);
-        }  
-        
+        } 
     }
     
     /*

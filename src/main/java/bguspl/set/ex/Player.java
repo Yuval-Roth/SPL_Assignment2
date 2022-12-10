@@ -349,12 +349,10 @@ public class Player implements Runnable {
      */
     public void pause(){
         state = State.pausingExecution;
-        // do{
-            synchronized(activityListener){activityListener.notifyAll();}
-            try{
-                synchronized(waitForPause){waitForPause.wait();}
-            }catch(InterruptedException ignored){}
-        // }while(state!=State.Paused);
+        synchronized(activityListener){activityListener.notifyAll();}
+        try{
+            synchronized(waitForPause){waitForPause.wait();}
+        }catch(InterruptedException ignored){}
     }
 
     /**
@@ -415,7 +413,6 @@ public class Player implements Runnable {
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
-        // clearAllPlacedTokens(); // clear the queue of tokens placed, because the table was also cleared
     }
 
     //===========================================================
@@ -455,14 +452,6 @@ public class Player implements Runnable {
         while(clickQueue.isEmpty() == false){
             clickQueue.remove();
         }
-    }
-
-    /**
-     * @return a random key press in the size of the current table size.
-     */
-    private int generateKeyPress(){
-        Random rand = new Random();
-        return rand.nextInt(12/*getCurrentTableSize()*/);
     }
 
     //===========================================================
