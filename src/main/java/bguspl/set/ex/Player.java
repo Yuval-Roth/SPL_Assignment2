@@ -1,5 +1,4 @@
 package bguspl.set.ex;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -181,22 +180,23 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
-
-            try{synchronized(this){
-                wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
-            } catch(InterruptedException ignored){}
             
             while (state!=State.terminated) {
                 Integer[] keys = secretService.getIntel();
-                
+
+                int currentScore = score;
+
                 for(Integer key : keys ){
-                    keyPressed_AI(key);
                     // limit how fast the AI clicks buttons
                     try{synchronized(this){wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
+                    keyPressed_AI(key);
                     } catch(InterruptedException ignored){}
                 }
-
-                if (env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()))
+                while(state == State.waitingForClaim){
+                    try{synchronized(activityListener){activityListener.wait();};
+                    }catch(InterruptedException ignored){}
+                }
+                if (currentScore < score)
                     secretService.reportSetClaimed(keys);
                 else secretService.sendIntel(keys,false); 
 

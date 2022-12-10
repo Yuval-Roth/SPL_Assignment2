@@ -1,5 +1,6 @@
 package bguspl.set.ex;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import bguspl.set.Env;
@@ -21,9 +22,11 @@ public class AISuperSecretIntelligenceService{
     private int isSetTries;
     private int isPotentialSetTries;
 
-    public int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
+    private final int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
 
-    public int AI_WAIT_BETWEEN_KEY_PRESSES;
+    public final int AI_WAIT_BETWEEN_KEY_PRESSES;
+
+    private Env env;
 
 
     public AISuperSecretIntelligenceService(Env env){
@@ -56,8 +59,13 @@ public class AISuperSecretIntelligenceService{
                 WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
                 break;
             }
+            default: {
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = -1;
+            }
+                
         }
 
+        this.env = env;
     }
 
     private boolean isSet(int i, int j, int k){
@@ -102,9 +110,9 @@ public class AISuperSecretIntelligenceService{
 
     public void gatherIntel() {
         Integer[] keys;
-        keys = secretService.drawPotentialSet();
-        secretService.sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
-        try{synchronized(this){wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+        keys = drawPotentialSet();
+        sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
+        try{synchronized(this){wait(WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
         } catch(InterruptedException ignored){}
     }
 
