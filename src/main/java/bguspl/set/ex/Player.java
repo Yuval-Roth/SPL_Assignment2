@@ -104,11 +104,6 @@ public class Player implements Runnable {
     /**
      *
      */
-    private volatile Object waitForPause;
-
-    /**
-     *
-     */
     private volatile Object AIListener;
 
     private volatile boolean AIRunning;
@@ -134,7 +129,6 @@ public class Player implements Runnable {
         claimNotification = false;
         executionListener = new Object();
         activityListener = new Object();
-        waitForPause = new Object();
         AIListener = new Object();
         state = State.pausingExecution;
     }
@@ -157,7 +151,6 @@ public class Player implements Runnable {
                     clearClickQueue();
                     try{
                         state = State.paused;
-                        synchronized(waitForPause){waitForPause.notifyAll();}
                         synchronized(executionListener){
                             executionListener.wait();
                         }
@@ -349,7 +342,6 @@ public class Player implements Runnable {
 
     /**
      * Starts a freeze time thread and updates the UI timer
-     * @param timeToStop - future time to stop in milliseconds
      * @pre - the freeze timer is stopped
      * @post - the freeze timer is started
      * @post - the UI timer is updated
