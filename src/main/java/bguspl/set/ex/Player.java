@@ -240,7 +240,7 @@ public class Player implements Runnable {
                     }catch(InterruptedException ignored){}
                 }        
             }
-            System.out.println("AI " + id+ " terminated "+System.currentTimeMillis());
+            System.out.println("AI " + id+ " terminated after "+(System.currentTimeMillis()-terminationTime)+ " milliseconds");
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
@@ -428,20 +428,23 @@ public class Player implements Runnable {
         startFreezeTimer();
     }
 
+
+    long terminationTime = System.currentTimeMillis();
+
     /**
      * Called when the game should be terminated due to an external event.
      * Interrupts the player thread and the AI thread (if any).
      * Clears the queue of tokens placed.
      */
     public void terminate() {
+        terminationTime = System.currentTimeMillis();
         System.out.println("Terminating player " + id+ ", "+System.currentTimeMillis()+" state: "+state);
         state = State.terminated;
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(executionListener){executionListener.notifyAll();}
         try{
-            System.out.println("entered try " + id+ ", "+System.currentTimeMillis());
             playerThread.join();
-            System.out.println("Player " + id+ " successfully terminated "+System.currentTimeMillis());
+            System.out.println("Player " + id+ " successfully terminated after "+(System.currentTimeMillis()-terminationTime)+" milliseconds");
         }catch(InterruptedException ignored){};
     }
 
