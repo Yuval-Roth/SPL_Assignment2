@@ -14,7 +14,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.disabled;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;
@@ -30,8 +30,10 @@ public class AISuperSecretIntelligenceService{
 
     private Env env;
 
+    private Dealer dealer;
 
-    public AISuperSecretIntelligenceService(Env env){
+    public AISuperSecretIntelligenceService(Env env, Dealer dealer){
+        this.dealer = dealer;
         sets = new int[cardsCount][cardsCount][cardsCount];
 
         AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 100 : 500;
@@ -122,7 +124,7 @@ public class AISuperSecretIntelligenceService{
     public void gatherIntel() {
         Integer[] keys;
         keys = drawPotentialSet();
-        sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
+        sendIntel(keys, dealer.isValidSet(keys));
     }
 
     public Integer[] drawPotentialSet(){
@@ -186,4 +188,6 @@ public class AISuperSecretIntelligenceService{
 
         return new Integer[]{i,j,k};
     }
+
+
 }

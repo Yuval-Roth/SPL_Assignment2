@@ -23,7 +23,6 @@ public class Player implements Runnable {
     }
     
     private static final int CLICK_TIME_PADDING = 100;
-    private static final int SET_SIZE = 3;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
 
     public static AISuperSecretIntelligenceService secretService;
@@ -263,7 +262,7 @@ public class Player implements Runnable {
             }
             if(insertState){
                 placedTokens.addLast(slot);
-                while(placedTokens.size() == SET_SIZE & state != State.pausingExecution){    
+                while(placedTokens.size() == dealer.SET_SIZE & state != State.pausingExecution){
                     state = State.waitingForClaim;
                     clearClickQueue();
                     if (ClaimSet()) {    

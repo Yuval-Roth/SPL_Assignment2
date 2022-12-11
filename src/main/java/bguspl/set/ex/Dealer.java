@@ -2,18 +2,20 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 import bguspl.set.Main;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.awt.peer.ComponentPeer.SET_SIZE;
 
 /**
  * This class manages the dealer's threads and data
  */
 public class Dealer implements Runnable {
+
+
+    public static final int SET_SIZE = 3;
 
     /**
      *
@@ -170,9 +172,7 @@ public class Dealer implements Runnable {
     
     /**
      * handles a claim that was verified as a true set
-     * 
-     * @param cards
-     * @param claimer
+     * @param claim
      */
     private void handleClaimedSet(Claim claim) {
 
@@ -212,10 +212,15 @@ public class Dealer implements Runnable {
     /**
     * Checks if the given set of cards is a valid set.
     */
-    private boolean isValidSet(Integer[] cards) {
+    public boolean isValidSet(Integer[] cards) {
         synchronized(cards){
-            int[] _cards = Arrays.stream(cards).mapToInt(i->table.slotToCard[i]).toArray();
+            cards = Arrays.stream(cards).map(i->table.slotToCard[i]).toArray(Integer[]::new);
+            int[] _cards = Arrays.stream(cards).filter(Objects::nonNull).mapToInt(i->i).toArray();
+            if(_cards.length != SET_SIZE)
+                return false;
             return env.util.testSet(_cards);
+
+
         }
     }
 
@@ -226,7 +231,7 @@ public class Dealer implements Runnable {
      */
     private void resumePlayerThreads() {
         if(env.config.computerPlayers > 0) 
-            Player.secretService = new AISuperSecretIntelligenceService(env);
+            Player.secretService = new AISuperSecretIntelligenceService(env, this);
         for(Player player : players){
             player.resume();
         }
