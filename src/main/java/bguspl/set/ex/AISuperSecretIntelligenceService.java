@@ -1,5 +1,5 @@
 package bguspl.set.ex;
-
+import java.rmi.ConnectIOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -8,6 +8,7 @@ import bguspl.set.Env;
 public class AISuperSecretIntelligenceService{
 
     private enum IntelligenceStrength{
+        disabled,
         weak,
         medium,
         shabac,
@@ -22,9 +23,11 @@ public class AISuperSecretIntelligenceService{
     private int isSetTries;
     private int isPotentialSetTries;
 
-    private final int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
+    public final int WAIT_BETWEEN_INTELLIGENCE_GATHERING;
 
     public final int AI_WAIT_BETWEEN_KEY_PRESSES;
+
+    public boolean continueExecution;
 
     private Env env;
 
@@ -32,7 +35,7 @@ public class AISuperSecretIntelligenceService{
     public AISuperSecretIntelligenceService(Env env){
         sets = new int[cardsCount][cardsCount][cardsCount];
 
-        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 50 : 1000;
+        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 50 : 500;
 
         switch(intelligenceStrength){
             case weak:{
@@ -54,9 +57,9 @@ public class AISuperSecretIntelligenceService{
                 break;
             }
             case illuminati:{
-                isSetTries = 100;
-                isPotentialSetTries = 200;
-                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
+                isSetTries = 1000;
+                isPotentialSetTries = 2000;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 1;
                 break;
             }
             default: {
@@ -66,6 +69,7 @@ public class AISuperSecretIntelligenceService{
         }
 
         this.env = env;
+        continueExecution = intelligenceStrength != IntelligenceStrength.disabled ;
     }
 
     private boolean isSet(int i, int j, int k){
@@ -80,7 +84,7 @@ public class AISuperSecretIntelligenceService{
 
         int value = truthValue ? 1:-1;
 
-        for(int i = 0; i < 3 ;i ++){
+        for(int i = 0; continueExecution && i < 3 ;i ++){
             sets[cards[(i)%3]][cards[(i+1)%3]][cards[(i+2)%3]] = value;  // 0,1,2 -> 1,2,0 -> 2,0,1
             sets[cards[(i+1)%3]][cards[(i)%3]][cards[(i+2)%3]] = value; // 1,0,2 -> 2,1,0 -> 0,2,1
         }
@@ -96,6 +100,8 @@ public class AISuperSecretIntelligenceService{
                 if(i == card) continue;
                 for(int j = 0; j < cardsCount ;j ++){
                     if(j == card) continue;
+                    
+                    if(continueExecution == false) return;
 
                     sets[card][i][j] = 0; // 0,1,2
                     sets[i][card][j] = 0; // 1,2,0
@@ -112,8 +118,6 @@ public class AISuperSecretIntelligenceService{
         Integer[] keys;
         keys = drawPotentialSet();
         sendIntel(keys, env.util.testSet(Arrays.stream(keys).mapToInt(i->i).toArray()));
-        try{synchronized(this){wait(WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-        } catch(InterruptedException ignored){}
     }
 
     public Integer[] drawPotentialSet(){
@@ -123,11 +127,23 @@ public class AISuperSecretIntelligenceService{
         do{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
-            while(i == j) j = rand.nextInt(cardsCount);
+            while(i == j){
+                imHere(1);
+                j = rand.nextInt(cardsCount);
+            } 
             k = rand.nextInt(cardsCount);
-            while(k == i | k == j) k = rand.nextInt(cardsCount);
-        }while(isPotentialSet(i, j,k) == false & tries++ <= isPotentialSetTries);
+            while(k == i | k == j){
+                imHere(2);
+                k = rand.nextInt(cardsCount);
+            } 
+            tries++;
+        }while(continueExecution && isPotentialSet(i, j,k) == false & tries++ <= isPotentialSetTries);
         return new Integer[]{i,j,k};
+    }
+
+    private void imHere(int i) {
+        if(continueExecution == false)
+            System.out.println(Thread.currentThread().getName()+" is at "+i+", "+System.currentTimeMillis());
     } 
 
     public Integer[] getIntel(){
@@ -138,21 +154,33 @@ public class AISuperSecretIntelligenceService{
         do{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
-            while(i == j) j = rand.nextInt(cardsCount);
+            while(i == j){
+                imHere(3);
+                j = rand.nextInt(cardsCount);
+            } 
             k = rand.nextInt(cardsCount);
-            while(k == i | k == j) k = rand.nextInt(cardsCount);
+            while(k == i | k == j){
+                imHere(4);
+                k = rand.nextInt(cardsCount);
+            } 
             tries++;
-        }while((isSet(i, j,k) == false & tries <= isSetTries));
+        }while((continueExecution && isSet(i, j,k) == false & tries <= isSetTries));
         
         if(isSet(i, j,k) == false){
             do{
                 i = rand.nextInt(cardsCount);
+            j = rand.nextInt(cardsCount);
+            while(i == j){
+                imHere(5);
                 j = rand.nextInt(cardsCount);
-                while(i == j) j = rand.nextInt(cardsCount);
+            } 
+            k = rand.nextInt(cardsCount);
+            while(k == i | k == j){
+                imHere(6);
                 k = rand.nextInt(cardsCount);
-                while(k == i | k == j) k = rand.nextInt(cardsCount);
-                tries++;
-            }while((isPotentialSet(i, j,k) == false & tries <= isPotentialSetTries));
+            } 
+            tries++;
+            }while(continueExecution && isPotentialSet(i, j,k) == false & tries <= isPotentialSetTries);
         }
 
         boolean announce_to_console = false;

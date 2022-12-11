@@ -18,7 +18,7 @@ public class Player implements Runnable {
         waitingForClaim,
         frozen,
         pausingExecution,
-        Paused,
+        paused,
         terminated
     }
     
@@ -106,7 +106,12 @@ public class Player implements Runnable {
      */
     private volatile Object waitForPause;
 
-    
+    /**
+     *
+     */
+    private volatile Object AIListener;
+
+    private volatile boolean AIRunning;
 
     /**
      * The class constructor.
@@ -130,6 +135,7 @@ public class Player implements Runnable {
         executionListener = new Object();
         activityListener = new Object();
         waitForPause = new Object();
+        AIListener = new Object();
         state = State.pausingExecution;
     }
 
@@ -150,7 +156,7 @@ public class Player implements Runnable {
                     clearAllPlacedTokens();
                     clearClickQueue();
                     try{
-                        state = State.Paused;
+                        state = State.paused;
                         synchronized(waitForPause){waitForPause.notifyAll();}
                         synchronized(executionListener){
                             executionListener.wait();
@@ -187,32 +193,54 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
+
+            try{
+                synchronized(executionListener){
+                    executionListener.wait();
+                }
+            }catch(InterruptedException ignored){}
+
+            AIRunning = true;
             
             while (state!=State.terminated) {
                 Integer[] keys = secretService.getIntel();
 
                 int currentScore = score;
 
-                for(Integer key : keys ){
+                for(int i = 0; i < keys.length & state != State.pausingExecution & state != State.paused ; i++){
                     // limit how fast the AI clicks buttons
-                    try{synchronized(this){wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
-                    keyPressed_AI(key);
+                    try{synchronized(AIListener){AIListener.wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
                     } catch(InterruptedException ignored){}
+                    keyPressed_AI(keys[i]);
                 }
                 while(state == State.waitingForClaim){
-                    // try{synchronized(activityListener){activityListener.wait();};
-                    // }catch(InterruptedException ignored){}
+                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                    } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
-                if (currentScore < score)
-                    secretService.reportSetClaimed(keys);
-                else secretService.sendIntel(keys,false); 
+                if(state != State.pausingExecution & state!=State.paused){
+                    if (currentScore < score)
+                        secretService.reportSetClaimed(keys);
+                    else secretService.sendIntel(keys,false); 
+                }
 
                 while(state == State.frozen){
+                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                    }catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
-                    
+
+                if(state == State.pausingExecution | state == State.paused){
+                    try{
+                        System.out.println("AI " + id+ " stopped execution "+System.currentTimeMillis());
+                        AIRunning = false;
+                        synchronized(executionListener){
+                            executionListener.wait();
+                        }
+                    }catch(InterruptedException ignored){}
+                }        
             }
+            System.out.println("AI " + id+ " terminated "+System.currentTimeMillis());
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
@@ -346,11 +374,11 @@ public class Player implements Runnable {
      */
     public void pause(){
         state = State.pausingExecution;
-        
         do {
+            synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
-        }while(state != State.Paused);
+        }while(state != State.paused | AIRunning);
     }
 
     /**
@@ -358,6 +386,7 @@ public class Player implements Runnable {
      */
     public void resume(){
         state = State.waitingForActivity;
+        AIRunning = true;
         synchronized(executionListener){executionListener.notifyAll();}
     }
 
@@ -405,12 +434,14 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
+        System.out.println("Terminating player " + id+ ", "+System.currentTimeMillis()+" state: "+state);
         state = State.terminated;
-        synchronized(this){notifyAll();}
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(executionListener){executionListener.notifyAll();}
         try{
+            System.out.println("entered try " + id+ ", "+System.currentTimeMillis());
             playerThread.join();
+            System.out.println("Player " + id+ " successfully terminated "+System.currentTimeMillis());
         }catch(InterruptedException ignored){};
     }
 
