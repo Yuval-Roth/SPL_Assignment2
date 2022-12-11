@@ -1,5 +1,4 @@
 package bguspl.set.ex;
-import java.rmi.ConnectIOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -128,23 +127,16 @@ public class AISuperSecretIntelligenceService{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
             while(i == j){
-                imHere(1);
                 j = rand.nextInt(cardsCount);
             } 
             k = rand.nextInt(cardsCount);
             while(k == i | k == j){
-                imHere(2);
                 k = rand.nextInt(cardsCount);
             } 
             tries++;
         }while(continueExecution && isPotentialSet(i, j,k) == false & tries++ <= isPotentialSetTries);
         return new Integer[]{i,j,k};
     }
-
-    private void imHere(int i) {
-        if(continueExecution == false)
-            System.out.println(Thread.currentThread().getName()+" is at "+i+", "+System.currentTimeMillis());
-    } 
 
     public Integer[] getIntel(){
         Random rand = new Random();
@@ -155,12 +147,10 @@ public class AISuperSecretIntelligenceService{
             i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
             while(i == j){
-                imHere(3);
                 j = rand.nextInt(cardsCount);
             } 
             k = rand.nextInt(cardsCount);
             while(k == i | k == j){
-                imHere(4);
                 k = rand.nextInt(cardsCount);
             } 
             tries++;
@@ -171,12 +161,10 @@ public class AISuperSecretIntelligenceService{
                 i = rand.nextInt(cardsCount);
             j = rand.nextInt(cardsCount);
             while(i == j){
-                imHere(5);
                 j = rand.nextInt(cardsCount);
             } 
             k = rand.nextInt(cardsCount);
             while(k == i | k == j){
-                imHere(6);
                 k = rand.nextInt(cardsCount);
             } 
             tries++;
