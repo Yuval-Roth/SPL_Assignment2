@@ -130,7 +130,7 @@ public class Dealer implements Runnable {
             } 
                 
         }
-        env.ui.setCountdown(0,true);   
+        if(terminate == false) env.ui.setCountdown(0,true);   
     }
 
     /**
@@ -248,7 +248,7 @@ public class Dealer implements Runnable {
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {   
-        Player.secretService.continueExecution = false;
+        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
         for(Player player : players){
             player.pause();
         }
