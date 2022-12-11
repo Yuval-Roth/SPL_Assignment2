@@ -244,28 +244,14 @@ public class Dealer implements Runnable {
         }
     }
 
-
-    static boolean done = false;
     /**
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {   
-        done = false;
-        Thread pauseTestTimer = new Thread(()->{
-            try{ Thread.sleep(1000);}catch(Exception ignored){}
-            System.out.println("done: "+done);
-            if(done == false){
-                Main.PlayerPauseFailed = true;
-                throw new RuntimeException("Player threads did not pause in time.");
-            }
-        });
-        pauseTestTimer.start();
         Player.secretService.continueExecution = false;
         for(Player player : players){
             player.pause();
         }
-        done = true;
-        pauseTestTimer.interrupt();
     }
 
     /**
@@ -276,25 +262,11 @@ public class Dealer implements Runnable {
     private boolean shouldFinish() {
         return terminate || allSetsDepleted();
     }
-    
-    static boolean done2 = false;
-    private void terminatePlayers() {
-        done2 = false;
-        Thread terminateTestTimer = new Thread(()->{
-            try{ Thread.sleep(1000);}catch(Exception ignored){}
-            System.out.println("done2: "+done2);
-            if(done2 == false){
-                Main.PlayerPauseFailed = true;
-                throw new RuntimeException("Player threads did not terminate in time.");
-            }
-        });
-        terminateTestTimer.start();
 
+    private void terminatePlayers() {
         for(Player player : players){
             player.terminate();
         }  
-        done2 = true;
-        terminateTestTimer.interrupt();
     }
  
     /**

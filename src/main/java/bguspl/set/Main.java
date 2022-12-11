@@ -18,47 +18,36 @@ import java.util.logging.*;
  */
 public class Main {
 
-    public static boolean PlayerPauseFailed = false;
-
     /**
      * The game's main function. Creates all data structures and initializes the threads.
      *
      * @param args - unused.
      */
     public static void main(String[] args) {
-        while(PlayerPauseFailed == false){
-            // create the game environment objects
-            Logger logger = initLogger(args.length > 0);
-            Config config = new Config(logger, "config.properties");
-            UserInterfaceImpl ui = new UserInterfaceImpl(logger, config);
-            EventQueue.invokeLater(() -> ui.setVisible(true));
-            Env env = new Env(logger, config, ui, new UtilImpl(config));
-    
-            // create the game entities
-            Player[] players = new Player[env.config.players];
-            Table table = new Table(env);
-            Dealer dealer = new Dealer(env, table, players);
-            for (int i = 0; i < players.length; i++)
-                players[i] = new Player(env, dealer, table, i, i < env.config.humanPlayers);
-            ui.addKeyListener(new InputManager(env, players));
-            ui.addWindowListener(new WindowManager(env, dealer));
-    
-            // start the dealer thread
-            Thread dealerThread = new Thread(dealer, "dealer");
-            dealerThread.start();
-    
-            try {dealerThread.join();} catch (InterruptedException ignored) {}
-            env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
-            for(Handler h:env.logger.getHandlers())
-                h.close();
+        // create the game environment objects
+        Logger logger = initLogger(args.length > 0);
+        Config config = new Config(logger, "config.properties");
+        UserInterfaceImpl ui = new UserInterfaceImpl(logger, config);
+        EventQueue.invokeLater(() -> ui.setVisible(true));
+        Env env = new Env(logger, config, ui, new UtilImpl(config));
 
+        // create the game entities
+        Player[] players = new Player[env.config.players];
+        Table table = new Table(env);
+        Dealer dealer = new Dealer(env, table, players);
+        for (int i = 0; i < players.length; i++)
+            players[i] = new Player(env, dealer, table, i, i < env.config.humanPlayers);
+        ui.addKeyListener(new InputManager(env, players));
+        ui.addWindowListener(new WindowManager(env, dealer));
 
+        // start the dealer thread
+        Thread dealerThread = new Thread(dealer, "dealer");
+        dealerThread.start();
 
-
-            System.out.println("=============================================================");
-            System.out.println("=============================================================");
-            System.out.println("=============================================================");
-        }
+        try {dealerThread.join();} catch (InterruptedException ignored) {}
+        env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
+        for(Handler h:env.logger.getHandlers())
+            h.close();
     }
 
     private static Logger initLogger(boolean disableTimestamp) {
