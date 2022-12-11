@@ -127,6 +127,7 @@ public class Player implements Runnable {
         clickQueue = new ConcurrentLinkedQueue<>();
         claimNotificationQueue = new ConcurrentLinkedQueue<>();
         claimNotification = false;
+        AIRunning = false;
         executionListener = new Object();
         activityListener = new Object();
         AIListener = new Object();
@@ -376,7 +377,7 @@ public class Player implements Runnable {
      */
     public void resume(){
         state = State.waitingForActivity;
-        AIRunning = true;
+        if(human == false) AIRunning = true;
         synchronized(executionListener){executionListener.notifyAll();}
     }
 

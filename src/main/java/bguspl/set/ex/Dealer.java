@@ -130,7 +130,7 @@ public class Dealer implements Runnable {
             } 
                 
         }
-        env.ui.setCountdown(0,true);   
+        if(terminate == false) env.ui.setCountdown(0,true);   
     }
 
     /**
@@ -176,7 +176,7 @@ public class Dealer implements Runnable {
      */
     private void handleClaimedSet(Claim claim) {
 
-        if(isValidSet(claim.cards)){
+         if(isValidSet(claim.cards)){
             removeClaimedCards(claim.cards, claim.claimer);
             placeCardsOnTable();
             updateTimerDisplay(true);
@@ -214,7 +214,7 @@ public class Dealer implements Runnable {
     */
     private boolean isValidSet(Integer[] cards) {
         synchronized(cards){
-            int[] _cards = Arrays.stream(cards).mapToInt(i->i).toArray();
+            int[] _cards = Arrays.stream(cards).mapToInt(i->table.slotToCard[i]).toArray();
             return env.util.testSet(_cards);
         }
     }
@@ -248,7 +248,7 @@ public class Dealer implements Runnable {
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {   
-        Player.secretService.continueExecution = false;
+        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
         for(Player player : players){
             player.pause();
         }

@@ -14,7 +14,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.disabled;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;
@@ -34,9 +34,15 @@ public class AISuperSecretIntelligenceService{
     public AISuperSecretIntelligenceService(Env env){
         sets = new int[cardsCount][cardsCount][cardsCount];
 
-        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 50 : 500;
+        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 100 : 500;
 
         switch(intelligenceStrength){
+            case disabled:{
+                isSetTries = 0;
+                isPotentialSetTries = 0;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 1;
+                break;
+            }
             case weak:{
                 isSetTries = 2;
                 isPotentialSetTries = 5;
