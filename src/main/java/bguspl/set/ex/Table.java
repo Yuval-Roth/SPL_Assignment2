@@ -218,6 +218,15 @@ public class Table {
         List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
         return deck;
     }
+
+    
+    /**
+     * @param slot - slot number
+     * @return true if the slot is empty and false otherwise
+     */
+    public boolean isSlotEmpty(int slot) {
+        return slotToCard[slot] == null;
+    }
     
 
     

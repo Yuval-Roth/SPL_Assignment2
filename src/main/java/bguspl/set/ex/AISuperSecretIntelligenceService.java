@@ -29,11 +29,10 @@ public class AISuperSecretIntelligenceService{
     public boolean continueExecution;
 
     private Env env;
-
+    private Table table;
     private Dealer dealer;
 
-    public AISuperSecretIntelligenceService(Env env, Dealer dealer){
-        this.dealer = dealer;
+    public AISuperSecretIntelligenceService(Env env,Dealer dealer,Table table){
         sets = new int[cardsCount][cardsCount][cardsCount];
 
         AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 100 : 500;
@@ -66,7 +65,7 @@ public class AISuperSecretIntelligenceService{
             case illuminati:{
                 isSetTries = 1000;
                 isPotentialSetTries = 2000;
-                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 1;
+                WAIT_BETWEEN_INTELLIGENCE_GATHERING = 10;
                 break;
             }
             default: {
@@ -76,6 +75,8 @@ public class AISuperSecretIntelligenceService{
         }
 
         this.env = env;
+        this.table = table;
+        this.dealer = dealer;
         continueExecution = intelligenceStrength != IntelligenceStrength.disabled ;
     }
 
@@ -127,64 +128,49 @@ public class AISuperSecretIntelligenceService{
         sendIntel(keys, dealer.isValidSet(keys));
     }
 
-    public Integer[] drawPotentialSet(){
-        Random rand = new Random();
-        int i,j,k;
+    private Integer[] drawPotentialSet(){
+        Integer[] cards;
         int tries = 0;
         do{
-            i = rand.nextInt(cardsCount);
-            j = rand.nextInt(cardsCount);
-            while(i == j){
-                j = rand.nextInt(cardsCount);
-            } 
-            k = rand.nextInt(cardsCount);
-            while(k == i | k == j){
-                k = rand.nextInt(cardsCount);
-            } 
+            cards = generateCards();
             tries++;
-        }while(continueExecution && isPotentialSet(i, j,k) == false & tries++ <= isPotentialSetTries);
-        return new Integer[]{i,j,k};
+        }while(continueExecution && isPotentialSet(cards[0],cards[1],cards[2]) == false & tries <= isPotentialSetTries);
+        return cards;
     }
 
     public Integer[] getIntel(){
-        Random rand = new Random();
-        int i,j,k;
+        Integer[] cards;
         int tries = 0;
         
         do{
-            i = rand.nextInt(cardsCount);
-            j = rand.nextInt(cardsCount);
-            while(i == j){
-                j = rand.nextInt(cardsCount);
-            } 
-            k = rand.nextInt(cardsCount);
-            while(k == i | k == j){
-                k = rand.nextInt(cardsCount);
-            } 
+            cards = generateCards();
             tries++;
-        }while((continueExecution && isSet(i, j,k) == false & tries <= isSetTries));
+        }while((continueExecution && isSet(cards[0],cards[1],cards[2]) == false & tries <= isSetTries));
         
-        if(isSet(i, j,k) == false){
+        if(isSet(cards[0],cards[1],cards[2]) == false){
             do{
-                i = rand.nextInt(cardsCount);
-            j = rand.nextInt(cardsCount);
-            while(i == j){
-                j = rand.nextInt(cardsCount);
-            } 
-            k = rand.nextInt(cardsCount);
-            while(k == i | k == j){
-                k = rand.nextInt(cardsCount);
-            } 
-            tries++;
-            }while(continueExecution && isPotentialSet(i, j,k) == false & tries <= isPotentialSetTries);
+                cards = generateCards();
+                tries++;
+            }while(continueExecution && isPotentialSet(cards[0],cards[1],cards[2]) == false & tries <= isPotentialSetTries);
         }
 
-        boolean announce_to_console = false;
-        if(announce_to_console){
-            if(sets[i][j][k] == 1) System.out.println(Thread.currentThread().getName()+" Got intel about a confirmed set!");
-            if(sets[i][j][k] == 0) System.out.println(Thread.currentThread().getName()+" Got intel about a potential set!");
-            if(sets[i][j][k] == -1) System.out.println(Thread.currentThread().getName()+" Got intel about a non-set!");
-        }
+        return cards;
+    }
+
+    private Integer[] generateCards(){
+        Random rand = new Random();
+        int i,j,k;
+        do{
+            i = rand.nextInt(cardsCount);
+        }while(table.isSlotEmpty(i));
+
+        do{
+            j = rand.nextInt(cardsCount);
+        }while(table.isSlotEmpty(j) || i == j);
+
+        do{
+            k = rand.nextInt(cardsCount);
+        }while(table.isSlotEmpty(k) || k == i || k == j);
 
         return new Integer[]{i,j,k};
     }

@@ -231,7 +231,7 @@ public class Dealer implements Runnable {
      */
     private void resumePlayerThreads() {
         if(env.config.computerPlayers > 0) 
-            Player.secretService = new AISuperSecretIntelligenceService(env, this);
+            Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
             player.resume();
         }
