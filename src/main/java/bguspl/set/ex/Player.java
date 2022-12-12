@@ -411,14 +411,16 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(id, ++score);
-        startFreezeTimer(env.config.pointFreezeMillis);
+        if(env.config.pointFreezeMillis > 0)startFreezeTimer(env.config.pointFreezeMillis);
+        else if(state != State.pausingExecution) state = State.waitingForActivity;
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        startFreezeTimer(env.config.penaltyFreezeMillis);
+        if(env.config.penaltyFreezeMillis > 0) startFreezeTimer(env.config.penaltyFreezeMillis);
+        else if(state != State.pausingExecution) state = State.waitingForActivity;
     }
 
     /**

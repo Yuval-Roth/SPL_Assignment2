@@ -224,7 +224,7 @@ public class Dealer implements Runnable {
     */
     public boolean isValidSet(Integer[] cards) {
         synchronized(cards){
-            cards = Arrays.stream(cards).map(i->table.slotToCard[i]).toArray(Integer[]::new);
+            cards = Arrays.stream(cards).map(i->i/*table.slotToCard[i]*/).toArray(Integer[]::new);
             int[] _cards = Arrays.stream(cards).filter(Objects::nonNull).mapToInt(i->i).toArray();
             if(_cards.length != SET_SIZE)
                 return false;
