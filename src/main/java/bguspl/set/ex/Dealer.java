@@ -1,13 +1,11 @@
 package bguspl.set.ex;
 import bguspl.set.Env;
-import bguspl.set.Main;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static java.awt.peer.ComponentPeer.SET_SIZE;
 
 /**
  * This class manages the dealer's threads and data
@@ -72,6 +70,9 @@ public class Dealer implements Runnable {
      */
     private Thread[] playerThreads;
 
+    
+    private volatile Semaphore gameVersionAccess;
+
     /**
      * a version indicator for claimSet() actions
      * resets each shuffle
@@ -92,6 +93,7 @@ public class Dealer implements Runnable {
         playerThreads = new Thread[players.length];
         wakeListener = new Object();
         claimQueue = new ConcurrentLinkedQueue<>();
+        gameVersionAccess = new Semaphore(1,true);
     }
     
     
@@ -159,11 +161,18 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
 
-        synchronized(gameVersion){
-            if(claimVersion == gameVersion) 
-                gameVersion++;
-            else return false;
-        }
+            try{
+                gameVersionAccess.acquire();
+            }catch(InterruptedException ignored){
+                if(claimVersion == gameVersion) {
+                    gameVersion++;
+                }
+                else return false;
+            }
+            finally{
+                gameVersionAccess.release();
+            }
+                
             claimQueue.add(new Claim(cards,claimer,claimVersion));
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      

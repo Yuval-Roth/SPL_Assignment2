@@ -1,5 +1,4 @@
 package bguspl.set.ex;
-import java.util.Arrays;
 import java.util.Random;
 
 import bguspl.set.Env;
