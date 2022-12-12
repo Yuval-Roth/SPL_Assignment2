@@ -70,6 +70,8 @@ public class Dealer implements Runnable {
      */
     private Thread[] playerThreads;
 
+    private boolean paused;
+
     
     private volatile Semaphore gameVersionAccess;
 
@@ -160,7 +162,7 @@ public class Dealer implements Runnable {
      * @param claimVersion - The gameVersion according to getGameVersion()
      */
     public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
-
+        if(paused) return false;
             try{
                 gameVersionAccess.acquire();
             }catch(InterruptedException ignored){
@@ -239,6 +241,7 @@ public class Dealer implements Runnable {
      * on the threads
      */
     private void resumePlayerThreads() {
+        paused = false;
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
@@ -262,6 +265,7 @@ public class Dealer implements Runnable {
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {   
+        paused = true;
         if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
         for(Player player : players){
             player.pause();

@@ -24,6 +24,7 @@ public class Main {
      * @param args - unused.
      */
     public static void main(String[] args) {
+        while(true){
         // create the game environment objects
         Logger logger = initLogger(args.length > 0);
         Config config = new Config(logger, "config.properties");
@@ -48,6 +49,7 @@ public class Main {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
         for(Handler h:env.logger.getHandlers())
             h.close();
+        }
     }
 
     private static Logger initLogger(boolean disableTimestamp) {

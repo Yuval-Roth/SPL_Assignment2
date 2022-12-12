@@ -327,7 +327,7 @@ public class Player implements Runnable {
             }        
         }
 
-        if(cardsRemoved) state = State.waitingForActivity;
+        if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
         synchronized(claimNotification){claimNotification = false;}
         switch(action){
             case 0 : break;
@@ -350,7 +350,7 @@ public class Player implements Runnable {
      */
     private void startFreezeTimer(long freezeTime) {
         freezeUntil = System.currentTimeMillis() +  freezeTime;
-        state = State.frozen;
+        if(state != State.pausingExecution) state = State.frozen;
         while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
@@ -368,8 +368,8 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
-        state = State.pausingExecution;
         do {
+            state = State.pausingExecution;
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
