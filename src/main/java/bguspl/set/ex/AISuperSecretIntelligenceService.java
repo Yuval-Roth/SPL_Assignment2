@@ -28,7 +28,6 @@ public class AISuperSecretIntelligenceService{
 
     public boolean continueExecution;
 
-    private Env env;
     private Table table;
     private Dealer dealer;
 
@@ -74,7 +73,6 @@ public class AISuperSecretIntelligenceService{
                 
         }
 
-        this.env = env;
         this.table = table;
         this.dealer = dealer;
         continueExecution = intelligenceStrength != IntelligenceStrength.disabled ;
