@@ -49,11 +49,11 @@ public class Main {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
         for(Handler h:env.logger.getHandlers())
             h.close();
-        }
+    }
     }
 
     private static Logger initLogger(boolean disableTimestamp) {
-
+        
         FileHandler fh;
         //just to make our log file nicer :)
         SimpleDateFormat format = new SimpleDateFormat("M-d_HH-mm-ss");

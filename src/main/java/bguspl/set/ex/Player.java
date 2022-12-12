@@ -153,13 +153,10 @@ public class Player implements Runnable {
                     clearClickQueue();
                     try{
                         state = State.paused;
-                        synchronized(executionListener){
-                            executionListener.wait();
-                        }
-                        if(state == State.terminated) break;
-                        else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
-                            // else updateTimerDisplay();
+                        synchronized(executionListener){executionListener.wait();}
                     }catch(InterruptedException ignored){}
+                    if(state == State.terminated) break;
+                    else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
                 }
                 if(state != State.pausingExecution & state != State.terminated){
                     while(clickQueue.isEmpty() == false){
@@ -267,7 +264,7 @@ public class Player implements Runnable {
             if(insertState){
                 placedTokens.addLast(slot);
                 while(placedTokens.size() == Dealer.SET_SIZE & state != State.pausingExecution){
-                    state = State.waitingForClaim;
+                    if(state != State.pausingExecution) state = State.waitingForClaim;
                     clearClickQueue();
                     if (ClaimSet()) {    
                         break;
