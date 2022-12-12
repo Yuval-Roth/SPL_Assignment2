@@ -13,7 +13,7 @@ public class AISuperSecretIntelligenceService{
         illuminati
     }
 
-    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.shabac;
+    private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
     private volatile int[][][] sets;
     private int cardsCount = 12;

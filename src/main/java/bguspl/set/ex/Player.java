@@ -106,6 +106,7 @@ public class Player implements Runnable {
     private volatile Object AIListener;
 
     private volatile boolean AIRunning;
+    private long freezeRemainder;
 
     /**
      * The class constructor.
@@ -131,6 +132,7 @@ public class Player implements Runnable {
         activityListener = new Object();
         AIListener = new Object();
         state = State.pausingExecution;
+        freezeRemainder = 0;
     }
 
     //===========================================================
@@ -147,7 +149,6 @@ public class Player implements Runnable {
             if (!human) createArtificialIntelligence();
             while (state != State.terminated) {
                 if(state == State.pausingExecution){
-                    long freezeRemainder = freezeUntil - System.currentTimeMillis();
                     clearAllPlacedTokens();
                     clearClickQueue();
                     try{
@@ -157,6 +158,7 @@ public class Player implements Runnable {
                         }
                         if(state == State.terminated) break;
                         else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
+                            // else updateTimerDisplay();
                     }catch(InterruptedException ignored){}
                 }
                 if(state != State.pausingExecution & state != State.terminated){
@@ -351,13 +353,14 @@ public class Player implements Runnable {
     private void startFreezeTimer(long freezeTime) {
         freezeUntil = System.currentTimeMillis() +  freezeTime;
         if(state != State.pausingExecution) state = State.frozen;
+        updateTimerDisplay(freezeUntil-System.currentTimeMillis());
         while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
-            updateTimerDisplay();
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
             } catch (InterruptedException ignored){}
+            updateTimerDisplay(freezeUntil-System.currentTimeMillis()); 
         }
-         
+        freezeRemainder = freezeUntil - System.currentTimeMillis();
         if(state == State.frozen){
             env.ui.setFreeze(id,0);
             state = State.waitingForActivity;
@@ -368,8 +371,8 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
+        state = State.pausingExecution;
         do {
-            state = State.pausingExecution;
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
@@ -443,8 +446,8 @@ public class Player implements Runnable {
     /**
      * Updates the UI timer if the player is frozen
      */
-    private void updateTimerDisplay() { 
-        env.ui.setFreeze(id,freezeUntil-System.currentTimeMillis());   
+    private void updateTimerDisplay(long time) { 
+        env.ui.setFreeze(id,time);   
     }
 
     /**
