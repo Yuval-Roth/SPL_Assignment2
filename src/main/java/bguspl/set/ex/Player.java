@@ -82,7 +82,7 @@ public class Player implements Runnable {
     /**
      * Future timeout time for player freeze timer
      */
-    private long timerTimeoutTime;
+    private long freezeUntil;
 
     private volatile ConcurrentLinkedQueue<Claim> claimNotificationQueue;
 
@@ -147,6 +147,7 @@ public class Player implements Runnable {
             if (!human) createArtificialIntelligence();
             while (state != State.terminated) {
                 if(state == State.pausingExecution){
+                    long freezeRemainder = freezeUntil - System.currentTimeMillis();
                     clearAllPlacedTokens();
                     clearClickQueue();
                     try{
@@ -155,6 +156,7 @@ public class Player implements Runnable {
                             executionListener.wait();
                         }
                         if(state == State.terminated) break;
+                        else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
                     }catch(InterruptedException ignored){}
                 }
                 if(state != State.pausingExecution & state != State.terminated){
@@ -262,7 +264,7 @@ public class Player implements Runnable {
             }
             if(insertState){
                 placedTokens.addLast(slot);
-                while(placedTokens.size() == dealer.SET_SIZE & state != State.pausingExecution){
+                while(placedTokens.size() == Dealer.SET_SIZE & state != State.pausingExecution){
                     state = State.waitingForClaim;
                     clearClickQueue();
                     if (ClaimSet()) {    
@@ -346,17 +348,20 @@ public class Player implements Runnable {
      * @post - the freeze timer is started
      * @post - the UI timer is updated
      */
-    private void startFreezeTimer() {
+    private void startFreezeTimer(long freezeTime) {
+        freezeUntil = System.currentTimeMillis() +  freezeTime;
         state = State.frozen;
-        while(state == State.frozen & timerTimeoutTime >= System.currentTimeMillis() ){
+        while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
             updateTimerDisplay();
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
             } catch (InterruptedException ignored){}
         }
-        
-        env.ui.setFreeze(id,0);
-        if(state == State.frozen){state = State.waitingForActivity;}
+         
+        if(state == State.frozen){
+            env.ui.setFreeze(id,0);
+            state = State.waitingForActivity;
+        }
     }
 
     /**
@@ -406,16 +411,14 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(id, ++score);
-        timerTimeoutTime = System.currentTimeMillis()+ env.config.pointFreezeMillis;
-        startFreezeTimer();
+        startFreezeTimer(env.config.pointFreezeMillis);
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        timerTimeoutTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
-        startFreezeTimer();
+        startFreezeTimer(env.config.penaltyFreezeMillis);
     }
 
     /**
@@ -441,7 +444,7 @@ public class Player implements Runnable {
      * Updates the UI timer if the player is frozen
      */
     private void updateTimerDisplay() { 
-        env.ui.setFreeze(id,timerTimeoutTime-System.currentTimeMillis());   
+        env.ui.setFreeze(id,freezeUntil-System.currentTimeMillis());   
     }
 
     /**
