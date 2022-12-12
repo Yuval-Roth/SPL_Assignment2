@@ -204,7 +204,7 @@ public class Player implements Runnable {
 
                 for(int i = 0; i < keys.length & state != State.pausingExecution & state != State.paused ; i++){
                     // limit how fast the AI clicks buttons
-                    try{synchronized(AIListener){AIListener.wait(secretService.AI_WAIT_BETWEEN_KEY_PRESSES);}
+                    try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}
                     keyPressed_AI(keys[i]);
                 }
@@ -472,6 +472,12 @@ public class Player implements Runnable {
         while(clickQueue.isEmpty() == false){
             clickQueue.remove();
         }
+    }
+
+    private int generateAIWaitTime() {
+        return (int)(Math.random()*
+        (secretService.AI_WAIT_BETWEEN_KEY_PRESSES*(3.0/2.0) - secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0)+
+         secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0);
     }
 
     //===========================================================
