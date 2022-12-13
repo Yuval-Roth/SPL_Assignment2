@@ -1,7 +1,9 @@
 package bguspl.set.ex;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
+import java.util.concurrent.Semaphore;
 
 import bguspl.set.Env;
 
@@ -263,21 +265,21 @@ public class Player implements Runnable {
             }
             if(insertState){
                 placedTokens.addLast(slot);
-                while(placedTokens.size() == Dealer.SET_SIZE & state != State.pausingExecution){
-                    if(state != State.pausingExecution) state = State.waitingForClaim;
+                if(placedTokens.size() == Dealer.SET_SIZE) {
+                    state = State.waitingForClaim;
                     clearClickQueue();
-                    if (ClaimSet()) {    
-                        break;
+                }
+                while(state == State.waitingForClaim){
+                    if (ClaimSet() == false) {    
+                        if(claimNotification){
+                            handleNotifiedClaim();
+                            if(state != State.waitingForClaim) break; 
+                        }
                     }
-                    else if(claimNotification){
-                        handleNotifiedClaim();
-                    }
-                    else {
-                        try{
-                            synchronized(activityListener){activityListener.wait();}
-                        }catch(InterruptedException ignored){}
-                        handleNotifiedClaim();
-                    }
+                    try{
+                        synchronized(activityListener){activityListener.wait();}
+                    }catch(InterruptedException ignored){}
+                    handleNotifiedClaim();
                 } 
             }
         }
@@ -310,6 +312,7 @@ public class Player implements Runnable {
 
         int action = 0;
         boolean cardsRemoved = false;
+
         while(claimNotificationQueue.isEmpty() == false){
             Claim claim = claimNotificationQueue.remove();
             if(claim.claimer == this){
@@ -325,7 +328,6 @@ public class Player implements Runnable {
                 }
             }        
         }
-
         if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
         synchronized(claimNotification){claimNotification = false;}
         switch(action){
@@ -349,8 +351,8 @@ public class Player implements Runnable {
      */
     private void startFreezeTimer(long freezeTime) {
         freezeUntil = System.currentTimeMillis() +  freezeTime;
-        if(state != State.pausingExecution) state = State.frozen;
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
+        if(state != State.pausingExecution) state = State.frozen;
         while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}

@@ -69,9 +69,6 @@ public class Dealer implements Runnable {
      * Holds all of the player threads
      */
     private Thread[] playerThreads;
-
-    private boolean paused;
-
     
     private volatile Semaphore gameVersionAccess;
 
@@ -164,15 +161,16 @@ public class Dealer implements Runnable {
     public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
             try{
                 gameVersionAccess.acquire();
-            }catch(InterruptedException ignored){
+            }catch(InterruptedException ignored){}
                 if(claimVersion == gameVersion) {
                     gameVersion++;
+                    gameVersionAccess.release();
                 }
-                else return false;
-            }
-            finally{
-                gameVersionAccess.release();
-            }
+                else {
+                    gameVersionAccess.release();
+                    return false;
+                }
+            
                 
             claimQueue.add(new Claim(cards,claimer,claimVersion));
             synchronized(wakeListener){wakeListener.notifyAll();}
@@ -223,15 +221,11 @@ public class Dealer implements Runnable {
     * Checks if the given set of cards is a valid set.
     */
     public boolean isValidSet(Integer[] cards) {
-        synchronized(cards){
-            cards = Arrays.stream(cards).map(i->i/*table.slotToCard[i]*/).toArray(Integer[]::new);
+            cards = Arrays.stream(cards).map(i->table.slotToCard[i]).toArray(Integer[]::new);
             int[] _cards = Arrays.stream(cards).filter(Objects::nonNull).mapToInt(i->i).toArray();
             if(_cards.length != SET_SIZE)
                 return false;
             return env.util.testSet(_cards);
-
-
-        }
     }
 
     /**
