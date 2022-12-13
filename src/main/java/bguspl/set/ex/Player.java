@@ -150,21 +150,21 @@ public class Player implements Runnable {
             playerThread = Thread.currentThread();
             if (!human) createArtificialIntelligence();
             while (state != State.terminated) {
+
                 if(state == State.pausingExecution){
-                    clearAllPlacedTokens();
-                    clearClickQueue();
-                    try{
-                        state = State.paused;
-                        synchronized(executionListener){executionListener.wait();}
-                    }catch(InterruptedException ignored){}
+                    enterPausedState();
+
+                    //do this after being released from paused state
                     if(state == State.terminated) break;
                     else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
                 }
+
                 if(state != State.pausingExecution & state != State.terminated){
-                    while(clickQueue.isEmpty() == false){
+                    while(clickQueue.isEmpty() == false & state == State.waitingForActivity){
                         Integer key = clickQueue.remove();
                         placeOrRemoveToken(key);
-                    } 
+                    }
+                    if(state == State.waitingForClaim) waitForClaim();
                     try{
                         synchronized(activityListener){
                             activityListener.wait();
@@ -177,6 +177,15 @@ public class Player implements Runnable {
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
+    }
+
+    private void enterPausedState() {
+        clearAllPlacedTokens();
+        clearClickQueue();
+        try{
+            state = State.paused;
+            synchronized(executionListener){executionListener.wait();}
+        }catch(InterruptedException ignored){}
     }
 
     /**
@@ -268,23 +277,27 @@ public class Player implements Runnable {
                 if(placedTokens.size() == Dealer.SET_SIZE) {
                     state = State.waitingForClaim;
                     clearClickQueue();
-                }
-                while(state == State.waitingForClaim){
-                    if (ClaimSet() == false) {    
-                        if(claimNotification){
-                            handleNotifiedClaim();
-                            if(state != State.waitingForClaim) break; 
-                        }
-                    }
-                    try{
-                        synchronized(activityListener){activityListener.wait();}
-                    }catch(InterruptedException ignored){}
-                    handleNotifiedClaim();
                 } 
             }
         }
         else {
             clearPlacedToken(slot);       
+        }
+    }
+
+    private void waitForClaim(){
+        while(state == State.waitingForClaim){
+            while (ClaimSet() == false) {    
+                if(claimNotification){
+                    handleNotifiedClaim();
+                    if(state != State.waitingForClaim) return;
+                    
+                }
+            }
+            try{
+                synchronized(activityListener){activityListener.wait();}
+            }catch(InterruptedException ignored){}
+            handleNotifiedClaim();
         }
     }
 
