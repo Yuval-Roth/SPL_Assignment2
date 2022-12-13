@@ -189,11 +189,11 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             claim.validSet = true;
-            claim.claimer.notifyClaim(claim);
+            // claim.claimer.notifyClaim(claim);
             for(Player player : players){
-                if(player != claim.claimer ||
+                if(/*player != claim.claimer ||*/
                 player.getState() == Player.State.waitingForActivity |
-                player.getState() == Player.State.waitingForClaim){
+                player.getState() == Player.State.handlingClaim){
                     player.notifyClaim(claim); 
                 }
             }

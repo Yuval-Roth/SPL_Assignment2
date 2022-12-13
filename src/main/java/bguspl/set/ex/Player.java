@@ -2,6 +2,7 @@ package bguspl.set.ex;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 
@@ -17,7 +18,7 @@ public class Player implements Runnable {
 
     public enum State{
         waitingForActivity,
-        waitingForClaim,
+        handlingClaim,
         frozen,
         pausingExecution,
         paused,
@@ -86,7 +87,7 @@ public class Player implements Runnable {
      */
     private long freezeUntil;
 
-    private volatile ConcurrentLinkedQueue<Claim> claimNotificationQueue;
+    private volatile ConcurrentLinkedDeque<Claim> claimNotificationQueue;
 
     private volatile Boolean claimNotification;
 
@@ -127,7 +128,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        claimNotificationQueue = new ConcurrentLinkedQueue<>();
+        claimNotificationQueue = new ConcurrentLinkedDeque<>();
         claimNotification = false;
         AIRunning = false;
         executionListener = new Object();
@@ -164,15 +165,15 @@ public class Player implements Runnable {
                         Integer key = clickQueue.remove();
                         placeOrRemoveToken(key);
                     }
-                    if(state == State.waitingForClaim) waitForClaim();
+                    if(state == State.handlingClaim) handleClaim();
                     try{
                         synchronized(activityListener){
                             activityListener.wait();
                         }
                     }catch(InterruptedException ignored){}
                 }
-                if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
-                    handleNotifiedClaim();         
+                // if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
+                //     handleNotifiedClaim();         
             }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -218,7 +219,7 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
                     keyPressed_AI(keys[i]);
                 }
-                while(state == State.waitingForClaim){
+                while(state == State.handlingClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
@@ -275,7 +276,7 @@ public class Player implements Runnable {
             if(insertState){
                 placedTokens.addLast(slot);
                 if(placedTokens.size() == Dealer.SET_SIZE) {
-                    state = State.waitingForClaim;
+                    state = State.handlingClaim;
                     clearClickQueue();
                 } 
             }
@@ -285,13 +286,12 @@ public class Player implements Runnable {
         }
     }
 
-    private void waitForClaim(){
-        while(state == State.waitingForClaim){
-            while (ClaimSet() == false) {    
+    private void handleClaim(){
+        while(placedTokens.size() == Dealer.SET_SIZE & state == State.handlingClaim){
+            if(ClaimSet() == false) {    
                 if(claimNotification){
                     handleNotifiedClaim();
-                    if(state != State.waitingForClaim) return;
-                    
+                    if(state != State.handlingClaim) return;    
                 }
             }
             try{
@@ -314,8 +314,9 @@ public class Player implements Runnable {
     }
 
     public void notifyClaim(Claim claim){
-        if(state == State.waitingForActivity | state == State.waitingForClaim){
-            claimNotificationQueue.add(claim);
+        if(state == State.waitingForActivity | state == State.handlingClaim){
+            if(claim.claimer == this) claimNotificationQueue.addFirst(claim);
+            else claimNotificationQueue.addLast(claim);
             synchronized(claimNotification){claimNotification = true;}
             synchronized(activityListener){activityListener.notifyAll();}
         } 
@@ -331,6 +332,7 @@ public class Player implements Runnable {
             if(claim.claimer == this){
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
+                break;
             }
             else{             
                 for(Integer card : claim.cards){
@@ -363,9 +365,10 @@ public class Player implements Runnable {
      * @post - the UI timer is updated
      */
     private void startFreezeTimer(long freezeTime) {
+        if(state != State.pausingExecution) state = State.frozen;
         freezeUntil = System.currentTimeMillis() +  freezeTime;
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
-        if(state != State.pausingExecution) state = State.frozen;
+        clearClaimNotificationQueue();
         while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
@@ -426,7 +429,7 @@ public class Player implements Runnable {
      */
     public void point() {
         env.ui.setScore(id, ++score);
-        if(env.config.pointFreezeMillis > 0)startFreezeTimer(env.config.pointFreezeMillis);
+        if(env.config.pointFreezeMillis > 0) startFreezeTimer(env.config.pointFreezeMillis);
         else if(state != State.pausingExecution) state = State.waitingForActivity;
     }
 
@@ -456,6 +459,11 @@ public class Player implements Runnable {
     //                  utility methods
     //===========================================================
 
+    private void clearClaimNotificationQueue() {
+        while(claimNotificationQueue.isEmpty() == false){
+            claimNotificationQueue.remove();
+        }
+    }
 
     /**
      * Updates the UI timer if the player is frozen
