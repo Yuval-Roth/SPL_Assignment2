@@ -336,6 +336,10 @@ public class Player implements Runnable {
         return state;
     }
 
+    /**
+     * dumps the player's data to the console.
+     * Used for debugging.
+     */
     public void dumpData(){
         System.out.println("dumping player "+id+" data:");
             System.out.println("State: "+state);

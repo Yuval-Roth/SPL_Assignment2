@@ -134,14 +134,7 @@ public class Dealer implements Runnable {
                 for(Player player : players){
                     player.dumpData();
                 }
-                System.out.println("dumping Dealer data:");
-                System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
-                System.out.println("claimQueue.size:"+claimQueue.size());
-                System.out.println("claimQueue.size:");
-                for(Claim claim : claimQueue){
-                    System.out.println(claim);
-                }
-                System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
+                dumpData();
                 dealerThread.interrupt();   
                 reshuffleTime = Long.MAX_VALUE;
                 throw new RuntimeException("Player threads unresponsive");
@@ -173,11 +166,6 @@ public class Dealer implements Runnable {
         }
         stop = true;
         if(terminate == false) env.ui.setCountdown(0,true);   
-    }
-
-
-    private void resetDebuggingTimer() {
-        debuggingTimer = System.currentTimeMillis();
     }
 
     /**
@@ -452,6 +440,29 @@ public class Dealer implements Runnable {
      */
     private boolean allSetsDepleted() {
         return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
+    }
+
+    /**
+     * dumps the dealer's data to the console
+     * for debugging purposes
+     */
+    private void dumpData() {
+        System.out.println("dumping Dealer data:");
+        System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
+        System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
+        System.out.println("claimQueue.size:"+claimQueue.size());
+        System.out.println("claimQueue.size:");
+        for(Claim claim : claimQueue){
+            System.out.println(claim);
+        }
+        System.out.println("====================================");
+    }
+
+    /**
+     * for debugging purposes
+     */
+    private void resetDebuggingTimer() {
+        debuggingTimer = System.currentTimeMillis();
     }
     
 }
