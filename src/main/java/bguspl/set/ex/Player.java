@@ -152,8 +152,11 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             playerThread = Thread.currentThread();
             if (!human) createArtificialIntelligence();
+
+            //main loop
             while (state != State.terminated) {
 
+                //while the game is still running
                 if(state == State.pausingExecution){
                     enterPausedState();
 
@@ -162,34 +165,48 @@ public class Player implements Runnable {
                     else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
                 }
 
+                //check if game needs to be paused
                 if(state != State.pausingExecution & state != State.terminated){
+                    
+                    //if there is a click to be processed
                     while(clickQueue.isEmpty() == false & state == State.waitingForActivity){
                         Integer key = clickQueue.remove();
                         placeOrRemoveToken(key);
                     }
+
+                    //if there is a claim to be turned in
                     if(state == State.turningInClaim){
                         turnInClaim();
                     } 
+
+                    //number of tries to wait for claim result
                     int tries = 0;
                     while(state == State.waitingForClaimResult & tries < 10){  
                         try{
+                            //wait for claim result
                             synchronized(claimListener){claimListener.wait(generateWaitingTime());}
                         }catch(InterruptedException ignored){} 
-                        if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult) handleNotifiedClaim();
-                        tries++;
+
+                        //if a claim was notified, handle it
+                        if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult){
+                            handleNotifiedClaim();
+                        }else  tries++; //if no claim was notified, increment tries
                     }
 
-                    //disaster recovery
-                    if(tries == 10 & state == State.waitingForClaimResult){
+                    //disaster recovery if claim result was not notified
+                    if(tries >= 10 & state == State.waitingForClaimResult){
                         state = State.turningInClaim;
                         continue;
                     }
 
                     try{
                         synchronized(activityListener){
+                            //wait for activity
                             activityListener.wait();
                         }
                     }catch(InterruptedException ignored){}
+
+                    //if a claim was notified, handle it
                     if(claimQueue.isEmpty() == false & state == State.waitingForActivity){
                         handleNotifiedClaim();         
                     }
@@ -229,9 +246,9 @@ public class Player implements Runnable {
             AIRunning = true;
             
             while (state!=State.terminated) {
-                Integer[] keys = secretService.getIntel();
+                Integer[] keys = secretService.getIntel(); //get the keys to press
 
-                int currentScore = score;
+                int currentScore = score; //score before the AI makes a move
 
                 for(int i = 0; i < keys.length & state != State.pausingExecution & state != State.paused ; i++){
                     // limit how fast the AI clicks buttons
@@ -239,26 +256,32 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
                     keyPressed_AI(keys[i]);
                 }
+
+                //if the player is waiting, gather intel
                 while(state == State.waitingForClaimResult | state == State.turningInClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
+
+                //if the game does not need to be paused, report the claim
                 if(state != State.pausingExecution & state!=State.paused){
                     if (currentScore < score)
                         secretService.reportSetClaimed(keys);
                     else secretService.sendIntel(keys,false); 
                 }
 
+                //if the player is frozen, gather intel
                 while(state == State.frozen){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     }catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
 
+                //if the game needs to be paused, wait until it is unpaused
                 if(state == State.pausingExecution | state == State.paused){
                     try{
-                        AIRunning = false;
+                        AIRunning = false; //AI is not running while game is paused
                         synchronized(executionListener){
                             executionListener.wait();
                         }
