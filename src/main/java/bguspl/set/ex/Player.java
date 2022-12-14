@@ -229,7 +229,7 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
                     keyPressed_AI(keys[i]);
                 }
-                while(state == State.turningInClaim){
+                while(state == State.waitingForClaimResult | state == State.turningInClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
@@ -299,11 +299,19 @@ public class Player implements Runnable {
     private void turnInClaim(){
         Integer[] array = placedTokens.stream().toArray(Integer[]::new);
         while(placedTokens.size() == Dealer.SET_SIZE & state == State.turningInClaim){
-            if(ClaimSet(array) == false) {    
+            if(ClaimSet(array) == false) {   
+                
+                
                 if(claimNotification){
                     handleNotifiedClaim();
                     if(state != State.turningInClaim) return;    
                 }
+
+                //sleep for a short random time and try again
+                try{
+                    Thread.sleep((long)(Math.random()*(25-10)+10));
+                }catch(InterruptedException ignored){}
+                
             } else if(state != State.pausingExecution) state = State.waitingForClaimResult;
         }
     }
