@@ -126,6 +126,7 @@ public class Dealer implements Runnable {
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
                 while(claimQueue.isEmpty() == false){
+                    //TODO: synchronize this
                     Claim claim = claimQueue.remove();
                     handleClaimedSet(claim);
                     updateTimerDisplay(false);
@@ -160,6 +161,8 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
 
+
+            
             try{
                 gameVersionAccess.acquire();
             }catch(InterruptedException ignored){}
@@ -173,9 +176,8 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-            
-                
-            claimQueue.add(new Claim(cards,claimer,claimVersion));
+                  
+            claimQueue.add(new Claim(cards,claimer,claimVersion)); //TODO: synchronize this
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      
     }
