@@ -116,8 +116,37 @@ public class Dealer implements Runnable {
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
-
+    private volatile long debuggingTimer = 0;
+    private volatile boolean stop = false;
     private void startTimer() {     
+        Thread dealerThread = Thread.currentThread();
+        Thread debuggingThread = new Thread(()->{
+            stop = false;
+            resetDebuggingTimer();
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < 1000){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+            if(stop == false){
+                for(Player player : players){
+                    player.dumpData();
+                }
+                System.out.println("dumping Dealer data:");
+                System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
+                System.out.println("claimQueue.size:"+claimQueue.size());
+                System.out.println("claimQueue.size:");
+                for(Claim claim : claimQueue){
+                    System.out.println(claim);
+                }
+                System.out.println("reshuffleTime: " + reshuffleTime);
+                dealerThread.interrupt();   
+                reshuffleTime = Long.MAX_VALUE;
+                throw new RuntimeException("Player threads unresponsive");
+            }
+            
+        });
+        debuggingThread.start();
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
             nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
@@ -130,11 +159,18 @@ public class Dealer implements Runnable {
                     Claim claim = claimQueue.remove();
                     handleClaimedSet(claim);
                     updateTimerDisplay(false);
+                    resetDebuggingTimer();
                 }
             } 
                 
         }
+        stop = true;
         if(terminate == false) env.ui.setCountdown(0,true);   
+    }
+
+
+    private void resetDebuggingTimer() {
+        debuggingTimer = System.currentTimeMillis();
     }
 
     /**
@@ -161,18 +197,16 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
 
-
+            resetDebuggingTimer();
             
             try{
                 gameVersionAccess.acquire();
             }catch(InterruptedException ignored){}
             if(claimVersion == gameVersion) {
                 gameVersion++;
-                System.out.println("player "+claimer.id+" claimSet successful at "+gameVersion);
                 gameVersionAccess.release();
             }
             else {
-                System.out.println("player "+claimer.id+" claimedSet failed at "+gameVersion+" with version "+claimVersion);
                 gameVersionAccess.release();
                 return false;
             }

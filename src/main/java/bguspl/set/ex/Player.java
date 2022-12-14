@@ -84,9 +84,9 @@ public class Player implements Runnable {
      */
     private long freezeUntil;
 
-    private volatile ConcurrentLinkedQueue<Claim> claimNotificationQueue;
+    private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
-    private volatile Boolean claimNotification;
+    // private volatile Boolean claimNotification;
 
     private volatile State state;
 
@@ -126,8 +126,8 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        claimNotificationQueue = new ConcurrentLinkedQueue<>();
-        claimNotification = false;
+        claimQueue = new ConcurrentLinkedQueue<>();
+        // claimNotification = false;
         AIRunning = false;
         executionListener = new Object();
         activityListener = new Object();
@@ -172,14 +172,14 @@ public class Player implements Runnable {
                         try{
                             synchronized(claimListener){claimListener.wait(generateWaitingTime());}
                         }catch(InterruptedException ignored){} 
-                        if(claimNotification & state == State.waitingForClaimResult) handleNotifiedClaim();
+                        if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult) handleNotifiedClaim();
                     }
                     try{
                         synchronized(activityListener){
                             activityListener.wait();
                         }
                     }catch(InterruptedException ignored){}
-                    if(claimNotification & state == State.waitingForActivity){
+                    if(claimQueue.isEmpty() == false & state == State.waitingForActivity){
                         handleNotifiedClaim();         
                     }
                 }
@@ -301,7 +301,7 @@ public class Player implements Runnable {
             if(ClaimSet(array) == false) {   
                 
                 
-                if(claimNotification){
+                if(claimQueue.isEmpty() == false){
                     handleNotifiedClaim();
                     if(state != State.turningInClaim) return;    
                 }
@@ -328,8 +328,8 @@ public class Player implements Runnable {
 
     public void notifyClaim(Claim claim){
         if(state == State.waitingForActivity | state == State.waitingForClaimResult){
-            claimNotificationQueue.add(claim);
-            synchronized(claimNotification){claimNotification = true;}
+            claimQueue.add(claim);
+            // synchronized(claimNotification){claimNotification = true;}
             synchronized(claimListener){claimListener.notifyAll();}
         }
     }
@@ -338,8 +338,8 @@ public class Player implements Runnable {
 
         int action = 0;
         boolean cardsRemoved = false;
-        while(claimNotificationQueue.isEmpty() == false){
-            Claim claim = claimNotificationQueue.remove();
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
             if(claim.claimer == this){
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
@@ -357,7 +357,7 @@ public class Player implements Runnable {
             }        
         }
         if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
-        synchronized(claimNotification){claimNotification = false;}
+        // synchronized(claimNotification){claimNotification = false;}
         switch(action){
             case 0 : break;
             case 1:{
@@ -398,11 +398,13 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
-        state = State.pausingExecution;
+        int tries = 0;
         do {
+            if(tries % 10 == 0) state = State.pausingExecution;
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             synchronized(claimListener){claimListener.notifyAll();}
+            tries++;
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
         }while(state != State.paused | AIRunning);
     }
@@ -473,13 +475,13 @@ public class Player implements Runnable {
     //===========================================================
 
     private long generateWaitingTime() {  
-        if(claimNotification) return 1;
+        if(claimQueue.isEmpty() == false) return 1;
         else return 0;
     }
 
     private void clearClaimNotificationQueue() {
-        while(claimNotificationQueue.isEmpty() == false){
-            claimNotificationQueue.remove();
+        while(claimQueue.isEmpty() == false){
+            claimQueue.remove();
         }
     }
 
@@ -536,5 +538,18 @@ public class Player implements Runnable {
 
     public State getState() {
         return state;
+    }
+
+    public void dumpData(){
+        System.out.println("dumping player "+id+" data:");
+            System.out.println("State: "+state);
+            System.out.println("placedTokens: "+placedTokens);
+            System.out.println("claimQueue.isEmpty(): "+claimQueue.isEmpty());
+            System.out.println("claimQueue.size: "+claimQueue.size());
+            System.out.println("claimQueue: ");
+            for(Claim c : claimQueue)
+                System.out.println(c);
+            System.out.println("remainingFreezeTime: "+freezeRemainder);
+            System.out.println("================================");
     }
 }
