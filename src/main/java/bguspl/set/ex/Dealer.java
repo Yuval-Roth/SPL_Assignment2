@@ -158,18 +158,21 @@ public class Dealer implements Runnable {
      * @param claimer - The player who claims the set
      * @param claimVersion - The gameVersion according to getGameVersion()
      */
-    public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
+    public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
+
             try{
                 gameVersionAccess.acquire();
             }catch(InterruptedException ignored){}
-                if(claimVersion == gameVersion) {
-                    gameVersion++;
-                    gameVersionAccess.release();
-                }
-                else {
-                    gameVersionAccess.release();
-                    return false;
-                }
+            if(claimVersion == gameVersion) {
+                gameVersion++;
+                System.out.println("player "+claimer.id+" claimSet successful at "+gameVersion);
+                gameVersionAccess.release();
+            }
+            else {
+                System.out.println("player "+claimer.id+" claimedSet failed at "+gameVersion+" with version "+claimVersion);
+                gameVersionAccess.release();
+                return false;
+            }
             
                 
             claimQueue.add(new Claim(cards,claimer,claimVersion));
@@ -189,17 +192,20 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             claim.validSet = true;
-            // claim.claimer.notifyClaim(claim);
+            System.out.println("dealer notified claimer "+claim.claimer.id+" of his own claim at "+System.currentTimeMillis());
+            claim.claimer.notifyClaim(claim);
             for(Player player : players){
-                if(/*player != claim.claimer ||*/
-                player.getState() == Player.State.waitingForActivity |
-                player.getState() == Player.State.handlingClaim){
+                if(player!=claim.claimer && (
+                        player.getState() == Player.State.waitingForActivity |
+                        player.getState() == Player.State.turningInClaim)){
+                    System.out.println("dealer notified player "+player.id+" of player "+claim.claimer.id+"'s claim  at "+System.currentTimeMillis());
                     player.notifyClaim(claim); 
                 }
             }
-        } else{
-            claim.claimer.notifyClaim(claim);
-        }   
+        }else {
+            System.out.println("dealer notified claimer "+claim.claimer.id+" of his invalid claim at "+System.currentTimeMillis());
+            claim.claimer.notifyClaim(claim);;
+        }
     }
 
     /**
@@ -263,6 +269,11 @@ public class Dealer implements Runnable {
      */
     private void pausePlayerThreads() {   
         if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            handleClaimedSet(claim);
+            updateTimerDisplay(false);
+        }
         for(Player player : players){
             player.pause();
         }

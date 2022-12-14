@@ -5,6 +5,7 @@ import java.util.ListIterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Stream;
 
 import bguspl.set.Env;
 
@@ -18,7 +19,8 @@ public class Player implements Runnable {
 
     public enum State{
         waitingForActivity,
-        handlingClaim,
+        turningInClaim,
+        waitingForClaimResult,
         frozen,
         pausingExecution,
         paused,
@@ -87,7 +89,7 @@ public class Player implements Runnable {
      */
     private long freezeUntil;
 
-    private volatile ConcurrentLinkedDeque<Claim> claimNotificationQueue;
+    private volatile ConcurrentLinkedQueue<Claim> claimNotificationQueue;
 
     private volatile Boolean claimNotification;
 
@@ -103,6 +105,7 @@ public class Player implements Runnable {
      */
     private volatile Object activityListener;
 
+    private volatile Object claimListener;
     /**
      *
      */
@@ -128,11 +131,12 @@ public class Player implements Runnable {
         this.dealer = dealer;
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
-        claimNotificationQueue = new ConcurrentLinkedDeque<>();
+        claimNotificationQueue = new ConcurrentLinkedQueue<>();
         claimNotification = false;
         AIRunning = false;
         executionListener = new Object();
         activityListener = new Object();
+        claimListener = new Object();
         AIListener = new Object();
         state = State.pausingExecution;
         freezeRemainder = 0;
@@ -165,19 +169,34 @@ public class Player implements Runnable {
                         Integer key = clickQueue.remove();
                         placeOrRemoveToken(key);
                     }
-                    if(state == State.handlingClaim) handleClaim();
+                    if(state == State.turningInClaim){
+                        turnInClaim();
+                    } 
+                    while(state == State.waitingForClaimResult){
+                        synchronized(claimListener){
+                            try{
+                                if(state == State.waitingForClaimResult) System.out.println("player "+id+" waiting for claim result at"+System.currentTimeMillis());
+                                claimListener.wait(generateWaitingTime());
+                            }catch(InterruptedException ignored){} 
+                        }
+                        if(claimNotification) handleNotifiedClaim();
+                    }
                     try{
                         synchronized(activityListener){
                             activityListener.wait();
                         }
                     }catch(InterruptedException ignored){}
+                    if(claimNotification & state == State.waitingForActivity){
+                        handleNotifiedClaim();         
+                    }
                 }
-                // if(claimNotification & (state == State.waitingForActivity | state == State.waitingForClaim))
-                //     handleNotifiedClaim();         
             }
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
+    }
+
+    private void waitForClaimResult() {
     }
 
     private void enterPausedState() {
@@ -219,7 +238,7 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
                     keyPressed_AI(keys[i]);
                 }
-                while(state == State.handlingClaim){
+                while(state == State.turningInClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
@@ -276,7 +295,7 @@ public class Player implements Runnable {
             if(insertState){
                 placedTokens.addLast(slot);
                 if(placedTokens.size() == Dealer.SET_SIZE) {
-                    state = State.handlingClaim;
+                    state = State.turningInClaim;
                     clearClickQueue();
                 } 
             }
@@ -286,18 +305,15 @@ public class Player implements Runnable {
         }
     }
 
-    private void handleClaim(){
-        while(placedTokens.size() == Dealer.SET_SIZE & state == State.handlingClaim){
-            if(ClaimSet() == false) {    
+    private void turnInClaim(){
+        Integer[] array = placedTokens.stream().toArray(Integer[]::new);
+        while(placedTokens.size() == Dealer.SET_SIZE & state == State.turningInClaim){
+            if(ClaimSet(array) == false) {    
                 if(claimNotification){
                     handleNotifiedClaim();
-                    if(state != State.handlingClaim) return;    
+                    if(state != State.turningInClaim) return;    
                 }
-            }
-            try{
-                synchronized(activityListener){activityListener.wait();}
-            }catch(InterruptedException ignored){}
-            handleNotifiedClaim();
+            } else state = State.waitingForClaimResult;
         }
     }
 
@@ -306,27 +322,24 @@ public class Player implements Runnable {
      * Claims a set if the player has placed a full set.
      * @post - The dealer is notified about the set claim.
      */
-    private boolean ClaimSet() {
-        Integer[] array = new Integer[placedTokens.size()];
+    private boolean ClaimSet(Integer[] array) {
         int version = dealer.getGameVersion();
         try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
-        return dealer.claimSet(placedTokens.toArray(array), this,version);     
+        return dealer.claimSet(array, this,version);     
     }
 
     public void notifyClaim(Claim claim){
-        if(state == State.waitingForActivity | state == State.handlingClaim){
-            if(claim.claimer == this) claimNotificationQueue.addFirst(claim);
-            else claimNotificationQueue.addLast(claim);
+        if(state == State.waitingForActivity | state == State.waitingForClaimResult){
+            claimNotificationQueue.add(claim);
             synchronized(claimNotification){claimNotification = true;}
-            synchronized(activityListener){activityListener.notifyAll();}
-        } 
+            synchronized(claimListener){claimListener.notifyAll();}
+        }
     }
 
     private void handleNotifiedClaim() {
 
         int action = 0;
         boolean cardsRemoved = false;
-
         while(claimNotificationQueue.isEmpty() == false){
             Claim claim = claimNotificationQueue.remove();
             if(claim.claimer == this){
@@ -334,13 +347,15 @@ public class Player implements Runnable {
                 clearAllPlacedTokens();
                 break;
             }
-            else{             
-                for(Integer card : claim.cards){
-                    if(placedTokens.contains(card)){
-                        clearPlacedToken(card);
-                        cardsRemoved = true;
+            else{ 
+                if(claim.validSet){
+                    for(Integer card : claim.cards){
+                        if(placedTokens.contains(card)){
+                            clearPlacedToken(card);
+                            cardsRemoved = true;
+                        }
                     }
-                }
+                }else return;            
             }        
         }
         if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
@@ -368,7 +383,6 @@ public class Player implements Runnable {
         if(state != State.pausingExecution) state = State.frozen;
         freezeUntil = System.currentTimeMillis() +  freezeTime;
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
-        clearClaimNotificationQueue();
         while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
             try{
                 synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
@@ -458,6 +472,11 @@ public class Player implements Runnable {
     //===========================================================
     //                  utility methods
     //===========================================================
+
+    private long generateWaitingTime() {  
+        if(claimNotification) return 1;
+        else return 0;
+    }
 
     private void clearClaimNotificationQueue() {
         while(claimNotificationQueue.isEmpty() == false){
