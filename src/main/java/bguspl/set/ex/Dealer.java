@@ -194,18 +194,16 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             claim.validSet = true;
-            System.out.println("dealer notified claimer "+claim.claimer.id+" of his own claim at "+System.currentTimeMillis());
             claim.claimer.notifyClaim(claim);
             for(Player player : players){
                 if(player!=claim.claimer && (
                         player.getState() == Player.State.waitingForActivity |
+                        player.getState() == Player.State.waitingForClaimResult|
                         player.getState() == Player.State.turningInClaim)){
-                    System.out.println("dealer notified player "+player.id+" of player "+claim.claimer.id+"'s claim  at "+System.currentTimeMillis());
                     player.notifyClaim(claim); 
                 }
             }
         }else {
-            System.out.println("dealer notified claimer "+claim.claimer.id+" of his invalid claim at "+System.currentTimeMillis());
             claim.claimer.notifyClaim(claim);;
         }
     }

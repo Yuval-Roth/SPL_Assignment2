@@ -170,7 +170,6 @@ public class Player implements Runnable {
                     while(state == State.waitingForClaimResult){
                         
                         try{
-                            if(state == State.waitingForClaimResult) System.out.println("player "+id+" waiting for claim result at"+System.currentTimeMillis());
                             synchronized(claimListener){claimListener.wait(generateWaitingTime());}
                         }catch(InterruptedException ignored){} 
                         if(claimNotification & state == State.waitingForClaimResult) handleNotifiedClaim();
@@ -311,7 +310,7 @@ public class Player implements Runnable {
                 try{
                     Thread.sleep((long)(Math.random()*(25-10)+10));
                 }catch(InterruptedException ignored){}
-                
+
             } else if(state != State.pausingExecution) state = State.waitingForClaimResult;
         }
     }
