@@ -563,8 +563,12 @@ public class Player implements Runnable {
     }
 
     private long generateWaitingTime() {  
-        if(claimQueue.isEmpty() == false) return 1;
-        else return 50;
+        if(state == State.waitingForClaimResult){
+            if(claimQueue.isEmpty() == false) return 1;
+            else return 100;
+        }else if(state == State.waitingForActivity){
+            return 1000;
+        }else return 1;
     }
 
     private void clearClaimNotificationQueue() {

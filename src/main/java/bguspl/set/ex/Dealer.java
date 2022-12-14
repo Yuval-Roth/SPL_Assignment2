@@ -153,7 +153,6 @@ public class Dealer implements Runnable {
                 if(claimQueue.isEmpty() == false){
                     claimQueueAccess.acquireUninterruptibly(players.length);
                     while(claimQueue.isEmpty() == false){
-                        //TODO: synchronize this
                         Claim claim = claimQueue.remove();
                         handleClaimedSet(claim);
                         updateTimerDisplay(false);
@@ -207,7 +206,7 @@ public class Dealer implements Runnable {
             }
             
             claimQueueAccess.acquireUninterruptibly(1);
-            claimQueue.add(new Claim(cards,claimer,claimVersion)); //TODO: synchronize this
+            claimQueue.add(new Claim(cards,claimer,claimVersion));
             claimQueueAccess.release(1);
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      
