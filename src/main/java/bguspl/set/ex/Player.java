@@ -170,13 +170,21 @@ public class Player implements Runnable {
                     if(state == State.turningInClaim){
                         turnInClaim();
                     } 
-                    while(state == State.waitingForClaimResult){
-                        
+                    int tries = 0;
+                    while(state == State.waitingForClaimResult & tries < 10){  
                         try{
                             synchronized(claimListener){claimListener.wait(generateWaitingTime());}
                         }catch(InterruptedException ignored){} 
                         if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult) handleNotifiedClaim();
+                        tries++;
                     }
+
+                    //disaster recovery
+                    if(tries == 10 & state == State.waitingForClaimResult){
+                        state = State.turningInClaim;
+                        continue;
+                    }
+
                     try{
                         synchronized(activityListener){
                             activityListener.wait();
@@ -301,9 +309,7 @@ public class Player implements Runnable {
     private void turnInClaim(){
         Integer[] array = placedTokens.stream().toArray(Integer[]::new);
         while(placedTokens.size() == Dealer.SET_SIZE & state == State.turningInClaim){
-            if(ClaimSet(array) == false) {   
-                
-                
+            if(ClaimSet(array) == false) {     
                 if(claimQueue.isEmpty() == false){
                     handleNotifiedClaim();
                     if(state != State.turningInClaim) return;    
@@ -349,7 +355,6 @@ public class Player implements Runnable {
             if(claim.claimer == this){
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
-                claimQueue.clear();
                 break;
             }
             else{ 
@@ -482,7 +487,7 @@ public class Player implements Runnable {
 
     private long generateWaitingTime() {  
         if(claimQueue.isEmpty() == false) return 1;
-        else return 0;
+        else return 50;
     }
 
     private void clearClaimNotificationQueue() {

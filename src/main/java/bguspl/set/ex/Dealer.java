@@ -125,7 +125,7 @@ public class Dealer implements Runnable {
         Thread debuggingThread = new Thread(()->{
             stop = false;
             resetDebuggingTimer();
-            while(stop == false & System.currentTimeMillis() - debuggingTimer < 1000){
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < 3000){
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {}
