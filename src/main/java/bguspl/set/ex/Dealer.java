@@ -83,6 +83,7 @@ public class Dealer implements Runnable {
     private volatile Object wakeListener;
 
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
+    private volatile Semaphore claimQueueAccess;
        
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -93,6 +94,7 @@ public class Dealer implements Runnable {
         wakeListener = new Object();
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
+        claimQueueAccess = new Semaphore(players.length,true);
     }
     
     
@@ -139,7 +141,7 @@ public class Dealer implements Runnable {
                 for(Claim claim : claimQueue){
                     System.out.println(claim);
                 }
-                System.out.println("reshuffleTime: " + reshuffleTime);
+                System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
                 dealerThread.interrupt();   
                 reshuffleTime = Long.MAX_VALUE;
                 throw new RuntimeException("Player threads unresponsive");
@@ -154,12 +156,17 @@ public class Dealer implements Runnable {
             while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
-                while(claimQueue.isEmpty() == false){
-                    //TODO: synchronize this
-                    Claim claim = claimQueue.remove();
-                    handleClaimedSet(claim);
-                    updateTimerDisplay(false);
-                    resetDebuggingTimer();
+
+                if(claimQueue.isEmpty() == false){
+                    claimQueueAccess.acquireUninterruptibly(players.length);
+                    while(claimQueue.isEmpty() == false){
+                        //TODO: synchronize this
+                        Claim claim = claimQueue.remove();
+                        handleClaimedSet(claim);
+                        updateTimerDisplay(false);
+                        resetDebuggingTimer();
+                    }
+                    claimQueueAccess.release(players.length);
                 }
             } 
                 
@@ -210,8 +217,10 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-                  
+            
+            claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion)); //TODO: synchronize this
+            claimQueueAccess.release(1);
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      
     }
