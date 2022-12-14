@@ -271,11 +271,6 @@ public class Dealer implements Runnable {
      */
     private void pausePlayerThreads() {   
         if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
-        while(claimQueue.isEmpty() == false){
-            Claim claim = claimQueue.remove();
-            handleClaimedSet(claim);
-            updateTimerDisplay(false);
-        }
         for(Player player : players){
             player.pause();
         }

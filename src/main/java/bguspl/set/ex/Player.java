@@ -168,13 +168,12 @@ public class Player implements Runnable {
                         turnInClaim();
                     } 
                     while(state == State.waitingForClaimResult){
-                        synchronized(claimListener){
-                            try{
-                                if(state == State.waitingForClaimResult) System.out.println("player "+id+" waiting for claim result at"+System.currentTimeMillis());
-                                claimListener.wait(generateWaitingTime());
-                            }catch(InterruptedException ignored){} 
-                        }
-                        if(claimNotification) handleNotifiedClaim();
+                        
+                        try{
+                            if(state == State.waitingForClaimResult) System.out.println("player "+id+" waiting for claim result at"+System.currentTimeMillis());
+                            synchronized(claimListener){claimListener.wait(generateWaitingTime());}
+                        }catch(InterruptedException ignored){} 
+                        if(claimNotification & state == State.waitingForClaimResult) handleNotifiedClaim();
                     }
                     try{
                         synchronized(activityListener){
@@ -305,7 +304,7 @@ public class Player implements Runnable {
                     handleNotifiedClaim();
                     if(state != State.turningInClaim) return;    
                 }
-            } else state = State.waitingForClaimResult;
+            } else if(state != State.pausingExecution) state = State.waitingForClaimResult;
         }
     }
 
@@ -396,6 +395,7 @@ public class Player implements Runnable {
         do {
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
+            synchronized(claimListener){claimListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
         }while(state != State.paused | AIRunning);
     }
