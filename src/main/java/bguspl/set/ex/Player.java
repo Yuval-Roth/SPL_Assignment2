@@ -1,6 +1,7 @@
 package bguspl.set.ex;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 
 import bguspl.set.Env;
 
@@ -108,6 +109,7 @@ public class Player implements Runnable {
 
     private volatile boolean AIRunning;
     private long freezeRemainder;
+    private Semaphore claimQueueAccess;
 
     /**
      * The class constructor.
@@ -135,6 +137,7 @@ public class Player implements Runnable {
         AIListener = new Object();
         state = State.pausingExecution;
         freezeRemainder = 0;
+        claimQueueAccess = new Semaphore(1,true);
     }
 
     //===========================================================
@@ -328,7 +331,9 @@ public class Player implements Runnable {
 
     public void notifyClaim(Claim claim){
         if(state == State.waitingForActivity | state == State.waitingForClaimResult){
+            claimQueueAccess.acquireUninterruptibly();
             claimQueue.add(claim);
+            claimQueueAccess.release();
             // synchronized(claimNotification){claimNotification = true;}
             synchronized(claimListener){claimListener.notifyAll();}
         }
@@ -338,11 +343,13 @@ public class Player implements Runnable {
 
         int action = 0;
         boolean cardsRemoved = false;
+        claimQueueAccess.acquireUninterruptibly();
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
             if(claim.claimer == this){
                 action = claim.validSet ? 1:-1;
                 clearAllPlacedTokens();
+                claimQueue.clear();
                 break;
             }
             else{ 
@@ -353,11 +360,11 @@ public class Player implements Runnable {
                             cardsRemoved = true;
                         }
                     }
-                }else return;            
+                }            
             }        
         }
+        claimQueueAccess.release();
         if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
-        // synchronized(claimNotification){claimNotification = false;}
         switch(action){
             case 0 : break;
             case 1:{
@@ -400,11 +407,10 @@ public class Player implements Runnable {
     public void pause(){
         int tries = 0;
         do {
-            if(tries % 10 == 0) state = State.pausingExecution;
+            if(tries++ % 10 == 0) state = State.pausingExecution;
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             synchronized(claimListener){claimListener.notifyAll();}
-            tries++;
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
         }while(state != State.paused | AIRunning);
     }
