@@ -1,11 +1,6 @@
 package bguspl.set.ex;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Semaphore;
-import java.util.stream.Stream;
 
 import bguspl.set.Env;
 
@@ -194,9 +189,6 @@ public class Player implements Runnable {
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
-    }
-
-    private void waitForClaimResult() {
     }
 
     private void enterPausedState() {
