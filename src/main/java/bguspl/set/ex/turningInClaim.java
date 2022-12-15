@@ -63,7 +63,7 @@ public class turningInClaim implements PlayerState{
             if(ClaimSet(array) == false) {     
                 if(claimQueue.isEmpty() == false){
                     handleNotifiedClaim();
-                    if(player.getState() != State.turningInClaim) return;    
+                    if(checkState() == false) return;    
                 }
 
                 //sleep for a short random time and try again
@@ -71,7 +71,7 @@ public class turningInClaim implements PlayerState{
                     Thread.sleep((long)(Math.random()*(25-10)+10));
                 }catch(InterruptedException ignored){}
 
-            } else if(player.getState() != State.pausingExecution) player.setState(State.waitingForClaimResult);
+            } else if(checkState()) changeToState(State.waitingForClaimResult);
         } 
     }
     /**
@@ -110,8 +110,8 @@ public class turningInClaim implements PlayerState{
         }
 
         claimQueueAccess.release();
-        if(cardsRemoved & player.getState() != State.pausingExecution){
-            player.setState(State.waitingForActivity);
+        if(cardsRemoved & checkState()){
+            changeToState(State.waitingForActivity);
         }
 
         switch(action){
@@ -133,16 +133,16 @@ public class turningInClaim implements PlayerState{
      */
     public void point() {
         env.ui.setScore(player.id, player.incrementAndGetScore());
-        if(env.config.pointFreezeMillis > 0 & player.getState() != State.pausingExecution) player.setState(State.frozen);
-        else if(player.getState() != State.pausingExecution) player.setState(State.waitingForActivity);
+        if(env.config.pointFreezeMillis > 0 & checkState()) changeToState(State.frozen);
+        else if(checkState()) changeToState(State.waitingForActivity);
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        if(env.config.penaltyFreezeMillis > 0) player.setState(State.frozen);
-        else if(player.getState() != State.pausingExecution) player.setState(State.waitingForActivity);
+        if(env.config.penaltyFreezeMillis > 0 & checkState()) changeToState(State.frozen);
+        else if(checkState()) changeToState(State.waitingForActivity);
     }
 
     void clearPlacedToken(Integer slot) {
@@ -167,5 +167,10 @@ public class turningInClaim implements PlayerState{
         return State.turningInClaim;
     }
     
-    
+    private void changeToState(State state) {
+        player.setState(state);
+    }
+    private boolean checkState() {
+        return player.getState() == State.turningInClaim;
+    }
 }

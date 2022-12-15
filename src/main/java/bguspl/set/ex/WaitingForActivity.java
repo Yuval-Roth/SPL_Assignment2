@@ -89,12 +89,12 @@ public class WaitingForActivity implements PlayerState {
             }catch(InterruptedException ignored){}
 
             //if a claim was notified, handle it
-            if(claimQueue.isEmpty() == false & player.getState() == State.waitingForActivity){
+            if(claimQueue.isEmpty() == false & checkState()){
                 handleNotifiedClaim();         
             }
 
             //if there is a click to be processed
-            while(clickQueue.isEmpty() == false & player.getState() == State.waitingForActivity){
+            while(clickQueue.isEmpty() == false & checkState()){
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);
             }
@@ -113,7 +113,7 @@ public class WaitingForActivity implements PlayerState {
         if(placedTokens.contains(slot) == false){
             boolean insertState = false;
             int tries = 0;
-            while(insertState == false & tries <=5 & player.getState() != State.pausingExecution){
+            while(insertState == false & tries <=5 & checkState()){
                 insertState = table.placeToken(player.id, slot);
                 tries++;
                 try{Thread.sleep(10);}catch(InterruptedException ignored){}
@@ -121,7 +121,7 @@ public class WaitingForActivity implements PlayerState {
             if(insertState){
                 placedTokens.addLast(slot);
                 if(placedTokens.size() == Dealer.SET_SIZE) {
-                    player.setState(State.turningInClaim);
+                    changeToState(State.turningInClaim);
                     clearClickQueue();
                 } 
             }
@@ -129,6 +129,14 @@ public class WaitingForActivity implements PlayerState {
         else {
             clearPlacedToken(slot);       
         }
+    }
+
+    private void changeToState(State state) {
+        player.setState(state);
+    }
+
+    private boolean checkState() {
+        return player.getState() == State.waitingForActivity;
     }
 
     /**
