@@ -25,8 +25,6 @@ public class Player implements Runnable {
         paused,
         terminated
     }
-
-    //TODO: add AI states - mostly for debugging
     
     private static final int CLICK_TIME_PADDING = 100;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
@@ -246,7 +244,6 @@ public class Player implements Runnable {
             claimQueueAccess.acquireUninterruptibly();
             claimQueue.add(claim);
             claimQueueAccess.release();
-            // synchronized(claimNotification){claimNotification = true;}
             synchronized(claimListener){claimListener.notifyAll();}
         }
     }
@@ -258,6 +255,7 @@ public class Player implements Runnable {
         int tries = 0;
         do {
             if(tries++ % 10 == 0) state = State.pausingExecution;
+            synchronized(this){this.notifyAll();}
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             synchronized(claimListener){claimListener.notifyAll();}
@@ -379,8 +377,6 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
 
-            //TODO: intergrate AI states
-
             //wait until the game starts
             try{
                 synchronized(executionListener){
@@ -395,7 +391,7 @@ public class Player implements Runnable {
 
                 int currentScore = score; //score before the AI makes a move
 
-                for(int i = 0; i < keys.length & state != State.pausingExecution & state != State.paused ; i++){
+                for(int i = 0; i < keys.length & state == State.waitingForActivity ; i++){
                     // limit how fast the AI clicks buttons
                     try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}

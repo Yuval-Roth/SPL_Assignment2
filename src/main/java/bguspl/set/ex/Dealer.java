@@ -268,6 +268,18 @@ public class Dealer implements Runnable {
             return env.util.testSet(_cards);
     }
 
+     /**
+     * Terminates all the player threads
+     */
+    private void pausePlayerThreads() {   
+        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
+        for(Player player : players){
+            // System.out.println("Pausing player "+player.id);
+            player.pause();
+        }
+        System.out.println();
+    }
+
     /**
      * Starts the player threads 
      * @note This instantiates new player threads and calls start()
@@ -295,16 +307,6 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Terminates all the player threads
-     */
-    private void pausePlayerThreads() {   
-        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
-        for(Player player : players){
-            player.pause();
-        }
-    }
-
-    /**
      * Check if the game should be terminated or the game end conditions are met.
      *
      * @return true iff the game should be finished.
@@ -314,8 +316,8 @@ public class Dealer implements Runnable {
     }
 
     private void terminatePlayers() {
-        for(Player player : players){
-            player.terminate();
+        for(int i=players.length-1; i>=0; i--){
+            players[i].terminate();
         }  
     }
  

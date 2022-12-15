@@ -159,8 +159,6 @@ public class AISuperSecretIntelligenceService{
         int i,j,k;
         do{
             i = rand.nextInt(cardsCount);
-        //TODO: AI gets stuck here when stopping players because all the cards on the table are null
-        //when the round ends table.isSlotEmpty(i) always returns true in this scenario.
         }while(table.isSlotEmpty(i));
 
         do{

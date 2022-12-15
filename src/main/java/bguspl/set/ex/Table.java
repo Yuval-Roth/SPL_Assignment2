@@ -179,9 +179,14 @@ public class Table {
      * Clears the table of all cards and tokens.
      */
     public Integer[] clearTable() {
+
         Integer[] cardsRemoved = Arrays.stream(slotToCard).filter(Objects::nonNull).toArray(Integer[]::new);
+        
+        //TODO turn this into a loop that uses the method to remove cards which updates the cardCount and the UI
         slotToCard = new Integer[slotToCard.length];
         cardToSlot = new Integer[cardToSlot.length];
+        cardCount = 0;
+        //====================================================================================================
         return cardsRemoved;
     }
 
