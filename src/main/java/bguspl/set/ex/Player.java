@@ -453,5 +453,43 @@ public class Player implements Runnable {
     public void setFreezeRemainder(long remainder) {
         this.freezeRemainder = remainder;
     }
+
+    private void handleNotifiedClaim() {
+
+        int action = 0;
+        boolean cardsRemoved = false;
+        claimQueueAccess.acquireUninterruptibly();
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            if(claim.claimer == this){
+                action = claim.validSet ? 1:-1;
+                clearAllPlacedTokens();
+                break;
+            }
+            else{ 
+                if(claim.validSet){
+                    for(Integer card : claim.cards){
+                        if(placedTokens.contains(card)){
+                            clearPlacedToken(card);
+                            cardsRemoved = true;
+                        }
+                    }
+                }            
+            }        
+        }
+        claimQueueAccess.release();
+        if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
+        switch(action){
+            case 0 : break;
+            case 1:{
+                point();
+                break;
+            } 
+            case -1: {
+                penalty();
+                break;
+            }
+        }
+    }
    
 }

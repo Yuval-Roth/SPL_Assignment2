@@ -86,44 +86,22 @@ public class TurningInClaim implements PlayerState{
     }
 
     private void handleNotifiedClaim() {
-
-        int action = 0;
+        
         boolean cardsRemoved = false;
         claimQueueAccess.acquireUninterruptibly();
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
-            if(claim.claimer == player){
-                action = claim.validSet ? 1:-1;
-                clearAllPlacedTokens();
-                break;
-            }
-            else{ 
-                if(claim.validSet){
-                    for(Integer card : claim.cards){
-                        if(placedTokens.contains(card)){
-                            clearPlacedToken(card);
-                            cardsRemoved = true;
-                        }
-                    }
-                }            
-            }        
+            for(Integer card : claim.cards){
+                if(placedTokens.contains(card)){
+                    clearPlacedToken(card);
+                    cardsRemoved = true;
+                }
+            }            
         }
 
         claimQueueAccess.release();
         if(cardsRemoved & checkState()){
             changeToState(State.waitingForActivity);
-        }
-
-        switch(action){
-            case 0 : break;
-            case 1:{
-                point();
-                break;
-            } 
-            case -1: {
-                penalty();
-                break;
-            }
         }
     }
     /**
