@@ -49,6 +49,7 @@ public class Player implements Runnable {
      */
     private LinkedList<Integer> placedTokens;
 
+
     /**
      * The id of the player (starting from 0).
      */
@@ -73,7 +74,7 @@ public class Player implements Runnable {
      * The current score of the player.
      */
     private int score;
-    
+
     /**
      * The game's dealer
      */
@@ -97,7 +98,7 @@ public class Player implements Runnable {
 
     // private volatile Boolean claimNotification;
 
-    private volatile State state;
+    private volatile PlayerState state;
 
     /**
      * Object for breaking wait() when game execution should resume
@@ -133,6 +134,8 @@ public class Player implements Runnable {
      */
     private Semaphore claimQueueAccess;
 
+    private PlayerState[] playerStates;
+
     
     /**
      * The class constructor.
@@ -157,9 +160,11 @@ public class Player implements Runnable {
         activityListener = new Object();
         claimListener = new Object();
         AIListener = new Object();
-        state = State.pausingExecution;
+        // state = State.pausingExecution;
         freezeRemainder = 0;
         claimQueueAccess = new Semaphore(1,true);
+        playerStates = new PlayerState[7];
+
     }
 
     //===========================================================
@@ -293,25 +298,6 @@ public class Player implements Runnable {
     }
 
     /**
-     * Award a point to a player and perform other related actions.
-     * @post - the player's score is increased by 1.
-     * @post - the player's score is updated in the ui.
-     */
-    public void point() {
-        env.ui.setScore(id, ++score);
-        if(env.config.pointFreezeMillis > 0) startFreezeTimer(env.config.pointFreezeMillis);
-        else if(state != State.pausingExecution) state = State.waitingForActivity;
-    }
-
-    /**
-     * Penalize a player and perform other related actions.
-     */
-    public void penalty() {
-        if(env.config.penaltyFreezeMillis > 0) startFreezeTimer(env.config.penaltyFreezeMillis);
-        else if(state != State.pausingExecution) state = State.waitingForActivity;
-    }
-
-    /**
      * Called when the game should be terminated due to an external event.
      * Interrupts the player thread and the AI thread (if any).
      * Clears the queue of tokens placed.
@@ -323,17 +309,6 @@ public class Player implements Runnable {
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
-    }
-
-    /**
-     * @return the player's score.
-     */
-    public int getScore() {
-        return score;
-    }
-
-    public State getState() {
-        return state;
     }
 
     /**
@@ -432,54 +407,6 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }, "computer-" + id);
         aiThread.start();
-    }
-
-    /**
-     * If a token is placed in the given slot, remove it.
-     * Otherwise, place a token in the given slot.
-     * Placing or removing a token sends a message to the table.
-     * Claims a set if the player has placed a full set.
-     * @post - the token is placed or removed from the given slot.
-     */
-    private void placeOrRemoveToken(Integer slot){
-
-        if(placedTokens.contains(slot) == false){
-            boolean insertState = false;
-            int tries = 0;
-            while(insertState == false & tries <=5 & state != State.pausingExecution){
-                insertState = table.placeToken(id, slot);
-                tries++;
-                try{Thread.sleep(10);}catch(InterruptedException ignored){}
-            }
-            if(insertState){
-                placedTokens.addLast(slot);
-                if(placedTokens.size() == Dealer.SET_SIZE) {
-                    state = State.turningInClaim;
-                    clearClickQueue();
-                } 
-            }
-        }
-        else {
-            clearPlacedToken(slot);       
-        }
-    }
-
-    private void turnInClaim(){
-        Integer[] array = placedTokens.stream().toArray(Integer[]::new);
-        while(placedTokens.size() == Dealer.SET_SIZE & state == State.turningInClaim){
-            if(ClaimSet(array) == false) {     
-                if(claimQueue.isEmpty() == false){
-                    handleNotifiedClaim();
-                    if(state != State.turningInClaim) return;    
-                }
-
-                //sleep for a short random time and try again
-                try{
-                    Thread.sleep((long)(Math.random()*(25-10)+10));
-                }catch(InterruptedException ignored){}
-
-            } else if(state != State.pausingExecution) state = State.waitingForClaimResult;
-        }
     }
 
     /**
@@ -591,7 +518,7 @@ public class Player implements Runnable {
      * Updates the UI to remove the tokens.
      * @post - the queue of tokens placed is cleared.
      */
-    private void clearAllPlacedTokens(){
+    void clearAllPlacedTokens(){
         while(placedTokens.isEmpty() == false){
             Integer token = placedTokens.peekFirst();
             table.removeToken(id, token);
@@ -599,16 +526,7 @@ public class Player implements Runnable {
         }    
     }
 
-    //===========================================================
-    //                  Getters / Setters
-    //===========================================================
-    
-    private void clearPlacedToken(Integer slot) {
-        table.removeToken(id, slot);
-        placedTokens.remove(slot);
-    }
-
-    /**
+     /**
      * Clears the pending clicks queue
      */
     private void clearClickQueue() {
@@ -617,9 +535,48 @@ public class Player implements Runnable {
         }
     }
 
+    //===========================================================
+    //                  Getters / Setters
+    //===========================================================
+    
+    /**
+     * @return the player's score.
+     */
+    public int getScore() {
+        return score;
+    }
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    public State getState() {
+        return state.getState();
+    }
+    public void setState(State state) {
+        this.state = playerStates[state.ordinal()];
+    }
+
+    void clearPlacedToken(Integer slot) {
+        table.removeToken(id, slot);
+        placedTokens.remove(slot);
+    }
+
     private int generateAIWaitTime() {
         return (int)(Math.random()*
         (secretService.AI_WAIT_BETWEEN_KEY_PRESSES*(3.0/2.0) - secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0)+
          secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0);
     }
+
+    public LinkedList<Integer> getPlacedTokens() {
+        return placedTokens;
+    }
+
+    public ConcurrentLinkedQueue<Claim> getClaimQueue() {
+        return claimQueue;
+    }
+
+    public int incrementAndGetScore() {
+        return ++score;
+    }
+   
 }
