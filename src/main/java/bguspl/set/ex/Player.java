@@ -25,6 +25,8 @@ public class Player implements Runnable {
         paused,
         terminated
     }
+
+    //TODO: add AI states - mostly for debugging
     
     private static final int CLICK_TIME_PADDING = 100;
     private static final int CLOCK_UPDATE_INTERVAL = 250;
@@ -376,6 +378,8 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
+
+            //TODO: intergrate AI states
 
             //wait until the game starts
             try{
