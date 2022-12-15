@@ -300,7 +300,7 @@ public class Dealer implements Runnable {
     private void createPlayerThreads() {
         for(int i = 0; i< playerThreads.length; i++)
         {
-            String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
+            String name = "Player "+ players[i].id +", "+(players[i].human ? "Human":"AI");
             playerThreads[i] = new Thread(players[i],name);
             playerThreads[i].start();
         }
