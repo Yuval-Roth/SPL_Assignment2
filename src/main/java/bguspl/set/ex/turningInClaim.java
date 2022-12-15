@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
-public class turningInClaim implements PlayerState{
+public class TurningInClaim implements PlayerState{
     
     private static final int CLICK_TIME_PADDING = 100;
 
@@ -44,7 +44,7 @@ public class turningInClaim implements PlayerState{
 
     private Player player;
 
-    public turningInClaim(Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
+    public TurningInClaim(Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
             ConcurrentLinkedQueue<Claim> claimQueue, Semaphore claimQueueAccess, Player player) {
         this.env = env;
         this.table = table;

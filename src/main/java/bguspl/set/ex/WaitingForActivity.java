@@ -8,11 +8,6 @@ import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
 public class WaitingForActivity implements PlayerState {
-
-    /**
-     * The AI service
-     */
-    public static AISuperSecretIntelligenceService secretService;
     
     /**
      * The game environment object.
@@ -72,14 +67,9 @@ public class WaitingForActivity implements PlayerState {
         }
 
     @Override
-    public State getState() {
-        return State.waitingForActivity;
-    }
-
-    @Override
     public void run() {
 
-        while(player.getState() == State.waitingForActivity ){
+        while(checkState()){
 
             try{
                 //wait for a click
@@ -131,14 +121,6 @@ public class WaitingForActivity implements PlayerState {
         }
     }
 
-    private void changeToState(State state) {
-        player.setState(state);
-    }
-
-    private boolean checkState() {
-        return player.getState() == State.waitingForActivity;
-    }
-
     /**
      * Clears the pending clicks queue
      */
@@ -165,5 +147,18 @@ public class WaitingForActivity implements PlayerState {
             }            
         }
         claimQueueAccess.release();
+    }
+
+    @Override
+    public State getState() {
+        return State.waitingForActivity;
+    }
+
+    private void changeToState(State state) {
+        player.setState(state);
+    }
+
+    private boolean checkState() {
+        return player.getState() == State.waitingForActivity;
     }
 }

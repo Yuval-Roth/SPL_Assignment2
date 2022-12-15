@@ -195,48 +195,9 @@ public class Player implements Runnable {
                 //check if game needs to be paused
                 if(state != State.pausingExecution & state != State.terminated){
                     
-                    //if there is a click to be processed
-                    while(clickQueue.isEmpty() == false & state == State.waitingForActivity){
-                        Integer key = clickQueue.remove();
-                        placeOrRemoveToken(key);
-                    }
 
-                    //if there is a claim to be turned in
-                    if(state == State.turningInClaim){
-                        turnInClaim();
-                    } 
+                    
 
-                    //number of tries to wait for claim result
-                    int tries = 0;
-                    while(state == State.waitingForClaimResult & tries < 10){  
-                        try{
-                            //wait for claim result
-                            synchronized(claimListener){claimListener.wait(generateWaitingTime());}
-                        }catch(InterruptedException ignored){} 
-
-                        //if a claim was notified, handle it
-                        if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult){
-                            handleNotifiedClaim();
-                        }else  tries++; //if no claim was notified, increment tries
-                    }
-
-                    //disaster recovery if claim result was not notified
-                    if(tries >= 10 & state == State.waitingForClaimResult){
-                        state = State.turningInClaim;
-                        continue;
-                    }
-
-                    try{
-                        synchronized(activityListener){
-                            //wait for activity
-                            activityListener.wait();
-                        }
-                    }catch(InterruptedException ignored){}
-
-                    //if a claim was notified, handle it
-                    if(claimQueue.isEmpty() == false & state == State.waitingForActivity){
-                        handleNotifiedClaim();         
-                    }
                 }
             }
         
@@ -245,7 +206,7 @@ public class Player implements Runnable {
     }
 
     public void notifyClaim(Claim claim){
-        if(state == State.waitingForActivity | state == State.waitingForClaimResult){
+        if(state.getState() == State.waitingForActivity | state.getState() == State.waitingForClaimResult){
             claimQueueAccess.acquireUninterruptibly();
             claimQueue.add(claim);
             claimQueueAccess.release();
@@ -259,13 +220,13 @@ public class Player implements Runnable {
     public void pause(){
         int tries = 0;
         do {
-            if(tries++ % 10 == 0) state = State.pausingExecution;
+            if(tries++ % 10 == 0) setState(State.pausingExecution);
             synchronized(this){this.notifyAll();}
             synchronized(AIListener){AIListener.notifyAll();}
             synchronized(activityListener){activityListener.notifyAll();}
             synchronized(claimListener){claimListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
-        }while(state != State.paused | AIRunning);
+        }while(state.getState() != State.paused | AIRunning);
     }
 
     
@@ -278,7 +239,7 @@ public class Player implements Runnable {
      * Resumes the player's ability to interact with the game
      */
     public void resume(){
-        state = State.waitingForActivity;
+        setState(State.waitingForActivity);
         if(human == false) AIRunning = true;
         synchronized(executionListener){executionListener.notifyAll();}
     }
@@ -291,7 +252,7 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
 
         if(human){
-            if(state == State.waitingForActivity)
+            if(state.getState() == State.waitingForActivity)
                 clickQueue.add(slot);
             synchronized(activityListener){activityListener.notifyAll();}
         }       
@@ -303,31 +264,12 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
-        state = State.terminated;
+        setState(State.terminated);
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(executionListener){executionListener.notifyAll();}
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
-    }
-
-    /**
-     * dumps the player's data to the console.
-     * Used for debugging.
-     */
-    public void dumpData(){
-        System.out.println("dumping player "+id+" data:");
-            System.out.println("State: "+state);
-            System.out.println("placedTokens: "+placedTokens);
-            System.out.println("claimQueue.isEmpty(): "+claimQueue.isEmpty());
-            System.out.println("claimQueue.size: "+claimQueue.size());
-            System.out.println("claimQueue: ");
-            for(Claim c : claimQueue)
-                System.out.println(c);
-            System.out.println("remainingFreezeTime: "+freezeRemainder);
-            System.out.println("AIRunning: "+AIRunning);
-            System.out.println("aiThread.getState(): "+aiThread.getState());
-            System.out.println("================================");
     }
 
     /**
@@ -361,12 +303,12 @@ public class Player implements Runnable {
 
             AIRunning = true; //AI is now running
             
-            while (state!=State.terminated) {
+            while (state.getState() !=State.terminated) {
                 Integer[] keys = secretService.getIntel(); //get the keys to press
 
                 int currentScore = score; //score before the AI makes a move
 
-                for(int i = 0; i < keys.length & state == State.waitingForActivity ; i++){
+                for(int i = 0; i < keys.length & state.getState() == State.waitingForActivity ; i++){
                     // limit how fast the AI clicks buttons
                     try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}
@@ -374,28 +316,28 @@ public class Player implements Runnable {
                 }
 
                 //if the player is waiting, gather intel
-                while(state == State.waitingForClaimResult | state == State.turningInClaim){
+                while(state.getState() == State.waitingForClaimResult | state.getState() == State.turningInClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
 
                 //if the game does not need to be paused, report the claim
-                if(state != State.pausingExecution & state!=State.paused){
+                if(state.getState() != State.pausingExecution & state.getState() !=State.paused){
                     if (currentScore < score)
                         secretService.reportSetClaimed(keys);
                     else secretService.sendIntel(keys,false); 
                 }
 
                 //if the player is frozen, gather intel
-                while(state == State.frozen){
+                while(state.getState() == State.frozen){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     }catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
 
                 //if the game needs to be paused, wait until it is unpaused
-                if(state == State.pausingExecution | state == State.paused){
+                if(state.getState() == State.pausingExecution | state.getState() == State.paused){
                     try{
                         AIRunning = false; //AI is not running while game is paused
                         synchronized(executionListener){
@@ -409,93 +351,21 @@ public class Player implements Runnable {
         aiThread.start();
     }
 
-    /**
-     * @pre - The player has a placedTokens list of size SET_SIZE.
-     * Claims a set if the player has placed a full set.
-     * @post - The dealer is notified about the set claim.
-     */
-    private boolean ClaimSet(Integer[] array) {
-        int version = dealer.getGameVersion();
-        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
-        return dealer.claimSet(array, this,version);     
-    }
-
     //===========================================================
     //                  utility methods
     //===========================================================
 
-    private void handleNotifiedClaim() {
-
-        int action = 0;
-        boolean cardsRemoved = false;
-        claimQueueAccess.acquireUninterruptibly();
-        while(claimQueue.isEmpty() == false){
-            Claim claim = claimQueue.remove();
-            if(claim.claimer == this){
-                action = claim.validSet ? 1:-1;
-                clearAllPlacedTokens();
-                break;
-            }
-            else{ 
-                if(claim.validSet){
-                    for(Integer card : claim.cards){
-                        if(placedTokens.contains(card)){
-                            clearPlacedToken(card);
-                            cardsRemoved = true;
-                        }
-                    }
-                }            
-            }        
-        }
-        claimQueueAccess.release();
-        if(cardsRemoved & state != State.pausingExecution) state = State.waitingForActivity;
-        switch(action){
-            case 0 : break;
-            case 1:{
-                point();
-                break;
-            } 
-            case -1: {
-                penalty();
-                break;
-            }
-        }
-    }
-
-    /**
-     * Starts a freeze time thread and updates the UI timer
-     * @pre - the freeze timer is stopped
-     * @post - the freeze timer is started
-     * @post - the UI timer is updated
-     */
-    private void startFreezeTimer(long freezeTime) {
-        if(state != State.pausingExecution) state = State.frozen;
-        freezeUntil = System.currentTimeMillis() +  freezeTime;
-        updateTimerDisplay(freezeUntil-System.currentTimeMillis());
-        while(state == State.frozen & freezeUntil >= System.currentTimeMillis() ){
-            try{
-                synchronized(this){wait(CLOCK_UPDATE_INTERVAL);}
-            } catch (InterruptedException ignored){}
-            updateTimerDisplay(freezeUntil-System.currentTimeMillis()); 
-        }
-        freezeRemainder = freezeUntil - System.currentTimeMillis();
-        if(state == State.frozen){
-            env.ui.setFreeze(id,0);
-            state = State.waitingForActivity;
-        }
-    }
-
     private void keyPressed_AI(int slot) {
-        if(state == State.waitingForActivity)
+        if(state.getState() == State.waitingForActivity)
             clickQueue.add(slot);
         synchronized(activityListener){activityListener.notifyAll();}    
     }
 
     private long generateWaitingTime() {  
-        if(state == State.waitingForClaimResult){
+        if(state.getState() == State.waitingForClaimResult){
             if(claimQueue.isEmpty() == false) return 1;
             else return 100;
-        }else if(state == State.waitingForActivity){
+        }else if(state.getState() == State.waitingForActivity){
             return 1000;
         }else return 1;
     }
@@ -507,18 +377,11 @@ public class Player implements Runnable {
     }
 
     /**
-     * Updates the UI timer if the player is frozen
-     */
-    private void updateTimerDisplay(long time) { 
-        env.ui.setFreeze(id,time);   
-    }
-
-    /**
      * Clears the queue of tokens placed.
      * Updates the UI to remove the tokens.
      * @post - the queue of tokens placed is cleared.
      */
-    void clearAllPlacedTokens(){
+    private void clearAllPlacedTokens(){
         while(placedTokens.isEmpty() == false){
             Integer token = placedTokens.peekFirst();
             table.removeToken(id, token);
@@ -535,6 +398,26 @@ public class Player implements Runnable {
         }
     }
 
+      /**
+     * dumps the player's data to the console.
+     * Used for debugging.
+     */
+    public void dumpData(){
+        System.out.println("dumping player "+id+" data:");
+            System.out.println("State: "+state);
+            System.out.println("placedTokens: "+placedTokens);
+            System.out.println("claimQueue.isEmpty(): "+claimQueue.isEmpty());
+            System.out.println("claimQueue.size: "+claimQueue.size());
+            System.out.println("claimQueue: ");
+            for(Claim c : claimQueue)
+                System.out.println(c);
+            System.out.println("remainingFreezeTime: "+freezeRemainder);
+            System.out.println("AIRunning: "+AIRunning);
+            System.out.println("aiThread.getState(): "+aiThread.getState());
+            System.out.println("================================");
+    }
+
+
     //===========================================================
     //                  Getters / Setters
     //===========================================================
@@ -545,8 +428,9 @@ public class Player implements Runnable {
     public int getScore() {
         return score;
     }
-    public void setScore(int score) {
-        this.score = score;
+
+    public int incrementAndGetScore() {
+        return ++score;
     }
 
     public State getState() {
@@ -556,27 +440,18 @@ public class Player implements Runnable {
         this.state = playerStates[state.ordinal()];
     }
 
-    void clearPlacedToken(Integer slot) {
-        table.removeToken(id, slot);
-        placedTokens.remove(slot);
-    }
-
     private int generateAIWaitTime() {
         return (int)(Math.random()*
         (secretService.AI_WAIT_BETWEEN_KEY_PRESSES*(3.0/2.0) - secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0)+
          secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0);
     }
 
-    public LinkedList<Integer> getPlacedTokens() {
-        return placedTokens;
+    public long getFreezeUntil() {
+        return freezeUntil;
     }
 
-    public ConcurrentLinkedQueue<Claim> getClaimQueue() {
-        return claimQueue;
-    }
-
-    public int incrementAndGetScore() {
-        return ++score;
+    public void setFreezeRemainder(long remainder) {
+        this.freezeRemainder = remainder;
     }
    
 }
