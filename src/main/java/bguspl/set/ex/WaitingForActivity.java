@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
@@ -45,22 +46,34 @@ public class WaitingForActivity implements PlayerState {
 
     private Player player;
 
+        /**
+     * The semaphore used to control access to the click queue.
+     */
+    private Semaphore claimQueueAccess;
+
+        /**
+     * The claim queue.
+     * @important needs to accessed using claimQueueAccess semaphore
+     */
+    private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
     public WaitingForActivity(Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
-            ConcurrentLinkedQueue<Integer> clickQueue, Object activityListener, Player player) {
-        this.env = env;
-        this.table = table;
-        this.placedTokens = placedTokens;
-        this.dealer = dealer;
-        this.clickQueue = clickQueue;
-        this.activityListener = activityListener;
-        this.player = player;
-    }
+                ConcurrentLinkedQueue<Integer> clickQueue, Object activityListener, Player player,
+                Semaphore claimQueueAccess, ConcurrentLinkedQueue<Claim> claimQueue) {
+            this.env = env;
+            this.table = table;
+            this.placedTokens = placedTokens;
+            this.dealer = dealer;
+            this.clickQueue = clickQueue;
+            this.activityListener = activityListener;
+            this.player = player;
+            this.claimQueueAccess = claimQueueAccess;
+            this.claimQueue = claimQueue;
+        }
 
     @Override
     public State getState() {
-        // TODO Auto-generated method stub
-        return null;
+        return State.waitingForActivity;
     }
 
     @Override
@@ -74,6 +87,11 @@ public class WaitingForActivity implements PlayerState {
                     activityListener.wait();
                 }
             }catch(InterruptedException ignored){}
+
+            //if a claim was notified, handle it
+            if(claimQueue.isEmpty() == false & player.getState() == State.waitingForActivity){
+                handleNotifiedClaim();         
+            }
 
             //if there is a click to be processed
             while(clickQueue.isEmpty() == false & player.getState() == State.waitingForActivity){
@@ -126,5 +144,18 @@ public class WaitingForActivity implements PlayerState {
         table.removeToken(player.id, slot);
         placedTokens.remove(slot);
     }
-    
+
+    private void handleNotifiedClaim() {
+
+        claimQueueAccess.acquireUninterruptibly();
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            for(Integer card : claim.cards){
+                if(placedTokens.contains(card)){
+                    clearPlacedToken(card);
+                }
+            }            
+        }
+        claimQueueAccess.release();
+    }
 }
