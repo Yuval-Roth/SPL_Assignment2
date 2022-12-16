@@ -61,6 +61,7 @@ public abstract class PlayerState {
         this.dealer = null;
         this.claimQueue = null;
         this.claimQueueAccess = null;
+        this.clickQueue = null;
     }
 
     /**
@@ -74,6 +75,7 @@ public abstract class PlayerState {
         this.dealer = player.getDealer();
         this.claimQueue = player.getClaimQueue();
         this.claimQueueAccess = player.getClaimQueueAccess();
+        this.clickQueue = player.getClickQueue();
     }
 
     public abstract void run();

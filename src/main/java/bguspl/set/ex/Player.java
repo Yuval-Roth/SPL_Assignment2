@@ -83,11 +83,6 @@ public class Player implements Runnable {
     private volatile ConcurrentLinkedQueue<Integer> clickQueue;
 
     /**
-     * Future timeout time for player freeze timer
-     */
-    private long freezeUntil;
-
-    /**
      * The claim queue.
      * @important needs to accessed using claimQueueAccess semaphore
      */
@@ -186,16 +181,15 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
-            System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
-            playerThread = Thread.currentThread();
-            if (!human) createArtificialIntelligence();
+        System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
+        playerThread = Thread.currentThread();
+        if (!human) createArtificialIntelligence();
 
-            //while the game is still running
-            while (getState() != State.terminated) {
-                state.run();
-            }
-            
-        
+        //while the game is still running
+        while (getState() != State.terminated) {
+            state.run();
+        }
+
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
     }
@@ -249,7 +243,6 @@ public class Player implements Runnable {
      * Resumes the player's ability to interact with the game
      */
     public void resume(){
-        setState(State.waitingForActivity);
         if(human == false) AIRunning = true;
         synchronized(executionListener){executionListener.notifyAll();}
     }
@@ -287,10 +280,10 @@ public class Player implements Runnable {
     //===========================================================
 
 
-      /**
-     * dumps the player's data to the console.
-     * Used for debugging.
-     */
+    /**
+    * dumps the player's data to the console.
+    * Used for debugging.
+    */
     public void dumpData(){
         System.out.println("dumping player "+id+" data:");
             System.out.println("State: "+state);
@@ -306,7 +299,6 @@ public class Player implements Runnable {
             System.out.println("================================");
     }
 
-
     //===========================================================
     //                  Getters / Setters
     //===========================================================
@@ -315,7 +307,6 @@ public class Player implements Runnable {
     public int incrementAndGetScore() {return ++score;}
     public State getState() {return state.stateName();}
     public void setState(State state) {this.state = playerStates[state.ordinal()];}
-    public long getFreezeUntil() {return freezeUntil;}
     public void setFreezeRemainder(long remainder) {this.freezeRemainder = remainder;}
     public long getFreezeRemainder() {return freezeRemainder;}
     public Env getEnv() {return env;}
@@ -327,6 +318,7 @@ public class Player implements Runnable {
     public Object getActivityListener() {return activityListener;}
     public Object getExecutionListener() {return executionListener;}
     public Object getClaimListener() {return claimListener;}
+    public ConcurrentLinkedQueue<Integer> getClickQueue() {return clickQueue;}
 
     //===========================================================
     //                  AI class

@@ -12,7 +12,7 @@ public class Frozen extends PlayerState{
 
     @Override
     public void run() {
-        long freezeUntil = player.getFreezeUntil();
+        long freezeUntil = player.getFreezeRemainder();
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
         while(stillThisState() & freezeUntil >= System.currentTimeMillis() ){
             try{
