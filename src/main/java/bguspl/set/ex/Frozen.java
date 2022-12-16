@@ -1,26 +1,18 @@
 package bguspl.set.ex;
 
-import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
 public class Frozen extends PlayerState{
 
     private static final int CLOCK_UPDATE_INTERVAL = 250;
-    
-    /**
-     * The game environment object.
-     */
-    private final Env env;
-
 
     /**
      * Future timeout time for player freeze timer
      */
     private long freezeUntil;
 
-    public Frozen(Player player, Env env) {
+    public Frozen(Player player) {
         super(player);
-        this.env = env;
         this.freezeUntil = Long.MAX_VALUE;
     }
 
@@ -40,8 +32,7 @@ public class Frozen extends PlayerState{
         if(stillThisState()){
             env.ui.setFreeze(player.id,0);
             changeToState(State.waitingForActivity);
-        }
-        
+        }  
     }
 
      /**

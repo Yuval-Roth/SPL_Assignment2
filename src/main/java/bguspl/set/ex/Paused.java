@@ -9,9 +9,9 @@ public class Paused extends PlayerState{
     */
     private volatile Object executionListener;
 
-    public Paused(Player player, Object executionListener) {
+    public Paused(Player player) {
         super(player);
-        this.executionListener = executionListener;
+        executionListener = player.getExecutionListener();
     }
 
     @Override

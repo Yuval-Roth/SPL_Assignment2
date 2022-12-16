@@ -1,61 +1,14 @@
 package bguspl.set.ex;
 
-import java.util.LinkedList;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Semaphore;
-
-import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
 public class WaitingForClaimResult extends PlayerState {
 
-    /**
-     * The AI service
-     */
-    public static AISuperSecretIntelligenceService secretService;
-    
-    /**
-     * The game environment object.
-     */
-    private final Env env;
-
-    /**
-     * Game entities.
-     */
-    private final Table table;
-
-    /**
-     * The player's currently placed tokens.
-     */
-    private LinkedList<Integer> placedTokens;
-
-    /**
-     * The claim queue.
-     * @important needs to accessed using claimQueueAccess semaphore
-     */
-    private volatile ConcurrentLinkedQueue<Claim> claimQueue;
-
-    /**
-     * Object for breaking wait() when waiting for claim result
-     */
     private volatile Object claimListener;
 
-    /**
-     * The semaphore used to control access to the click queue.
-     */
-    private Semaphore claimQueueAccess;
-
-    private Player player;
-
-    public WaitingForClaimResult(Env env, Table table, LinkedList<Integer> placedTokens,
-            ConcurrentLinkedQueue<Claim> claimQueue, Object claimListener, Semaphore claimQueueAccess, Player player) {
+    public WaitingForClaimResult(Player player) {
         super(player);
-        this.env = env;
-        this.table = table;
-        this.placedTokens = placedTokens;
-        this.claimQueue = claimQueue;
-        this.claimListener = claimListener;
-        this.claimQueueAccess = claimQueueAccess;
+        claimListener = player.getClaimListener();
     }
 
     @Override
@@ -77,8 +30,7 @@ public class WaitingForClaimResult extends PlayerState {
         //disaster recovery if claim result was not notified
         if(tries >= 10 & stillThisState()){
             changeToState(State.turningInClaim);
-        }
-        
+        }   
     }
 
     private void handleNotifiedClaim() {

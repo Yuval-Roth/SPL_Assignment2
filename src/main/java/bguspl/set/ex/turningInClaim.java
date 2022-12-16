@@ -54,8 +54,8 @@ public class TurningInClaim extends PlayerState{
                 }
             }            
         }
-
         claimQueueAccess.release();
+        
         if(cardsRemoved & stillThisState()){
             changeToState(State.waitingForActivity);
         }
