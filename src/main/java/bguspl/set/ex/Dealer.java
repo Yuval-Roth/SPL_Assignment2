@@ -141,7 +141,7 @@ public class Dealer implements Runnable {
             }
             
         });
-        // debuggingThread.start();
+        debuggingThread.start();
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
             nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
@@ -274,7 +274,6 @@ public class Dealer implements Runnable {
     private void pausePlayerThreads() {   
         if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
         for(Player player : players){
-            // System.out.println("Pausing player "+player.id);
             player.pause();
         }
         System.out.println();
@@ -286,6 +285,9 @@ public class Dealer implements Runnable {
      * on the threads
      */
     private void resumePlayerThreads() {
+
+        Thread.yield();
+
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
