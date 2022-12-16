@@ -18,7 +18,9 @@ public class Paused extends PlayerState{
     public void run() {
         try{
             synchronized(executionListener){executionListener.wait();}
-        }catch(InterruptedException ignored){}
+        }catch(InterruptedException ignored){
+            System.out.println("hello");
+        }
         
         //do this after being released from paused state
         if(getState() != State.terminated){

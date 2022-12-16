@@ -216,7 +216,10 @@ public class Player implements Runnable {
      * @param claim
      */
     public void notifyClaim(Claim claim){
-        if(getState() == State.waitingForActivity | getState() == State.waitingForClaimResult){
+
+        State state = getState();
+
+        if(state == State.waitingForActivity | state == State.waitingForClaimResult | state == State.turningInClaim){
             claimQueueAccess.acquireUninterruptibly();
             claimQueue.add(claim);
             claimQueueAccess.release();
@@ -255,9 +258,10 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
 
         if(human){
-            if(getState() == State.waitingForActivity)
+            if(getState() == State.waitingForActivity){
                 clickQueue.add(slot);
-            synchronized(activityListener){activityListener.notifyAll();}
+                synchronized(activityListener){activityListener.notifyAll();}
+            }
         }       
     }
 
@@ -397,9 +401,10 @@ public class Player implements Runnable {
          * @param slot - the slot corresponding to the key pressed.
          */
         private void keyPressed_AI(int slot) {
-            if(getState() == State.waitingForActivity)
+            if(getState() == State.waitingForActivity){
                 clickQueue.add(slot);
-            synchronized(activityListener){activityListener.notifyAll();}    
+                synchronized(activityListener){activityListener.notifyAll();}    
+            }
         }
 
         /**
