@@ -31,6 +31,8 @@ public class Table {
     protected Integer[] cardToSlot; // slot per card (if any).
     // Used to be final, we changed it to be able to reset the table
 
+    private int cardCount;
+
     /**
      * Constructor for testing.
      *
@@ -96,6 +98,7 @@ public class Table {
         slotToCard[slot] = card;
 
         env.ui.placeCard(card, slot); // UI update, this is shitty software design 
+        cardCount++;
     }
 
     /**
@@ -114,6 +117,7 @@ public class Table {
         slotToCard[suggestedSlot] = cardToPlace;
 
         env.ui.placeCard(cardToPlace, suggestedSlot); // UI update, this is shitty software design 
+        cardCount++;
     }
 
     /*
@@ -143,6 +147,7 @@ public class Table {
             cardToSlot[slotToCard[slot]] = null;
             slotToCard[slot] = null;
             env.ui.removeCard(slot);
+            cardCount--;
         }
     }
 
@@ -174,9 +179,14 @@ public class Table {
      * Clears the table of all cards and tokens.
      */
     public Integer[] clearTable() {
+
         Integer[] cardsRemoved = Arrays.stream(slotToCard).filter(Objects::nonNull).toArray(Integer[]::new);
+        
+        //TODO turn this into a loop that uses the method to remove cards which updates the cardCount and the UI
         slotToCard = new Integer[slotToCard.length];
         cardToSlot = new Integer[cardToSlot.length];
+        cardCount = 0;
+        //====================================================================================================
         return cardsRemoved;
     }
 
@@ -184,14 +194,7 @@ public class Table {
      * returns the current size
      */
     public int getCurrentSize(){
-
-        //TODO replace this with a size field
-        
-        int emptySlotCount = 0;
-        for (int i = 0; i < slotToCard.length; i ++)
-        if (slotToCard[i] != null)
-            emptySlotCount ++;
-        return emptySlotCount;
+        return cardCount;
     }
 
     /*

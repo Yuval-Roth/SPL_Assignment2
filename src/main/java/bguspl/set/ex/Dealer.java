@@ -69,9 +69,6 @@ public class Dealer implements Runnable {
      * Holds all of the player threads
      */
     private Thread[] playerThreads;
-
-    private boolean paused;
-
     
     private volatile Semaphore gameVersionAccess;
 
@@ -86,6 +83,7 @@ public class Dealer implements Runnable {
     private volatile Object wakeListener;
 
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
+    private volatile Semaphore claimQueueAccess;
        
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -96,6 +94,7 @@ public class Dealer implements Runnable {
         wakeListener = new Object();
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
+        claimQueueAccess = new Semaphore(players.length,true);
     }
     
     
@@ -119,8 +118,30 @@ public class Dealer implements Runnable {
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
-
+    private volatile long debuggingTimer = 0;
+    private volatile boolean stop = false;
     private void startTimer() {     
+        Thread dealerThread = Thread.currentThread();
+        Thread debuggingThread = new Thread(()->{
+            stop = false;
+            resetDebuggingTimer();
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+            if(stop == false){
+                for(Player player : players){
+                    player.dumpData();
+                }
+                dumpData();
+                dealerThread.interrupt();   
+                reshuffleTime = Long.MAX_VALUE;
+                throw new RuntimeException("Player threads unresponsive");
+            }
+            
+        });
+        debuggingThread.start();
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
             nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
@@ -128,14 +149,21 @@ public class Dealer implements Runnable {
             while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
-                while(claimQueue.isEmpty() == false){
-                    Claim claim = claimQueue.remove();
-                    handleClaimedSet(claim);
-                    updateTimerDisplay(false);
+
+                if(claimQueue.isEmpty() == false){
+                    claimQueueAccess.acquireUninterruptibly(players.length);
+                    while(claimQueue.isEmpty() == false){
+                        Claim claim = claimQueue.remove();
+                        handleClaimedSet(claim);
+                        updateTimerDisplay(false);
+                        resetDebuggingTimer();
+                    }
+                    claimQueueAccess.release(players.length);
                 }
             } 
                 
         }
+        stop = true;
         if(terminate == false) env.ui.setCountdown(0,true);   
     }
 
@@ -161,20 +189,25 @@ public class Dealer implements Runnable {
      * @param claimer - The player who claims the set
      * @param claimVersion - The gameVersion according to getGameVersion()
      */
-    public boolean  claimSet(Integer[] cards, Player claimer,int claimVersion){
+    public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
+
+            resetDebuggingTimer();
+            
             try{
                 gameVersionAccess.acquire();
-            }catch(InterruptedException ignored){
-                if(claimVersion == gameVersion) {
-                    gameVersion++;
-                }
-                else return false;
-            }
-            finally{
+            }catch(InterruptedException ignored){}
+            if(claimVersion == gameVersion) {
+                gameVersion++;
                 gameVersionAccess.release();
             }
-                
+            else {
+                gameVersionAccess.release();
+                return false;
+            }
+            
+            claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion));
+            claimQueueAccess.release(1);
             synchronized(wakeListener){wakeListener.notifyAll();}
             return true;      
     }
@@ -191,13 +224,18 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             claim.validSet = true;
-            for(Player player : players){
-                if(player.getState() == Player.State.waitingForActivity | player.getState() == Player.State.waitingForClaim)
-                    player.notifyClaim(claim); 
-            }
-        } else{
             claim.claimer.notifyClaim(claim);
-        }   
+            for(Player player : players){
+                if(player!=claim.claimer && (
+                        player.getState() == Player.State.waitingForActivity |
+                        player.getState() == Player.State.waitingForClaimResult|
+                        player.getState() == Player.State.turningInClaim)){
+                    player.notifyClaim(claim); 
+                }
+            }
+        }else {
+            claim.claimer.notifyClaim(claim);;
+        }
     }
 
     /**
@@ -223,15 +261,22 @@ public class Dealer implements Runnable {
     * Checks if the given set of cards is a valid set.
     */
     public boolean isValidSet(Integer[] cards) {
-        synchronized(cards){
-            cards = Arrays.stream(cards).map(i->i/*table.slotToCard[i]*/).toArray(Integer[]::new);
+            cards = Arrays.stream(cards).map(i->table.slotToCard[i]).toArray(Integer[]::new);
             int[] _cards = Arrays.stream(cards).filter(Objects::nonNull).mapToInt(i->i).toArray();
             if(_cards.length != SET_SIZE)
                 return false;
             return env.util.testSet(_cards);
+    }
 
-
+     /**
+     * Terminates all the player threads
+     */
+    private void pausePlayerThreads() {   
+        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
+        for(Player player : players){
+            player.pause();
         }
+        System.out.println();
     }
 
     /**
@@ -240,6 +285,9 @@ public class Dealer implements Runnable {
      * on the threads
      */
     private void resumePlayerThreads() {
+
+        Thread.yield();
+
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
@@ -254,19 +302,9 @@ public class Dealer implements Runnable {
     private void createPlayerThreads() {
         for(int i = 0; i< playerThreads.length; i++)
         {
-            String name = "Player "+players[i].id +", "+(players[i].human ? "Human":"AI");
+            String name = "Player "+ players[i].id +", "+(players[i].human ? "Human":"AI");
             playerThreads[i] = new Thread(players[i],name);
             playerThreads[i].start();
-        }
-    }
-
-    /**
-     * Terminates all the player threads
-     */
-    private void pausePlayerThreads() {   
-        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
-        for(Player player : players){
-            player.pause();
         }
     }
 
@@ -280,8 +318,8 @@ public class Dealer implements Runnable {
     }
 
     private void terminatePlayers() {
-        for(Player player : players){
-            player.terminate();
+        for(int i=players.length-1; i>=0; i--){
+            players[i].terminate();
         }  
     }
  
@@ -404,8 +442,30 @@ public class Dealer implements Runnable {
      * @return true iff there are no possible sets.
      */
     private boolean allSetsDepleted() {
-        //TODO 
         return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
+    }
+
+    /**
+     * dumps the dealer's data to the console
+     * for debugging purposes
+     */
+    private void dumpData() {
+        System.out.println("dumping Dealer data:");
+        System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
+        System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
+        System.out.println("claimQueue.size:"+claimQueue.size());
+        System.out.println("claimQueue.size:");
+        for(Claim claim : claimQueue){
+            System.out.println(claim);
+        }
+        System.out.println("====================================");
+    }
+
+    /**
+     * for debugging purposes
+     */
+    private void resetDebuggingTimer() {
+        debuggingTimer = System.currentTimeMillis();
     }
     
 }

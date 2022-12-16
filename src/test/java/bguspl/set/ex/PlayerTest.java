@@ -61,8 +61,8 @@ class PlayerTest {
         // calculate the expected score for later
         int expectedScore = player.getScore() + 1;
 
-        // call the method we are testing
-        player.point();
+        // // call the method we are testing
+        // player.point();
 
         // check that the score was increased correctly
         assertEquals(expectedScore, player.getScore());
