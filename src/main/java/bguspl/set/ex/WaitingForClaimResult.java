@@ -11,6 +11,9 @@ public class WaitingForClaimResult extends PlayerState {
         claimListener = player.getClaimListener();
     }
 
+    /**
+     * Waits for a claim result to be notified to the player.
+     */
     @Override
     public void run() {
         //number of tries to wait for claim result
@@ -33,6 +36,12 @@ public class WaitingForClaimResult extends PlayerState {
         }   
     }
 
+    /**
+     * Handle a claim that was notified to the player.
+     * @post - the player's score is increased by 1 if the claim was valid.
+     * @post - the player's state is changed to frozen if the claim was the player's.
+     * @post - the player's state is changed to waitingForActivity if some of the player's placed tokens were cleared.
+     */
     private void handleNotifiedClaim() {
 
         int action = 0;
@@ -76,20 +85,32 @@ public class WaitingForClaimResult extends PlayerState {
      * @post - the player's score is increased by 1.
      * @post - the player's score is updated in the ui.
      */
-    public void point() {
+    private void point() {
         env.ui.setScore(player.id, player.incrementAndGetScore());
-        if(env.config.pointFreezeMillis > 0 & stillThisState()) changeToState(State.frozen);
+        if(env.config.pointFreezeMillis > 0 & stillThisState()){
+            player.setFreezeRemainder(env.config.pointFreezeMillis);
+            changeToState(State.frozen);
+        } 
         else if(stillThisState()) changeToState(State.waitingForActivity);
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
-    public void penalty() {
-        if(env.config.penaltyFreezeMillis > 0 & stillThisState()) changeToState(State.frozen);
+    private void penalty() {
+        if(env.config.penaltyFreezeMillis > 0 & stillThisState()){
+            player.setFreezeRemainder(env.config.penaltyFreezeMillis);
+            changeToState(State.frozen);
+        }
         else if(stillThisState()) changeToState(State.waitingForActivity);
     }
 
+    /**
+     * Generates a waiting time for the player to wait for a claim result.
+     * @return  1 if the player is still in this state and the claim queue is not empty.
+     *   100 if the player is still in this state and the claim queue is empty.
+     *   1 if the player is no longer in this state.
+     */
     private long generateWaitingTime() {  
         if(stillThisState()){
             if(claimQueue.isEmpty() == false) return 1;
