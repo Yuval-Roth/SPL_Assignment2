@@ -62,20 +62,20 @@ public class WaitingForClaimResult extends PlayerState {
     public void run() {
         //number of tries to wait for claim result
         int tries = 0;
-        while(checkState() & tries < 10){  
+        while(stillThisState() & tries < 10){  
             try{
                 //wait for claim result
                 synchronized(claimListener){claimListener.wait(generateWaitingTime());}
             }catch(InterruptedException ignored){} 
 
             //if a claim was notified, handle it
-            if(claimQueue.isEmpty() == false & checkState()){
+            if(claimQueue.isEmpty() == false & stillThisState()){
                 handleNotifiedClaim();
             }else  tries++; //if no claim was notified, increment tries
         }
 
         //disaster recovery if claim result was not notified
-        if(tries >= 10 & checkState()){
+        if(tries >= 10 & stillThisState()){
             changeToState(State.turningInClaim);
         }
         
@@ -105,7 +105,7 @@ public class WaitingForClaimResult extends PlayerState {
             }        
         }
         claimQueueAccess.release();
-        if(cardsRemoved & checkState()) changeToState(State.waitingForActivity);
+        if(cardsRemoved & stillThisState()) changeToState(State.waitingForActivity);
         switch(action){
             case 0 : break;
             case 1:{
@@ -126,16 +126,16 @@ public class WaitingForClaimResult extends PlayerState {
      */
     public void point() {
         env.ui.setScore(player.id, player.incrementAndGetScore());
-        if(env.config.pointFreezeMillis > 0 & checkState()) changeToState(State.frozen);
-        else if(checkState()) changeToState(State.waitingForActivity);
+        if(env.config.pointFreezeMillis > 0 & stillThisState()) changeToState(State.frozen);
+        else if(stillThisState()) changeToState(State.waitingForActivity);
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        if(env.config.penaltyFreezeMillis > 0 & checkState()) changeToState(State.frozen);
-        else if(checkState()) changeToState(State.waitingForActivity);
+        if(env.config.penaltyFreezeMillis > 0 & stillThisState()) changeToState(State.frozen);
+        else if(stillThisState()) changeToState(State.waitingForActivity);
     }
 
     /**
@@ -157,14 +157,14 @@ public class WaitingForClaimResult extends PlayerState {
     }
 
     private long generateWaitingTime() {  
-        if(checkState()){
+        if(stillThisState()){
             if(claimQueue.isEmpty() == false) return 1;
             else return 100;
         }else return 1;
     }
 
     @Override
-    public State getState() {
+    public State stateName() {
         return State.waitingForClaimResult;
     }
 }

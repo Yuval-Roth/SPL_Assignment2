@@ -1,5 +1,7 @@
 package bguspl.set.ex;
 
+import bguspl.set.ex.Player.State;
+
 public abstract class PlayerState {  
 
     protected Player player;
@@ -9,12 +11,15 @@ public abstract class PlayerState {
     }
 
     public abstract void run();
-    public abstract Player.State getState();
+    public abstract Player.State stateName();
 
     protected void changeToState(Player.State state) {
         player.setState(state);
     }
-    protected boolean checkState() {
-        return player.getState() == getState();
+    protected boolean stillThisState() {
+        return getState() == stateName();
+    }
+    protected State getState() {
+        return player.getState();
     }
 }

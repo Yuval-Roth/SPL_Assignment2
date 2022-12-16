@@ -184,22 +184,13 @@ public class Player implements Runnable {
             while (state != State.terminated) {
 
                 //while the game is still running
-                if(state == State.pausingExecution){
-                    enterPausedState();
-
-                    //do this after being released from paused state
-                    if(state == State.terminated) break;
-                    else if (freezeRemainder > 0) startFreezeTimer(freezeRemainder);
-                }
-
-                //check if game needs to be paused
-                if(state != State.pausingExecution & state != State.terminated){
+                
                     
 
                     
 
                 }
-            }
+            
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());       
@@ -272,17 +263,6 @@ public class Player implements Runnable {
         }catch(InterruptedException ignored){};
     }
 
-    /**
-     * Pauses the player thread and waits for it to be released.
-     */
-    private void enterPausedState() {
-        clearAllPlacedTokens();
-        clearClickQueue();
-        try{
-            state = State.paused;
-            synchronized(executionListener){executionListener.wait();}
-        }catch(InterruptedException ignored){}
-    }
     /**
      * Creates an additional thread for an AI (computer) player. 
      * The main loop of this thread repeatedly generates key presses. 
@@ -427,7 +407,7 @@ public class Player implements Runnable {
     }
 
     public State getState() {
-        return state.getState();
+        return state.stateName();
     }
     public void setState(State state) {
         this.state = playerStates[state.ordinal()];
@@ -445,6 +425,10 @@ public class Player implements Runnable {
 
     public void setFreezeRemainder(long remainder) {
         this.freezeRemainder = remainder;
+    }
+
+    public long getFreezeRemainder() {
+        return freezeRemainder;
     }
    
 }

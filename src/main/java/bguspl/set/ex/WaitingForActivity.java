@@ -3,8 +3,6 @@ package bguspl.set.ex;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
-
-import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
 public class WaitingForActivity extends PlayerState {
@@ -41,7 +39,6 @@ public class WaitingForActivity extends PlayerState {
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
     
-
     public WaitingForActivity(Player player, Table table, LinkedList<Integer> placedTokens,
                 ConcurrentLinkedQueue<Integer> clickQueue, Object activityListener, Semaphore claimQueueAccess,
                 ConcurrentLinkedQueue<Claim> claimQueue) {
@@ -57,7 +54,7 @@ public class WaitingForActivity extends PlayerState {
     @Override
     public void run() {
 
-        while(checkState()){
+        while(stillThisState()){
 
             try{
                 //wait for a click
@@ -65,16 +62,16 @@ public class WaitingForActivity extends PlayerState {
                     activityListener.wait();
                 }
             }catch(InterruptedException ignored){}
-
-            //if a claim was notified, handle it
-            if(claimQueue.isEmpty() == false & checkState()){
-                handleNotifiedClaim();         
-            }
-
+            
             //if there is a click to be processed
-            while(clickQueue.isEmpty() == false & checkState()){
+            while(clickQueue.isEmpty() == false & stillThisState()){
                 Integer key = clickQueue.remove();
                 placeOrRemoveToken(key);
+            }
+
+            //if a claim was notified, handle it
+            if(claimQueue.isEmpty() == false & stillThisState()){
+                handleNotifiedClaim();         
             }
         }
     }
@@ -91,7 +88,7 @@ public class WaitingForActivity extends PlayerState {
         if(placedTokens.contains(slot) == false){
             boolean insertState = false;
             int tries = 0;
-            while(insertState == false & tries <=5 & checkState()){
+            while(insertState == false & tries <=5 & stillThisState()){
                 insertState = table.placeToken(player.id, slot);
                 tries++;
                 try{Thread.sleep(10);}catch(InterruptedException ignored){}
@@ -138,7 +135,7 @@ public class WaitingForActivity extends PlayerState {
     }
 
     @Override
-    public State getState() {
+    public State stateName() {
         return State.waitingForActivity;
     }
 }

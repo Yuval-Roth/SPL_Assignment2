@@ -6,11 +6,6 @@ import bguspl.set.ex.Player.State;
 public class Frozen extends PlayerState{
 
     private static final int CLOCK_UPDATE_INTERVAL = 250;
-
-    /**
-     * The AI service
-     */
-    public static AISuperSecretIntelligenceService secretService;
     
     /**
      * The game environment object.
@@ -33,7 +28,7 @@ public class Frozen extends PlayerState{
     public void run() {
         freezeUntil = player.getFreezeUntil();
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
-        while(checkState() & freezeUntil >= System.currentTimeMillis() ){
+        while(stillThisState() & freezeUntil >= System.currentTimeMillis() ){
             try{
                 synchronized(player){player.wait(CLOCK_UPDATE_INTERVAL);}
             } catch (InterruptedException ignored){}
@@ -42,7 +37,7 @@ public class Frozen extends PlayerState{
 
         player.setFreezeRemainder(freezeUntil - System.currentTimeMillis());
 
-        if(checkState()){
+        if(stillThisState()){
             env.ui.setFreeze(player.id,0);
             changeToState(State.waitingForActivity);
         }
@@ -57,7 +52,7 @@ public class Frozen extends PlayerState{
     }
     
     @Override
-    public State getState() {
+    public State stateName() {
         return State.frozen;
     }  
 }

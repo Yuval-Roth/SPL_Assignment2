@@ -61,7 +61,7 @@ public class TurningInClaim extends PlayerState{
             if(ClaimSet(array) == false) {     
                 if(claimQueue.isEmpty() == false){
                     handleNotifiedClaim();
-                    if(checkState() == false) return;    
+                    if(stillThisState() == false) return;    
                 }
 
                 //sleep for a short random time and try again
@@ -69,7 +69,7 @@ public class TurningInClaim extends PlayerState{
                     Thread.sleep((long)(Math.random()*(25-10)+10));
                 }catch(InterruptedException ignored){}
 
-            } else if(checkState()) changeToState(State.waitingForClaimResult);
+            } else if(stillThisState()) changeToState(State.waitingForClaimResult);
         } 
     }
     /**
@@ -98,7 +98,7 @@ public class TurningInClaim extends PlayerState{
         }
 
         claimQueueAccess.release();
-        if(cardsRemoved & checkState()){
+        if(cardsRemoved & stillThisState()){
             changeToState(State.waitingForActivity);
         }
     }
@@ -122,7 +122,7 @@ public class TurningInClaim extends PlayerState{
     }
 
     @Override
-    public State getState() {
+    public State stateName() {
         return State.turningInClaim;
     }
 }
