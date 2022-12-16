@@ -104,26 +104,9 @@ public class TurningInClaim implements PlayerState{
             changeToState(State.waitingForActivity);
         }
     }
-    /**
-     * Award a point to a player and perform other related actions.
-     * @post - the player's score is increased by 1.
-     * @post - the player's score is updated in the ui.
-     */
-    public void point() {
-        env.ui.setScore(player.id, player.incrementAndGetScore());
-        if(env.config.pointFreezeMillis > 0 & checkState()) changeToState(State.frozen);
-        else if(checkState()) changeToState(State.waitingForActivity);
-    }
 
-    /**
-     * Penalize a player and perform other related actions.
-     */
-    public void penalty() {
-        if(env.config.penaltyFreezeMillis > 0 & checkState()) changeToState(State.frozen);
-        else if(checkState()) changeToState(State.waitingForActivity);
-    }
 
-    void clearPlacedToken(Integer slot) {
+    private void clearPlacedToken(Integer slot) {
         table.removeToken(player.id, slot);
         placedTokens.remove(slot);
     }

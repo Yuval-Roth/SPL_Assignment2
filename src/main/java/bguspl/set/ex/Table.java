@@ -194,15 +194,7 @@ public class Table {
      * returns the current size
      */
     public int getCurrentSize(){
-
-        //TODO replace this with a size field
         return cardCount;
-
-        // int emptySlotCount = 0;
-        // for (int i = 0; i < slotToCard.length; i ++)
-        // if (slotToCard[i] != null)
-        //     emptySlotCount ++;
-        // return emptySlotCount;
     }
 
     /*

@@ -9,9 +9,6 @@ import bguspl.set.ex.Player.State;
 
 public class WaitingForClaimResult implements PlayerState {
 
-    private static final int CLICK_TIME_PADDING = 100;
-    private static final int CLOCK_UPDATE_INTERVAL = 250;
-
     /**
      * The AI service
      */
@@ -32,108 +29,47 @@ public class WaitingForClaimResult implements PlayerState {
      */
     private LinkedList<Integer> placedTokens;
 
-
-    /**
-     * The id of the player (starting from 0).
-     */
-    public final int id;
-
-    /**
-     * The thread representing the current player.
-     */
-    private Thread playerThread;
-
-    /**
-     * The thread of the AI (computer) player (an additional thread used to generate key presses).
-     */
-    private Thread aiThread;
-
-    /**
-     * True iff the player is human (not a computer player).
-     */
-    public final boolean human;
-    
-    /**
-     * The current score of the player.
-     */
-    private int score;
-
-    /**
-     * The game's dealer
-     */
-    private Dealer dealer;
-    
-    /**
-     * The clicks queue.
-     */
-    private volatile ConcurrentLinkedQueue<Integer> clickQueue;
-
-    /**
-     * Future timeout time for player freeze timer
-     */
-    private long freezeUntil;
-
     /**
      * The claim queue.
      * @important needs to accessed using claimQueueAccess semaphore
      */
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
-    // private volatile Boolean claimNotification;
-
-    private volatile PlayerState state;
-
-    /**
-     * Object for breaking wait() when game execution should resume
-     */
-    private volatile Object executionListener;
-
-    /**
-     * Object for breaking wait() when waiting for general activity
-     */
-    private volatile Object activityListener;
-
     /**
      * Object for breaking wait() when waiting for claim result
      */
     private volatile Object claimListener;
-    /**
-     * Object for breaking wait() when the AI is waiting
-     */
-    private volatile Object AIListener;
-
-    /**
-     * True if the AI thread is running
-     */
-    private volatile boolean AIRunning;
-
-    /**
-     * The remaining time to freeze the player
-     */
-    private long freezeRemainder;
 
     /**
      * The semaphore used to control access to the click queue.
      */
     private Semaphore claimQueueAccess;
 
-    private PlayerState[] playerStates;
     private Player player;
 
-
+    public WaitingForClaimResult(Env env, Table table, LinkedList<Integer> placedTokens,
+            ConcurrentLinkedQueue<Claim> claimQueue, Object claimListener, Semaphore claimQueueAccess, Player player) {
+        this.env = env;
+        this.table = table;
+        this.placedTokens = placedTokens;
+        this.claimQueue = claimQueue;
+        this.claimListener = claimListener;
+        this.claimQueueAccess = claimQueueAccess;
+        this.player = player;
+    }
 
     @Override
     public void run() {
         //number of tries to wait for claim result
         int tries = 0;
-        while(state == State.waitingForClaimResult & tries < 10){  
+        while(checkState() & tries < 10){  
             try{
                 //wait for claim result
                 synchronized(claimListener){claimListener.wait(generateWaitingTime());}
             }catch(InterruptedException ignored){} 
 
             //if a claim was notified, handle it
-            if(claimQueue.isEmpty() == false & state == State.waitingForClaimResult){
+            if(claimQueue.isEmpty() == false & checkState()){
                 handleNotifiedClaim();
             }else  tries++; //if no claim was notified, increment tries
         }
@@ -143,6 +79,88 @@ public class WaitingForClaimResult implements PlayerState {
             changeToState(State.turningInClaim);
         }
         
+    }
+
+    private void handleNotifiedClaim() {
+
+        int action = 0;
+        boolean cardsRemoved = false;
+        claimQueueAccess.acquireUninterruptibly();
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            if(claim.claimer == player){
+                action = claim.validSet ? 1:-1;
+                clearAllPlacedTokens();
+                break;
+            }
+            else{ 
+                if(claim.validSet){
+                    for(Integer card : claim.cards){
+                        if(placedTokens.contains(card)){
+                            clearPlacedToken(card);
+                            cardsRemoved = true;
+                        }
+                    }
+                }            
+            }        
+        }
+        claimQueueAccess.release();
+        if(cardsRemoved & checkState()) changeToState(State.waitingForActivity);
+        switch(action){
+            case 0 : break;
+            case 1:{
+                point();
+                break;
+            } 
+            case -1: {
+                penalty();
+                break;
+            }
+        }
+    }
+
+        /**
+     * Award a point to a player and perform other related actions.
+     * @post - the player's score is increased by 1.
+     * @post - the player's score is updated in the ui.
+     */
+    public void point() {
+        env.ui.setScore(player.id, player.incrementAndGetScore());
+        if(env.config.pointFreezeMillis > 0 & checkState()) changeToState(State.frozen);
+        else if(checkState()) changeToState(State.waitingForActivity);
+    }
+
+    /**
+     * Penalize a player and perform other related actions.
+     */
+    public void penalty() {
+        if(env.config.penaltyFreezeMillis > 0 & checkState()) changeToState(State.frozen);
+        else if(checkState()) changeToState(State.waitingForActivity);
+    }
+
+    /**
+     * Clears the queue of tokens placed.
+     * Updates the UI to remove the tokens.
+     * @post - the queue of tokens placed is cleared.
+     */
+    private void clearAllPlacedTokens(){
+        while(placedTokens.isEmpty() == false){
+            Integer token = placedTokens.peekFirst();
+            table.removeToken(player.id, token);
+            placedTokens.removeFirst();
+        }    
+    }
+
+    private void clearPlacedToken(Integer slot) {
+        table.removeToken(player.id, slot);
+        placedTokens.remove(slot);
+    }
+
+    private long generateWaitingTime() {  
+        if(checkState()){
+            if(claimQueue.isEmpty() == false) return 1;
+            else return 100;
+        }else return 1;
     }
 
     @Override
