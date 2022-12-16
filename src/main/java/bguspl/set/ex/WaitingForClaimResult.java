@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
-public class WaitingForClaimResult implements PlayerState {
+public class WaitingForClaimResult extends PlayerState {
 
     /**
      * The AI service
@@ -49,13 +49,13 @@ public class WaitingForClaimResult implements PlayerState {
 
     public WaitingForClaimResult(Env env, Table table, LinkedList<Integer> placedTokens,
             ConcurrentLinkedQueue<Claim> claimQueue, Object claimListener, Semaphore claimQueueAccess, Player player) {
+        super(player);
         this.env = env;
         this.table = table;
         this.placedTokens = placedTokens;
         this.claimQueue = claimQueue;
         this.claimListener = claimListener;
         this.claimQueueAccess = claimQueueAccess;
-        this.player = player;
     }
 
     @Override
@@ -167,15 +167,4 @@ public class WaitingForClaimResult implements PlayerState {
     public State getState() {
         return State.waitingForClaimResult;
     }
-
-    private void changeToState(State state) {
-        player.setState(state);
-    }
-
-    private boolean checkState() {
-        return player.getState() == State.waitingForClaimResult;
-    }
-
-    
-    
 }
