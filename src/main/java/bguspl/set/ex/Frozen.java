@@ -59,14 +59,5 @@ public class Frozen extends PlayerState{
     @Override
     public State getState() {
         return State.frozen;
-    }
-
-    private void changeToState(State state) {
-        player.setState(state);
-    }
-
-    private boolean checkState() {
-        return player.getState() == State.frozen;
-    }
-    
+    }  
 }
