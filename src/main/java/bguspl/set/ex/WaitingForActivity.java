@@ -7,13 +7,8 @@ import java.util.concurrent.Semaphore;
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
-public class WaitingForActivity implements PlayerState {
+public class WaitingForActivity extends PlayerState {
     
-    /**
-     * The game environment object.
-     */
-    private final Env env;
-
     /**
      * Game entities.
      */
@@ -23,11 +18,6 @@ public class WaitingForActivity implements PlayerState {
      * The player's currently placed tokens.
      */
     private LinkedList<Integer> placedTokens;
-
-    /**
-     * The game's dealer
-     */
-    private Dealer dealer;
     
     /**
      * The clicks queue.
@@ -38,8 +28,6 @@ public class WaitingForActivity implements PlayerState {
      * Object for breaking wait() when waiting for general activity
      */
     private volatile Object activityListener;
-
-    private Player player;
 
         /**
      * The semaphore used to control access to the click queue.
@@ -52,16 +40,16 @@ public class WaitingForActivity implements PlayerState {
      */
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
-    public WaitingForActivity(Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
-                ConcurrentLinkedQueue<Integer> clickQueue, Object activityListener, Player player,
-                Semaphore claimQueueAccess, ConcurrentLinkedQueue<Claim> claimQueue) {
-            this.env = env;
+    
+
+    public WaitingForActivity(Player player, Table table, LinkedList<Integer> placedTokens,
+                ConcurrentLinkedQueue<Integer> clickQueue, Object activityListener, Semaphore claimQueueAccess,
+                ConcurrentLinkedQueue<Claim> claimQueue) {
+            super(player);
             this.table = table;
             this.placedTokens = placedTokens;
-            this.dealer = dealer;
             this.clickQueue = clickQueue;
             this.activityListener = activityListener;
-            this.player = player;
             this.claimQueueAccess = claimQueueAccess;
             this.claimQueue = claimQueue;
         }
@@ -152,13 +140,5 @@ public class WaitingForActivity implements PlayerState {
     @Override
     public State getState() {
         return State.waitingForActivity;
-    }
-
-    private void changeToState(State state) {
-        player.setState(state);
-    }
-
-    private boolean checkState() {
-        return player.getState() == State.waitingForActivity;
     }
 }

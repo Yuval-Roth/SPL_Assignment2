@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
-public class TurningInClaim implements PlayerState{
+public class TurningInClaim extends PlayerState{
     
     private static final int CLICK_TIME_PADDING = 100;
 
@@ -42,19 +42,17 @@ public class TurningInClaim implements PlayerState{
      */
     private Semaphore claimQueueAccess;
 
-    private Player player;
-
-    public TurningInClaim(Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
-            ConcurrentLinkedQueue<Claim> claimQueue, Semaphore claimQueueAccess, Player player) {
+    
+    public TurningInClaim(Player player, Env env, Table table, LinkedList<Integer> placedTokens, Dealer dealer,
+            ConcurrentLinkedQueue<Claim> claimQueue, Semaphore claimQueueAccess) {
+        super(player);
         this.env = env;
         this.table = table;
         this.placedTokens = placedTokens;
         this.dealer = dealer;
         this.claimQueue = claimQueue;
         this.claimQueueAccess = claimQueueAccess;
-        this.player = player;
     }
-
     @Override
     public void run() {
 
@@ -126,12 +124,5 @@ public class TurningInClaim implements PlayerState{
     @Override
     public State getState() {
         return State.turningInClaim;
-    }
-    
-    private void changeToState(State state) {
-        player.setState(state);
-    }
-    private boolean checkState() {
-        return player.getState() == State.turningInClaim;
     }
 }

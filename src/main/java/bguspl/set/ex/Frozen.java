@@ -3,7 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 import bguspl.set.ex.Player.State;
 
-public class Frozen implements PlayerState{
+public class Frozen extends PlayerState{
 
     private static final int CLOCK_UPDATE_INTERVAL = 250;
 
@@ -23,14 +23,10 @@ public class Frozen implements PlayerState{
      */
     private long freezeUntil;
 
-    private Player player;
-
-    
-    
-    public Frozen(Env env, long freezeUntil, Player player) {
+    public Frozen(Player player, Env env) {
+        super(player);
         this.env = env;
-        this.freezeUntil = freezeUntil;
-        this.player = player;
+        this.freezeUntil = Long.MAX_VALUE;
     }
 
     @Override
