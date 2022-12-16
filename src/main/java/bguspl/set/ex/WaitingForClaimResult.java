@@ -138,24 +138,6 @@ public class WaitingForClaimResult extends PlayerState {
         else if(stillThisState()) changeToState(State.waitingForActivity);
     }
 
-    /**
-     * Clears the queue of tokens placed.
-     * Updates the UI to remove the tokens.
-     * @post - the queue of tokens placed is cleared.
-     */
-    private void clearAllPlacedTokens(){
-        while(placedTokens.isEmpty() == false){
-            Integer token = placedTokens.peekFirst();
-            table.removeToken(player.id, token);
-            placedTokens.removeFirst();
-        }    
-    }
-
-    private void clearPlacedToken(Integer slot) {
-        table.removeToken(player.id, slot);
-        placedTokens.remove(slot);
-    }
-
     private long generateWaitingTime() {  
         if(stillThisState()){
             if(claimQueue.isEmpty() == false) return 1;

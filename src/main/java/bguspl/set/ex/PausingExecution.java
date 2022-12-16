@@ -37,28 +37,6 @@ public class PausingExecution extends PlayerState{
             changeToState(State.paused);
         }      
 
-    /**
-     * Clears the queue of tokens placed.
-     * Updates the UI to remove the tokens.
-     * @post - the queue of tokens placed is cleared.
-     */
-    private void clearAllPlacedTokens(){
-        while(placedTokens.isEmpty() == false){
-            Integer token = placedTokens.peekFirst();
-            table.removeToken(player.id, token);
-            placedTokens.removeFirst();
-        }    
-    }
-
-     /**
-     * Clears the pending clicks queue
-     */
-    private void clearClickQueue() {
-        while(clickQueue.isEmpty() == false){
-            clickQueue.remove();
-        }
-    }
-
     @Override
     public State stateName() {
         return State.pausingExecution;

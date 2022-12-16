@@ -160,7 +160,6 @@ public class Player implements Runnable {
         activityListener = new Object();
         claimListener = new Object();
         AIListener = new Object();
-        // state = State.pausingExecution;
         freezeRemainder = 0;
         claimQueueAccess = new Semaphore(1,true);
         playerStates = new PlayerState[7];
@@ -180,16 +179,10 @@ public class Player implements Runnable {
             playerThread = Thread.currentThread();
             if (!human) createArtificialIntelligence();
 
-            //main loop
-            while (state != State.terminated) {
-
-                //while the game is still running
-                
-                    
-
-                    
-
-                }
+            //while the game is still running
+            while (getState() != State.terminated) {
+                state.run();
+            }
             
         
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -217,7 +210,7 @@ public class Player implements Runnable {
             synchronized(activityListener){activityListener.notifyAll();}
             synchronized(claimListener){claimListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
-        }while(state.getState() != State.paused | AIRunning);
+        }while(getState() != State.paused | AIRunning);
     }
 
     
@@ -429,6 +422,34 @@ public class Player implements Runnable {
 
     public long getFreezeRemainder() {
         return freezeRemainder;
+    }
+
+    public Env getEnv() {
+        return null;
+    }
+
+    public Table getTable() {
+        return null;
+    }
+
+    public LinkedList<Integer> getPlacedTokens() {
+        return null;
+    }
+
+    public Dealer getDealer() {
+        return null;
+    }
+
+    public ConcurrentLinkedQueue<Claim> getClaimQueue() {
+        return null;
+    }
+
+    public Semaphore getClaimQueueAccess() {
+        return null;
+    }
+
+    public Object getActivityListener() {
+        return null;
     }
    
 }
