@@ -6,19 +6,13 @@ public class Frozen extends PlayerState{
 
     private static final int CLOCK_UPDATE_INTERVAL = 250;
 
-    /**
-     * Future timeout time for player freeze timer
-     */
-    private long freezeUntil;
-
     public Frozen(Player player) {
         super(player);
-        this.freezeUntil = Long.MAX_VALUE;
     }
 
     @Override
     public void run() {
-        freezeUntil = player.getFreezeUntil();
+        long freezeUntil = player.getFreezeUntil();
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
         while(stillThisState() & freezeUntil >= System.currentTimeMillis() ){
             try{

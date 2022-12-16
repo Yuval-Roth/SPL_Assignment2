@@ -9,7 +9,6 @@ import bguspl.set.ex.Player.State;
 
 public abstract class PlayerState {  
 
-
     /**
     * The game environment object.
     */
@@ -80,16 +79,34 @@ public abstract class PlayerState {
     public abstract void run();
     public abstract Player.State stateName();
 
+    /**
+     * Changes the player's state.
+     * @param state
+     */
     protected void changeToState(Player.State state) {
         player.setState(state);
     }
+
+    /**
+     * @return - true if the player is still in the current state.
+     */
     protected boolean stillThisState() {
         return getState() == stateName();
     }
+
+    /**
+     * @return - the current state of the player.
+     */
     protected State getState() {
         return player.getState();
     }
 
+    /**
+     * Clears a placed token.
+     * Updates the UI to remove the token.
+     * @param slot - the slot of the token to be removed.
+     * @post - the token is removed from the queue of tokens placed.
+     */
     protected void clearPlacedToken(Integer slot) {
         table.removeToken(player.id, slot);
         placedTokens.remove(slot);
@@ -109,8 +126,9 @@ public abstract class PlayerState {
     }
 
     /**
-    * Clears the pending clicks queue
-    */
+     * Clears the click queue.
+     * @post - the click queue is cleared.
+     */
     protected void clearClickQueue() {
         while(clickQueue.isEmpty() == false){
             clickQueue.remove();
