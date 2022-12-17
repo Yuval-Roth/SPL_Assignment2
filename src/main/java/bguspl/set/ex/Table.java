@@ -150,7 +150,7 @@ public class Table {
     public Integer[] clearTable() {
         Integer[] cardsRemoved = new Integer[getCurrentSize()];
         for (int i = 0; i < cardsRemoved.length; i++) {
-            if (slotToCard[i] != null) {
+            if (!isSlotEmpty(i)) {
                 cardsRemoved[i] = slotToCard[i];
                 removeCard(i);
             }
