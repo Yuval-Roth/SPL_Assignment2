@@ -49,6 +49,9 @@ public class WaitingForActivity extends PlayerState {
     private void placeOrRemoveToken(Integer slot){
 
         if(placedTokens.contains(slot) == false){
+            if(placedTokens.size() == Dealer.SET_SIZE){
+                return;
+            }
             boolean insertState = false;
             int tries = 0;
             while(insertState == false & tries <=5 & stillThisState()){
