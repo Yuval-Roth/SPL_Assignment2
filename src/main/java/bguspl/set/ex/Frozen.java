@@ -12,8 +12,12 @@ public class Frozen extends PlayerState{
 
     @Override
     public void run() {
+
+        //set the timer to the remainder of the freeze time
         long freezeUntil = System.currentTimeMillis()+player.getFreezeRemainder();
         updateTimerDisplay(freezeUntil-System.currentTimeMillis());
+
+        //main freeze timer loop
         while(stillThisState() & freezeUntil >= System.currentTimeMillis() ){
             try{
                 synchronized(player){player.wait(CLOCK_UPDATE_INTERVAL);}
@@ -21,8 +25,10 @@ public class Frozen extends PlayerState{
             updateTimerDisplay(freezeUntil-System.currentTimeMillis()); 
         }
 
+        //update the remaining freeze time
         player.setFreezeRemainder(freezeUntil - System.currentTimeMillis());
 
+        //if the player state was not changed by another thread, change it to waiting for activity
         if(stillThisState()){
             env.ui.setFreeze(player.id,0);
             changeToState(State.waitingForActivity);
@@ -30,7 +36,7 @@ public class Frozen extends PlayerState{
     }
 
      /**
-     * Updates the UI timer if the player is frozen
+     * Updates the UI timer for the player freeze
      */
     private void updateTimerDisplay(long time) { 
         env.ui.setFreeze(player.id,time);   

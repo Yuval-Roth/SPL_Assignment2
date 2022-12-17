@@ -16,13 +16,13 @@ public class Paused extends PlayerState{
 
     @Override
     public void run() {
+
         try{
+            // Wait for the game to be resumed / terminated
             synchronized(executionListener){executionListener.wait();}
-        }catch(InterruptedException ignored){
-            System.out.println("hello");
-        }
+        }catch(InterruptedException ignored){}
         
-        //do this after being released from paused state
+        // If the game is not terminated, check if the player is frozen or not
         if(getState() != State.terminated){
             if (player.getFreezeRemainder() > 0){
                 changeToState(State.frozen);

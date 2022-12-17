@@ -51,6 +51,8 @@ public class WaitingForClaimResult extends PlayerState {
             Claim claim = claimQueue.remove();
             if(claim.claimer == player){
                 action = claim.validSet ? 1:-1;
+
+                //TODO - remove clearAllPlacedTokens() because they want to keep the tokens on the board
                 clearAllPlacedTokens();
                 break;
             }
