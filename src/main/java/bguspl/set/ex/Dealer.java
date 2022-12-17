@@ -412,7 +412,6 @@ public class Dealer implements Runnable {
     /**
      * Removes the claimed cards from the table .
      * @param cards
-     * @param claimer
      */
     private void removeClaimedCards(Integer[] cards) {
         for(int card : cards){ // remove cards from table
