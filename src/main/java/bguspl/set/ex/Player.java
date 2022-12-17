@@ -377,12 +377,18 @@ public class Player implements Runnable {
                     else secretService.sendIntel(keys,false); 
                 }
                 
-                // //if the player is waiting, gather intel
-                // while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
-                //     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-                //     } catch(InterruptedException ignored){}
-                //     secretService.gatherIntel();
-                // }
+                //if the player is waiting, gather intel
+                while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
+                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                    } catch(InterruptedException ignored){}
+                    secretService.gatherIntel();
+                }
+                
+                if(getState() != State.pausingExecution & getState() !=State.paused){
+                    try{
+                        Thread.sleep(100);
+                    }catch(InterruptedException ignored){}
+                }
 
                 //if the player is frozen, gather intel
                 while(getState() == State.frozen){
@@ -391,11 +397,17 @@ public class Player implements Runnable {
                     secretService.gatherIntel();
                 }
 
-                if(placedTokens.isEmpty() == false){
-                    for(Integer key : keys){
-                        keyPressed_AI(key);
+                if(getState() != State.pausingExecution & getState() !=State.paused){
+                    try{
+                        Thread.sleep(100);
+                    }catch(InterruptedException ignored){}
+                    if(placedTokens.isEmpty() == false){
+                        for(Integer key : keys){
+                            keyPressed_AI(key);
+                        }
                     }
                 }
+
 
                 //if the game needs to be paused, wait until it is unpaused
                 if(getState() == State.pausingExecution | getState() == State.paused){
