@@ -1,10 +1,6 @@
 package bguspl.set.ex;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -377,19 +373,12 @@ public class Player implements Runnable {
                     try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}
 
-                    try{
-                        if(keysToRemove.isEmpty() == false){
-                            keyPressed_AI(keysToRemove.remove(0));
-                        }
-                        else{
-                            keyPressed_AI(keysToPlace.remove(0));
-                        }  
-                    }catch(IndexOutOfBoundsException ex){
-                        try{
-                            System.out.println(ex);
-                            Thread.sleep(50000000);
-                        }catch(InterruptedException ignored){}
+                    if(keysToRemove.isEmpty() == false){
+                        keyPressed_AI(keysToRemove.remove(0));
                     }
+                    else{
+                        keyPressed_AI(keysToPlace.remove(0));
+                    }  
                 }
 
                 //if the player is waiting, gather intel

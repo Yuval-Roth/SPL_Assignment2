@@ -157,11 +157,8 @@ public class Dealer implements Runnable {
             }
             
         });
-        // debuggingThread.start();
+        debuggingThread.start();
         //===================================================================|
-
-
-
 
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
