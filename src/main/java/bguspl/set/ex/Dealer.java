@@ -260,7 +260,6 @@ public class Dealer implements Runnable {
      * @param claim
      */
     private void handleClaimedSet(Claim claim) {
-
          if(isValidSet(claim.cards)){
             removeClaimedCards(claim.cards);
             placeCardsOnTable();
@@ -325,13 +324,11 @@ public class Dealer implements Runnable {
      * resumes the player threads 
      */
     private void resumePlayerThreads() {
-
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
             player.resume();
         }
-        
     }
 
     /**
@@ -367,7 +364,9 @@ public class Dealer implements Runnable {
     private void removeAllCardsFromTable() {
         Integer[] cardsRemoved = table.clearTable();
         for (Integer card: cardsRemoved) {
-            deck.add(card);
+            if (card !=null) {
+                deck.add(card);
+            }
         }
     }
 
@@ -414,7 +413,6 @@ public class Dealer implements Runnable {
      * Why does this not have a javadoc?
      */
     private void updateElapsedTimeDisplay(boolean reset){
-        
         if(reset) elapsedTime = System.currentTimeMillis();   
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }

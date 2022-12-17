@@ -150,7 +150,7 @@ public class Table {
     public Integer[] clearTable() {
         Integer[] cardsRemoved = new Integer[getCurrentSize()];
         for (int i = 0; i < cardsRemoved.length; i++) {
-            if (!isSlotEmpty(i)) {
+            if (slotToCard[i] != null) {
                 cardsRemoved[i] = slotToCard[i];
                 removeCard(i);
             }
@@ -179,15 +179,6 @@ public class Table {
         Integer[] cardsOnTable = slotToCard.clone();
         List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
         return env.util.findSets(deck, 1).size();
-    }
-
-    /*
-     * Returns the number of possible sets on the table.
-     */
-    public List<Integer> getCardsOnTable() {
-        Integer[] cardsOnTable = slotToCard.clone();
-        List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
-        return deck;
     }
 
     
