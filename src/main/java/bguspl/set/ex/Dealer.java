@@ -157,7 +157,7 @@ public class Dealer implements Runnable {
             }
             
         });
-        debuggingThread.start();
+        // debuggingThread.start();
         //===================================================================|
 
 

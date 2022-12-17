@@ -1,7 +1,13 @@
 package bguspl.set.ex;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 import bguspl.set.ex.PlayerStates.*;
 import bguspl.set.Env;
@@ -348,46 +354,54 @@ public class Player implements Runnable {
             }catch(InterruptedException ignored){}
 
             AIRunning = true; //AI is now running
-
-            Integer[] keys;
-
+            
             while (getState() != State.terminated) {
+                Integer[] keysArray = secretService.getIntel(); //get the keys to press
 
-                keys = secretService.getIntel(); //get the keys to press
+                LinkedList<Integer> keysToPlace = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new));
+                LinkedList<Integer> keysToRemove = new LinkedList<>();
+
+                for(Integer key : placedTokens){
+                    if(keysToPlace.contains(key)){
+                        keysToPlace.remove(key);
+                    }else keysToRemove.add(key);
+                }
 
                 int currentScore = score; //score before the AI makes a move
 
-                for(int i = 0; i < keys.length & getState() == State.waitingForActivity ; i++){
+                while(keysToPlace.isEmpty() == false & getState() == State.waitingForActivity){
+
                     // limit how fast the AI clicks buttons
                     try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}
-                    keyPressed_AI(keys[i]);
-                }
 
-                //if the game does not need to be paused, report the claim
-                if(getState() != State.pausingExecution & getState() !=State.paused){
                     try{
-                        synchronized(claimListener){
-                            claimListener.wait();
+                        if(placedTokens.size() == 3){
+                            keyPressed_AI(keysToRemove.remove(0));
                         }
-                    }catch(InterruptedException ignored){}
-
-                    if (currentScore < score)
-                        secretService.reportSetClaimed(keys);
-                    else secretService.sendIntel(keys,false); 
+                        else{
+                            keyPressed_AI(keysToPlace.remove(0));
+                        }  
+                    }catch(IndexOutOfBoundsException ex){
+                        try{
+                            System.out.println(ex);
+                            Thread.sleep(50000000);
+                        }catch(InterruptedException ignored){}
+                    }
                 }
-                
+
                 //if the player is waiting, gather intel
                 while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     } catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
-                
+
+                //if the game does not need to be paused, report the claim
                 if(getState() != State.pausingExecution & getState() !=State.paused){
-                    try{
-                        Thread.sleep(100);
-                    }catch(InterruptedException ignored){}
+                    if (currentScore < score)
+                        secretService.reportSetClaimed(keysArray);
+                    else secretService.sendIntel(keysArray,false); 
                 }
 
                 //if the player is frozen, gather intel
@@ -396,18 +410,6 @@ public class Player implements Runnable {
                     }catch(InterruptedException ignored){}
                     secretService.gatherIntel();
                 }
-
-                if(getState() != State.pausingExecution & getState() !=State.paused){
-                    try{
-                        Thread.sleep(100);
-                    }catch(InterruptedException ignored){}
-                    if(placedTokens.isEmpty() == false){
-                        for(Integer key : keys){
-                            keyPressed_AI(key);
-                        }
-                    }
-                }
-
 
                 //if the game needs to be paused, wait until it is unpaused
                 if(getState() == State.pausingExecution | getState() == State.paused){
