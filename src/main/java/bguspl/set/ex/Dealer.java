@@ -317,7 +317,6 @@ public class Dealer implements Runnable {
         for(Player player : players){
             player.pause();
         }
-        System.out.println();
     }
 
     /**

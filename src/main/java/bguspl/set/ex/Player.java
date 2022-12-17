@@ -376,7 +376,7 @@ public class Player implements Runnable {
                     } catch(InterruptedException ignored){}
 
                     try{
-                        if(placedTokens.size() == 3){
+                        if(keysToRemove.isEmpty() == false){
                             keyPressed_AI(keysToRemove.remove(0));
                         }
                         else{
