@@ -3,11 +3,13 @@ package bguspl.set.ex.PlayerStates;
 import bguspl.set.ex.Claim;
 import bguspl.set.ex.Dealer;
 import bguspl.set.ex.Player;
-import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
 public class TurningInClaim extends PlayerState {
     
+    private static final int MIN_RETRY_WAIT_TIME = 10;
+    private static final int MAX_RETRY_WAIT_TIME = 100;
+
     private static final int CLICK_TIME_PADDING = 100;
 
     public TurningInClaim(Player player) {
@@ -27,7 +29,7 @@ public class TurningInClaim extends PlayerState {
 
                 //sleep for a short random time and try again
                 try{
-                    Thread.sleep((long)(Math.random()*(25-10)+10));
+                    Thread.sleep((long)(Math.random()*(MAX_RETRY_WAIT_TIME-MIN_RETRY_WAIT_TIME)+MIN_RETRY_WAIT_TIME));
                 }catch(InterruptedException ignored){}
 
             } else if(stillThisState()) changeToState(State.waitingForClaimResult);
