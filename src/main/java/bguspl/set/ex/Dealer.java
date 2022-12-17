@@ -119,7 +119,7 @@ public class Dealer implements Runnable {
         shuffleDeck();
         while (!shouldFinish()) {        
             timerLoop();
-        }   
+        }
         terminatePlayers();
         System.out.println(Arrays.toString(claimSetCounters));
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();

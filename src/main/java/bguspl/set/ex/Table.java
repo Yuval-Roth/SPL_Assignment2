@@ -151,8 +151,8 @@ public class Table {
      * @post - the table is empty.
      */
     public Integer[] clearTable() {
-        Integer[] cardsRemoved = new Integer[getCurrentSize()];
-        for (int i = 0; i < cardsRemoved.length; i++) {
+        Integer[] cardsRemoved = new Integer[slotToCard.length];
+        for (int i = 0; i < slotToCard.length; i++) {
             if (slotToCard[i] != null) {
                 cardsRemoved[i] = slotToCard[i];
                 removeCard(i);
