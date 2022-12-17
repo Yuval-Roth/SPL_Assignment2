@@ -242,8 +242,10 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-            
+
+            //used for debugging
             claimSetCounters[claimer.id]++;
+            //==================
 
             claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion));
@@ -320,13 +322,9 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Starts the player threads 
-     * @note This instantiates new player threads and calls start()
-     * on the threads
+     * resumes the player threads 
      */
     private void resumePlayerThreads() {
-
-        Thread.yield();
 
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
@@ -384,7 +382,7 @@ public class Dealer implements Runnable {
                 placeNextCardOnTable();
             }
             else {
-                break; //TODO Think about this
+                break;
             }
         }
     }
