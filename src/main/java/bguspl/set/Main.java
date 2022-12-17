@@ -71,9 +71,9 @@ public class Main {
 
         try {
             // shutdown stuff
-            if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
             dealerThread.joinWithLog();
-            env.ui.dispose();
+            if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
+                env.ui.dispose();
         } catch (InterruptedException ignored) {
         } finally {
             logger.severe("thanks for playing... it was fun!");
