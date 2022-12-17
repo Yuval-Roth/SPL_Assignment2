@@ -260,26 +260,9 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
              removeClaimedCards(claim.cards);
-             
              if (!shouldFinish()) {
-                LinkedList<Integer> cards = table.getCardsOnTable();
-                boolean found = false;
-                // int i = 0;
-                do{
-                    // for(;i<deck.size();i++){
-                        
-                        // }
-                    if(env.util.findSets(cards, 1).size() ==0){
-                        found = true;
-                        placeCardsOnTable();
-                    } else{
-                        shuffleDeck();
-                        cards.removeLast();
-                        cards.removeLast();
-                        cards.removeLast();
-                    } 
-                }while (found == false);
-            }
+                 placeCardsFromClaim();
+             }
             updateTimerDisplay(true);
             claim.validSet = true;
             claim.claimer.notifyClaim(claim);
@@ -294,6 +277,33 @@ public class Dealer implements Runnable {
         }else {
             claim.claimer.notifyClaim(claim);;
         }
+    }
+
+    private void placeCardsFromClaim() {
+        LinkedList<Integer> cards = table.getCardsOnTable();
+        boolean found = false;
+        int deckIndex = 0;
+        do{
+
+            if(env.util.findSets(cards, 1).size() == 0){
+                found = true;
+                placeCardsOnTable();
+            } else{
+                for (int j = 0; j < SET_SIZE; j++) {
+                    deck.add(cards.removeLast());
+                }
+                for (int j = 0; j < SET_SIZE; j++) {
+                    cards.addLast(removeCardFromDeck(j));
+                    deckIndex++;
+                }
+            }
+        }while (found == false && deckIndex < deck.size());
+    }
+
+    private int removeCardFromDeck(int index) {
+        int cardToRemove = deck.get(index);
+        deck.remove(index);
+        return cardToRemove;
     }
 
     /**
@@ -408,21 +418,16 @@ public class Dealer implements Runnable {
      * Checks how many empty slots are on the table and 
      * places cards on the table for each empty slot.
      */
-    private Integer[] placeCardsOnTable() {
+    private void placeCardsOnTable() {
         int countToPlace = table.getEmptySlotCount();
-        Integer[] slotsPlacedAt = new Integer[countToPlace];
         for (int i = 0; i < countToPlace; i++) {
             if (deck.size() > 0) {
-                int cardPlaced = placeNextCardOnTable();
-                slotsPlacedAt[i] = table.getSlotFromCard(cardPlaced); // Note this is a card and not a slot
+                placeNextCardOnTable();
             }
             else {
                 break; // TODO: Think about this
             }
         }
-        return slotsPlacedAt;
-
-
     }
     
     /**
@@ -478,11 +483,10 @@ public class Dealer implements Runnable {
     /*
     * Removes one card from the deck and places it on the table.
     */
-    private Integer placeNextCardOnTable(){
-        Integer cardToPlace = deck.get(0);
+    private void placeNextCardOnTable() {
+        int cardToPlace = deck.get(0);
         deck.remove(0);
         table.placeCard(cardToPlace);
-        return cardToPlace;
     }
 
     /**
