@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -106,7 +107,7 @@ public class Table {
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
      */
-    public void removeCard(int slot) {
+    public int removeCard(int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
@@ -115,7 +116,9 @@ public class Table {
             slotToCard[slot] = null;
             env.ui.removeCard(slot);
             cardCount--;
+            return slot;
         }
+        return slot;
     }
 
     /**
@@ -177,8 +180,8 @@ public class Table {
      */
     public int getSetCount() {
         Integer[] cardsOnTable = slotToCard.clone();
-        List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
-        return env.util.findSets(deck, 1).size();
+        List<Integer> tableCards = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
+        return env.util.findSets(tableCards, 1).size();
     }
 
     
@@ -189,7 +192,19 @@ public class Table {
     public boolean isSlotEmpty(int slot) {
         return slotToCard[slot] == null;
     }
-    
 
+    public int getSlotFromCard(int card) {
+        return cardToSlot[card];
+    }
     
+    public LinkedList<Integer> getCardsOnTable(){
+        LinkedList<Integer> cardsOnTable = new LinkedList<>();
+        for (int i = 0; i < slotToCard.length; i++) {
+            if (slotToCard[i] != null) {
+                cardsOnTable.add(slotToCard[i]);
+            }
+        }
+        return cardsOnTable;
+    }
+
 }

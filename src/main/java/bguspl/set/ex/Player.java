@@ -257,7 +257,6 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-
         if(human){
             if(getState() == State.waitingForActivity){
                 clickQueue.add(slot);
