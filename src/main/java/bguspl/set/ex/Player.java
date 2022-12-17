@@ -348,9 +348,12 @@ public class Player implements Runnable {
             }catch(InterruptedException ignored){}
 
             AIRunning = true; //AI is now running
-            
+
+            Integer[] keys;
+
             while (getState() != State.terminated) {
-                Integer[] keys = secretService.getIntel(); //get the keys to press
+
+                keys = secretService.getIntel(); //get the keys to press
 
                 int currentScore = score; //score before the AI makes a move
 
@@ -361,25 +364,37 @@ public class Player implements Runnable {
                     keyPressed_AI(keys[i]);
                 }
 
-                //if the player is waiting, gather intel
-                while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
-                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-                    } catch(InterruptedException ignored){}
-                    secretService.gatherIntel();
-                }
-
                 //if the game does not need to be paused, report the claim
                 if(getState() != State.pausingExecution & getState() !=State.paused){
+                    try{
+                        synchronized(claimListener){
+                            claimListener.wait();
+                        }
+                    }catch(InterruptedException ignored){}
+
                     if (currentScore < score)
                         secretService.reportSetClaimed(keys);
                     else secretService.sendIntel(keys,false); 
                 }
+                
+                // //if the player is waiting, gather intel
+                // while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
+                //     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
+                //     } catch(InterruptedException ignored){}
+                //     secretService.gatherIntel();
+                // }
 
                 //if the player is frozen, gather intel
                 while(getState() == State.frozen){
                     try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
                     }catch(InterruptedException ignored){}
                     secretService.gatherIntel();
+                }
+
+                if(placedTokens.isEmpty() == false){
+                    for(Integer key : keys){
+                        keyPressed_AI(key);
+                    }
                 }
 
                 //if the game needs to be paused, wait until it is unpaused
