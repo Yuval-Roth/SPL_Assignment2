@@ -163,9 +163,11 @@ public class Table {
         Collections.shuffle(cardsPlacementSlotsOrder);
 
         Integer[] cardsRemoved = new Integer[getCurrentSize()];
-        for (Integer i : cardsPlacementSlotsOrder) {
-            cardsRemoved[i] = slotToCard[i];
-            removeCard(i);
+
+        int i = 0;
+        for (Integer slot : cardsPlacementSlotsOrder) {
+            cardsRemoved[i++] = slotToCard[slot];
+            removeCard(slot);
         }
         // Collections.reverse(cardsPlacementSlotsOrder);
         return cardsRemoved;

@@ -354,13 +354,20 @@ public class Player implements Runnable {
 
             AIRunning = true; //AI is now running
             
+            //TODO 
+            // LinkedList<Integer> lastCards;
+
             while (getState() != State.terminated) {
                 Integer[] keysArray = secretService.getIntel(); //get the keys to press
+
+                //TODO try to implement that the ai remembers the last cards played
+                // lastCards = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new)); 
 
                 LinkedList<Integer> keysToPlace = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new));
                 LinkedList<Integer> keysToRemove = new LinkedList<>();
 
-                for(Integer key : placedTokens){
+                // TODO: this throws a ConcurrentModificationException on placedTokens with no freeze times
+                for(Integer key : placedTokens){ 
                     if(keysToPlace.contains(key)){
                         keysToPlace.remove(key);
                     }else keysToRemove.add(key);
