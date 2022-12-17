@@ -1,7 +1,6 @@
 package bguspl.set.ex.PlayerStates;
 
 import bguspl.set.ex.Player;
-import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
 public class Frozen extends PlayerState {
