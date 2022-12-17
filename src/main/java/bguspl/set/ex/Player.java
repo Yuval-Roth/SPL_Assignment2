@@ -152,7 +152,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
 
-        AIRunning = false;
+        AIRunning = true;
 
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
@@ -346,6 +346,7 @@ public class Player implements Runnable {
 
             //wait until the game starts
             try{
+                AIRunning = false;
                 synchronized(executionListener){
                     executionListener.wait();
                 }
