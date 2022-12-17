@@ -41,7 +41,6 @@ public class Table {
      * @param cardToSlot - mapping between a card and the slot it is in (null if none).
      */
     public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot) {
-
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
@@ -67,38 +66,6 @@ public class Table {
             int[][] features = env.util.cardsToFeatures(set);
             System.out.println(sb.append("slots: ").append(slots).append(" features: ").append(Arrays.deepToString(features)));
         });
-    }
-
-    /**
-     * Count the number of cards currently on the table.
-     *
-     * @return - the number of cards on the table.
-     */
-    public int countCards() {
-        int cards = 0;
-        for (Integer card : slotToCard)
-            if (card != null)
-                ++cards;
-        return cards;
-    }
-
-    /**
-     * Places a card on the table in a grid slot.
-     * @param card - the card id to place in the slot.
-     * @param slot - the slot in which the card should be placed.
-     *
-     * @post - the card placed is on the table, in the assigned slot.
-     */
-    public void placeCard(int card, int slot) {
-        try {
-            Thread.sleep(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {}
-        
-        cardToSlot[card] = slot;
-        slotToCard[slot] = card;
-
-        env.ui.placeCard(card, slot); // UI update, this is shitty software design 
-        cardCount++;
     }
 
     /**
@@ -177,16 +144,17 @@ public class Table {
 
     /*
      * Clears the table of all cards and tokens.
+     * @return - array of cards that were on the table.
+     * @post - the table is empty.
      */
     public Integer[] clearTable() {
-
-        Integer[] cardsRemoved = Arrays.stream(slotToCard).filter(Objects::nonNull).toArray(Integer[]::new);
-        
-        //TODO turn this into a loop that uses the method to remove cards which updates the cardCount and the UI
-        slotToCard = new Integer[slotToCard.length];
-        cardToSlot = new Integer[cardToSlot.length];
-        cardCount = 0;
-        //====================================================================================================
+        Integer[] cardsRemoved = new Integer[getCurrentSize()];
+        for (int i = 0; i < cardsRemoved.length; i++) {
+            if (!isSlotEmpty(i)) {
+                cardsRemoved[i] = slotToCard[i];
+                removeCard(i);
+            }
+        }
         return cardsRemoved;
     }
 

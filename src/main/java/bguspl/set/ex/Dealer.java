@@ -100,6 +100,9 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
+
+
+        claimSetCounters = new int[players.length];
     }
     
     
@@ -120,6 +123,7 @@ public class Dealer implements Runnable {
             timerLoop();
         }   
         terminatePlayers();
+        System.out.println(Arrays.toString(claimSetCounters));
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -211,6 +215,12 @@ public class Dealer implements Runnable {
         }
     }
 
+
+    //================= claim set counters ==========================
+    private static volatile int[] claimSetCounters;
+    //===========================================================
+
+
     /**
      * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
      * @param cards - The cards forming the set
@@ -232,7 +242,11 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-            
+
+            //used for debugging
+            claimSetCounters[claimer.id]++;
+            //==================
+
             claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion));
             claimQueueAccess.release(1);
@@ -308,13 +322,9 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Starts the player threads 
-     * @note This instantiates new player threads and calls start()
-     * on the threads
+     * resumes the player threads 
      */
     private void resumePlayerThreads() {
-
-        Thread.yield();
 
         if(env.config.computerPlayers > 0) 
             Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
@@ -372,7 +382,7 @@ public class Dealer implements Runnable {
                 placeNextCardOnTable();
             }
             else {
-                break; //TODO Think about this
+                break;
             }
         }
     }
@@ -412,7 +422,6 @@ public class Dealer implements Runnable {
     /**
      * Removes the claimed cards from the table .
      * @param cards
-     * @param claimer
      */
     private void removeClaimedCards(Integer[] cards) {
         for(int card : cards){ // remove cards from table
