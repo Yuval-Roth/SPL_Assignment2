@@ -1,8 +1,10 @@
-package bguspl.set.ex;
+package bguspl.set.ex.PlayerStates;
 
+import bguspl.set.ex.Player;
+import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
-public class Paused extends PlayerState{
+public class Paused extends PlayerState {
 
     /**
     * Object for breaking wait() when waiting for general activity

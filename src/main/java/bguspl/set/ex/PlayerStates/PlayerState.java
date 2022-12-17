@@ -1,11 +1,15 @@
-package bguspl.set.ex;
+package bguspl.set.ex.PlayerStates;
 
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 
 import bguspl.set.Env;
+import bguspl.set.ex.Claim;
+import bguspl.set.ex.Dealer;
+import bguspl.set.ex.Player;
 import bguspl.set.ex.Player.State;
+import bguspl.set.ex.Table;
 
 public abstract class PlayerState {  
 

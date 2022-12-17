@@ -1,8 +1,10 @@
-package bguspl.set.ex;
+package bguspl.set.ex.PlayerStates;
 
+import bguspl.set.ex.Player;
+import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
-public class Frozen extends PlayerState{
+public class Frozen extends PlayerState {
 
     private static final int CLOCK_UPDATE_INTERVAL = 250;
 

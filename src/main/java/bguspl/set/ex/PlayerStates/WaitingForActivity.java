@@ -1,5 +1,9 @@
-package bguspl.set.ex;
+package bguspl.set.ex.PlayerStates;
 
+import bguspl.set.ex.Claim;
+import bguspl.set.ex.Dealer;
+import bguspl.set.ex.Player;
+import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
 public class WaitingForActivity extends PlayerState {

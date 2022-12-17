@@ -1,8 +1,12 @@
-package bguspl.set.ex;
+package bguspl.set.ex.PlayerStates;
 
+import bguspl.set.ex.Claim;
+import bguspl.set.ex.Dealer;
+import bguspl.set.ex.Player;
+import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
-public class TurningInClaim extends PlayerState{
+public class TurningInClaim extends PlayerState {
     
     private static final int CLICK_TIME_PADDING = 100;
 
