@@ -253,7 +253,9 @@ public class Player implements Runnable {
      * Resumes the player's ability to interact with the game
      */
     public void resume(){
-        if(human == false) AIRunning = true;
+        while(AIRunning != false | getState() != State.paused){
+            try{Thread.sleep(10);}catch(InterruptedException ignored){}
+        }
         synchronized(executionListener){executionListener.notifyAll();}
     }
 
@@ -419,8 +421,10 @@ public class Player implements Runnable {
                             executionListener.wait();
                         }
                     }catch(InterruptedException ignored){}
+                    AIRunning = true;
                 }        
             }
+            AIRunning = false;
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }
 
