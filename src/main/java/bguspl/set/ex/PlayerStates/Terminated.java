@@ -1,6 +1,5 @@
 package bguspl.set.ex.PlayerStates;
 
-import bguspl.set.ex.PlayerStates.PlayerState;
 import bguspl.set.ex.Player.State;
 
 public class Terminated extends PlayerState {
