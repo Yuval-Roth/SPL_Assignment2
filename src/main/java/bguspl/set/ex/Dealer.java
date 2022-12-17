@@ -203,7 +203,7 @@ public class Dealer implements Runnable {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         gameVersion = 0;
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            placeCardsOnTable();
+            fillDeck();
             resumePlayerThreads();
             startTimer();
             pausePlayerThreads();      
@@ -294,6 +294,16 @@ public class Dealer implements Runnable {
     //===========================================================
     //                  utility methods
     //===========================================================
+
+
+    private void fillDeck() {
+        LinkedList<Integer> slots = table.getCardsPlacementSlotsOrder();
+        for(Integer slot : slots){
+            Integer cardToPlace = deck.get(0);
+            deck.remove(0);
+            table.placeCard(cardToPlace,slot);
+        }
+    }
 
     /**
     * Checks if the given set of cards is a valid set.
