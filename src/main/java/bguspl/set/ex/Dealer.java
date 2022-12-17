@@ -280,24 +280,29 @@ public class Dealer implements Runnable {
     }
 
     private void placeCardsFromClaim() {
-        LinkedList<Integer> cards = table.getCardsOnTable();
+        LinkedList<Integer> cardsToPlace_U_Table = table.getCardsOnTable();
         boolean found = false;
-        int deckIndex = 0;
+        for (int i = 0; i < SET_SIZE; i++) {
+            try {
+                cardsToPlace_U_Table.add(deck.get(i));
+            } catch (IndexOutOfBoundsException e) {
+                return;
+            }
+        }
         do{
-
-            if(env.util.findSets(cards, 1).size() == 0){
+            if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                 found = true;
                 placeCardsOnTable();
             } else{
                 for (int j = 0; j < SET_SIZE; j++) {
-                    deck.add(cards.removeLast());
+                    deck.add(cardsToPlace_U_Table.removeLast());
                 }
+                shuffleDeck();
                 for (int j = 0; j < SET_SIZE; j++) {
-                    cards.addLast(removeCardFromDeck(j));
-                    deckIndex++;
+                    cardsToPlace_U_Table.addLast(deck.get(j));
                 }
             }
-        }while (found == false && deckIndex < deck.size());
+        }while (!found);
     }
 
     private int removeCardFromDeck(int index) {
