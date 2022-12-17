@@ -35,7 +35,7 @@ public class Dealer implements Runnable {
     /**
      * The list of card ids that are left in the dealer's deck.
      */
-    private final List<Integer> deck;
+    private final LinkedList<Integer> deck;
 
     /**
      * True if game should be terminated due to an external event.
@@ -94,7 +94,7 @@ public class Dealer implements Runnable {
         this.env = env;
         this.table = table;
         this.players = players;
-        deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toCollection(LinkedList::new));
         playerThreads = new Thread[players.length];
         wakeListener = new Object();
         claimQueue = new ConcurrentLinkedQueue<>();
@@ -282,25 +282,18 @@ public class Dealer implements Runnable {
     private void placeCardsFromClaim() {
         LinkedList<Integer> cardsToPlace_U_Table = table.getCardsOnTable();
         boolean found = false;
+
+        ListIterator<Integer> iter = deck.listIterator();
         for (int i = 0; i < SET_SIZE; i++) {
-            try {
-                cardsToPlace_U_Table.add(deck.get(i));
-            } catch (IndexOutOfBoundsException e) {
-                return;
-            }
+            cardsToPlace_U_Table.addFirst(iter.next());
         }
         do{
             if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                 found = true;
                 placeCardsOnTable();
             } else{
-                for (int j = 0; j < SET_SIZE; j++) {
-                    deck.add(cardsToPlace_U_Table.removeLast());
-                }
-                shuffleDeck();
-                for (int j = 0; j < SET_SIZE; j++) {
-                    cardsToPlace_U_Table.addLast(deck.get(j));
-                }
+                cardsToPlace_U_Table.remove(2);
+                cardsToPlace_U_Table.addFirst(iter.next());
             }
         }while (!found);
     }
