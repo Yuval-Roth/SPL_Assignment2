@@ -106,7 +106,7 @@ public class Table {
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
      */
-    public void removeCard(int slot) {
+    public int removeCard(int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
@@ -115,7 +115,9 @@ public class Table {
             slotToCard[slot] = null;
             env.ui.removeCard(slot);
             cardCount--;
+            return slot;
         }
+        return slot;
     }
 
     /**
@@ -177,8 +179,8 @@ public class Table {
      */
     public int getSetCount() {
         Integer[] cardsOnTable = slotToCard.clone();
-        List<Integer> deck = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
-        return env.util.findSets(deck, 1).size();
+        List<Integer> tableCards = Arrays.stream(cardsOnTable).filter(Objects::nonNull).collect(Collectors.toList());
+        return env.util.findSets(tableCards, 1).size();
     }
 
     
@@ -189,7 +191,10 @@ public class Table {
     public boolean isSlotEmpty(int slot) {
         return slotToCard[slot] == null;
     }
-    
+
+    public int getSlotFromCard(int card) {
+        return cardToSlot[card];
+    }
 
     
 }
