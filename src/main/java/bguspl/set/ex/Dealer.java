@@ -155,7 +155,7 @@ public class Dealer implements Runnable {
             }
             
         });
-        debuggingThread.start();
+        // debuggingThread.start();
         //===================================================================|
 
 
@@ -259,14 +259,26 @@ public class Dealer implements Runnable {
      */
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
-            removeClaimedCards(claim.cards);
-            if (!shouldFinish()) {
-                Integer [] slotsPlacedAt = placeCardsOnTable();
-                while (table.getSetCount()==0){
-                    removeClaimedCards(slotsPlacedAt); //TODO: this is a bug, the cards placed should be removed
-                    shuffleDeck();
-                    slotsPlacedAt = placeCardsOnTable();
-                }
+             removeClaimedCards(claim.cards);
+             
+             if (!shouldFinish()) {
+                LinkedList<Integer> cards = table.getCardsOnTable();
+                boolean found = false;
+                // int i = 0;
+                do{
+                    // for(;i<deck.size();i++){
+                        
+                        // }
+                    if(env.util.findSets(cards, 1).size() ==0){
+                        found = true;
+                        placeCardsOnTable();
+                    } else{
+                        shuffleDeck();
+                        cards.removeLast();
+                        cards.removeLast();
+                        cards.removeLast();
+                    } 
+                }while (found == false);
             }
             updateTimerDisplay(true);
             claim.validSet = true;

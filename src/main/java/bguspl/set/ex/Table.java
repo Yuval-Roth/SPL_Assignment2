@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -195,6 +196,15 @@ public class Table {
     public int getSlotFromCard(int card) {
         return cardToSlot[card];
     }
-
     
+    public LinkedList<Integer> getCardsOnTable(){
+        LinkedList<Integer> cardsOnTable = new LinkedList<>();
+        for (int i = 0; i < slotToCard.length; i++) {
+            if (slotToCard[i] != null) {
+                cardsOnTable.add(slotToCard[i]);
+            }
+        }
+        return cardsOnTable;
+    }
+
 }
