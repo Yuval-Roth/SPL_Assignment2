@@ -14,21 +14,13 @@ public class Dealer implements Runnable {
 
 
     public static final int SET_SIZE = 3;
-
-    /**
-     *
-     */
     private static final int timerUpdateCriticalTickTime = 25;
-
-    /**
-     *
-     */
     private static final int timerUpdateTickTime = 250;
 
     /**
      * The game environment object.
      */
-    final Env env;
+    private final Env env;
 
     /**
      * Game entities.
@@ -53,23 +45,26 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    volatile private long reshuffleTime;
+    private volatile long reshuffleTime;
 
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    volatile private long nextWakeTime;
+    private volatile long nextWakeTime;
 
     /**
-     * TODO fill this doc
+     * The amount of time passed since the last set claimed.
      */
-    volatile private long elapsedTime;
+    private volatile long elapsedTime;
 
     /**
      * Holds all of the player threads
      */
     private Thread[] playerThreads;
     
+    /**
+     * a semaphore to control access to the gameVersion variable
+     */
     private volatile Semaphore gameVersionAccess;
 
     /**
@@ -79,12 +74,22 @@ public class Dealer implements Runnable {
      * @inv gameVersion >= 0
      */
     private volatile Integer gameVersion;
-
-    private volatile Object wakeListener;
-
+    
+    /**
+     * a queue for claims made by the players
+     */
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
+    
+    /**
+     * a semaphore to control access to the claimQueue variable
+     */
     private volatile Semaphore claimQueueAccess;
-       
+
+    /**
+     * a listener for the dealer thread to wake up
+     */
+    private volatile Object wakeListener;
+    
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -118,9 +123,16 @@ public class Dealer implements Runnable {
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
-    private volatile long debuggingTimer = 0;
+
+    //========used for debugging==============|
     private volatile boolean stop = false;
+    private volatile long debuggingTimer = 0;
+    //========================================|
+
     private void startTimer() {     
+        
+
+        //============used for debugging==================|
         Thread dealerThread = Thread.currentThread();
         Thread debuggingThread = new Thread(()->{
             stop = false;
@@ -142,29 +154,45 @@ public class Dealer implements Runnable {
             
         });
         debuggingThread.start();
+        //===================================================================|
+
+
+
+
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
-            nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
-                                System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime; 
+            updateNextWakeTime(); 
             while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
 
                 if(claimQueue.isEmpty() == false){
-                    claimQueueAccess.acquireUninterruptibly(players.length);
-                    while(claimQueue.isEmpty() == false){
-                        Claim claim = claimQueue.remove();
-                        handleClaimedSet(claim);
-                        updateTimerDisplay(false);
-                        resetDebuggingTimer();
-                    }
-                    claimQueueAccess.release(players.length);
+                    processClaims();
                 }
             } 
                 
         }
+
+        //used for debugging
         stop = true;
+        //==================
+
+
         if(terminate == false) env.ui.setCountdown(0,true);   
+    }
+
+    /**
+     * processes all the claims that were made by the players
+     */
+    private void processClaims() {
+        claimQueueAccess.acquireUninterruptibly(players.length);
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            handleClaimedSet(claim);
+            updateTimerDisplay(false);
+            resetDebuggingTimer();
+        }
+        claimQueueAccess.release(players.length);
     }
 
     /**
@@ -184,7 +212,7 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Claims a set. checks if the set is a legal set and awards or penalizes a player
+     * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
      * @param cards - The cards forming the set
      * @param claimer - The player who claims the set
      * @param claimVersion - The gameVersion according to getGameVersion()
@@ -220,7 +248,7 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(Claim claim) {
 
          if(isValidSet(claim.cards)){
-            removeClaimedCards(claim.cards, claim.claimer);
+            removeClaimedCards(claim.cards);
             placeCardsOnTable();
             updateTimerDisplay(true);
             claim.validSet = true;
@@ -381,14 +409,15 @@ public class Dealer implements Runnable {
         env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
     }
 
-    /*
-    * Why does this not have a javadoc?
-    */
-    private void removeClaimedCards(Integer[] cards, Player claimer) {
+    /**
+     * Removes the claimed cards from the table .
+     * @param cards
+     * @param claimer
+     */
+    private void removeClaimedCards(Integer[] cards) {
         for(int card : cards){ // remove cards from table
             // deck.remove(card); do not remove from deck, card should already be out of the deck
             table.removeCard(card);
-            // env.ui.removeToken(claimer.id, card);
         } 
     }
     
@@ -443,6 +472,14 @@ public class Dealer implements Runnable {
      */
     private boolean allSetsDepleted() {
         return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
+    }
+
+    /**
+     * Updates the next wake time of the dealer thread.
+     */
+    private void updateNextWakeTime() {
+        nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
+            System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime;
     }
 
     /**
