@@ -35,6 +35,10 @@ public class Dealer implements Runnable {
      * The list of card ids that are left in the dealer's deck.
      */
     private final LinkedList<Integer> deck;
+
+    /**
+     * The current timer mode.
+     */
     private final TimerMode timerMode;
 
     /**
@@ -97,8 +101,6 @@ public class Dealer implements Runnable {
         NoTimerMode
     }
 
-    private boolean elapsedTimerMode;
-
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -143,38 +145,7 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
 
-    //========used for debugging==============|
-    private volatile boolean stop = false;
-    private volatile long debuggingTimer = 0;
-    //========================================|
-
-    private void startTimer() {     
-        
-
-        //============used for debugging==================|
-        Thread dealerThread = Thread.currentThread();
-        Thread debuggingThread = new Thread(()->{
-            stop = false;
-            resetDebuggingTimer();
-            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {}
-            }
-            if(stop == false){
-                for(Player player : players){
-                    player.dumpData();
-                }
-                dumpData();
-                dealerThread.interrupt();   
-                reshuffleTime = Long.MAX_VALUE;
-                throw new RuntimeException("Player threads unresponsive");
-            }
-            
-        });
-        // debuggingThread.start();
-        //===================================================================|
-
+    private void startTimer() {    
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
             updateNextWakeTime(); 
@@ -188,12 +159,6 @@ public class Dealer implements Runnable {
             } 
                 
         }
-
-        //used for debugging
-        stop = true;
-        //==================
-
-
         if(terminate == false) env.ui.setCountdown(0,true);   
     }
 
@@ -215,6 +180,9 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
+
+        //TODO - break this into sub-classes / game-modes
+
         switch (timerMode) {
             case CountdownTimerMode: {
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
@@ -254,30 +222,6 @@ public class Dealer implements Runnable {
 
     private void startElapsedTimer() {
 
-        //============used for debugging==================|
-        Thread dealerThread = Thread.currentThread();
-        Thread debuggingThread = new Thread(()->{
-            stop = false;
-            resetDebuggingTimer();
-            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {}
-            }
-            if(stop == false){
-                for(Player player : players){
-                    player.dumpData();
-                }
-                dumpData();
-                dealerThread.interrupt();
-                reshuffleTime = Long.MAX_VALUE;
-                throw new RuntimeException("Player threads unresponsive");
-            }
-
-        });
-        // debuggingThread.start();
-        //===================================================================|
-        //reshuffleTime = Long.MAX_VALUE;
         updateElapsedTimeDisplay(true);
         while(terminate == false){
             updateNextWakeTime();
@@ -289,39 +233,11 @@ public class Dealer implements Runnable {
                 }
             }
         }
-
-        //used for debugging
-        stop = true;
-        //==================
         if(terminate == false) env.ui.setElapsed(0);
     }
 
 
     private void startNoTimer() {
-
-        //============used for debugging==================|
-        Thread dealerThread = Thread.currentThread();
-        Thread debuggingThread = new Thread(()->{
-            stop = false;
-            resetDebuggingTimer();
-            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {}
-            }
-            if(stop == false){
-                for(Player player : players){
-                    player.dumpData();
-                }
-                dumpData();
-                dealerThread.interrupt();
-                reshuffleTime = Long.MAX_VALUE;
-                throw new RuntimeException("Player threads unresponsive");
-            }
-
-        });
-        // debuggingThread.start();
-        //===================================================================|
         reshuffleTime = Long.MAX_VALUE;
         while(terminate == false){
             updateNextWakeTime();
@@ -332,9 +248,6 @@ public class Dealer implements Runnable {
                 }
             }
         }
-        //used for debugging
-        stop = true;
-        //==================
     }
 
 
@@ -425,12 +338,6 @@ public class Dealer implements Runnable {
                 }
             }
         }
-    }
-
-    private int removeCardFromDeck(int index) {
-        int cardToRemove = deck.get(index);
-        deck.remove(index);
-        return cardToRemove;
     }
 
     /**
@@ -533,23 +440,6 @@ public class Dealer implements Runnable {
         }
     }
 
-
-    /**
-     * Removes all cards from the table and returns them to the deck.
-     */
-    private void removeAllCardsFromTable(Integer [] cards) {
-        Integer[] cardsRemoved = new Integer[cards.length];;
-        for(int i=0; i<cards.length; i++) {
-            cardsRemoved[i] = table.removeCard(cards[i]);
-        }
-        for (Integer card: cardsRemoved) {
-            if (card !=null) {
-                deck.add(card);
-            }
-        }
-    }
-
-
     /**
      * Checks how many empty slots are on the table and 
      * places cards on the table for each empty slot.
@@ -595,8 +485,8 @@ public class Dealer implements Runnable {
         }
     }
 
-    /*
-     * Why does this not have a javadoc?
+    /**
+     * Updates the elapsed time display.
      */
     private void updateElapsedTimeDisplay(boolean reset){
         if(reset) elapsedTime = System.currentTimeMillis();   
@@ -697,6 +587,39 @@ public class Dealer implements Runnable {
         System.out.println("====================================");
     }
 
+
+    //========used for debugging==============|
+    private volatile boolean stop = false;
+    private volatile long debuggingTimer = 0;
+    //========================================|
+
+    /**
+     * @DONT_FORGET: to set 'stop = true' when the game should pause
+     * AND resetDebuggingTimer() between actions
+     */
+    private void startDebuggerThread() {
+        Thread dealerThread = Thread.currentThread();
+        Thread debuggingThread = new Thread(()->{
+            stop = false;
+            resetDebuggingTimer();
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+            if(stop == false){
+                for(Player player : players){
+                    player.dumpData();
+                }
+                dumpData();
+                dealerThread.interrupt();   
+                reshuffleTime = Long.MAX_VALUE;
+                throw new RuntimeException("Player threads unresponsive");
+            }
+            
+        });
+        debuggingThread.start();
+    }
     /**
      * for debugging purposes
      */
