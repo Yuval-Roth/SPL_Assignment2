@@ -11,8 +11,6 @@ import java.util.stream.IntStream;
  * This class manages the dealer's threads and data
  */
 public class Dealer implements Runnable {
-
-
     public static final int SET_SIZE = 3;
     private static final int timerUpdateCriticalTickTime = 25;
     private static final int timerUpdateTickTime = 250;
@@ -36,6 +34,7 @@ public class Dealer implements Runnable {
      * The list of card ids that are left in the dealer's deck.
      */
     private final LinkedList<Integer> deck;
+    private final TimerMode timerMode;
 
     /**
      * True if game should be terminated due to an external event.
@@ -89,7 +88,16 @@ public class Dealer implements Runnable {
      * a listener for the dealer thread to wake up
      */
     private volatile Object wakeListener;
-    
+
+    // create an enum of time modes
+    private enum TimerMode {
+        elapsedTimerMode,
+        CountdownTimerMode,
+        NoTimerMode
+    }
+
+    private boolean elapsedTimerMode;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -100,6 +108,16 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
+
+        if (env.config.turnTimeoutMillis > 0) {
+            timerMode = TimerMode.CountdownTimerMode;
+        }
+        else if (env.config.turnTimeoutMillis == 0) {
+            timerMode = TimerMode.elapsedTimerMode;
+        }
+        else {
+            timerMode = TimerMode.NoTimerMode;
+        }
     }
     
     
@@ -196,16 +214,81 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        gameVersion = 0;
-        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            fillDeck();
-            resumePlayerThreads();
-            startTimer();
-            pausePlayerThreads();
-            removeAllCardsFromTable();
-            shuffleDeck();
+        switch (timerMode) {
+            case CountdownTimerMode: {
+            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+            gameVersion = 0;
+            while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+                fillDeck();
+                resumePlayerThreads();
+                startTimer();
+                pausePlayerThreads();
+                removeAllCardsFromTable();
+                shuffleDeck();
+                }
+            }
+            case elapsedTimerMode: {
+            gameVersion = 0;
+            while (!shouldFinish()) {
+                fillDeck();
+                resumePlayerThreads();
+                startElapsedTimer();
+                }
+            }
+            case NoTimerMode: {
+                gameVersion = 0;
+                while (!shouldFinish()) {
+                    fillDeck();
+                    resumePlayerThreads();
+                }
+            }
         }
+    }
+
+
+    private void startElapsedTimer() {
+
+        //============used for debugging==================|
+        Thread dealerThread = Thread.currentThread();
+        Thread debuggingThread = new Thread(()->{
+            stop = false;
+            resetDebuggingTimer();
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+            if(stop == false){
+                for(Player player : players){
+                    player.dumpData();
+                }
+                dumpData();
+                dealerThread.interrupt();
+                reshuffleTime = Long.MAX_VALUE;
+                throw new RuntimeException("Player threads unresponsive");
+            }
+
+        });
+        // debuggingThread.start();
+        //===================================================================|
+        reshuffleTime = Long.MAX_VALUE;
+        updateElapsedTimeDisplay(true);
+        while(terminate == false){
+            updateNextWakeTime();
+            while(terminate == false & nextWakeTime > System.currentTimeMillis()){
+                updateElapsedTimeDisplay(false);
+                sleepUntilWokenOrTimeout();
+                if(claimQueue.isEmpty() == false){
+                    processClaims();
+                }
+            }
+
+        }
+
+        //used for debugging
+        stop = true;
+        //==================
+        if(terminate == false) env.ui.setElapsed(0);
     }
 
     /**
@@ -217,7 +300,6 @@ public class Dealer implements Runnable {
     public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
 
             resetDebuggingTimer();
-            
             try{
                 gameVersionAccess.acquire();
             }catch(InterruptedException ignored){}
@@ -261,6 +343,9 @@ public class Dealer implements Runnable {
             }
         }else {
             claim.claimer.notifyClaim(claim);;
+        }
+        if (shouldFinish()) {
+            terminate = true;
         }
     }
 
@@ -451,9 +536,14 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if(reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;   
-        env.ui.setCountdown(reshuffleTime-System.currentTimeMillis(),
-        reshuffleTime-System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);   
+        if (timerMode == TimerMode.CountdownTimerMode) {
+            if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
+                    reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+        }
+        else {
+            // TODO: Implement elapsed timer mode
+        }
     }
 
     /*
