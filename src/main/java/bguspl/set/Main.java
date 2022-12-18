@@ -7,6 +7,7 @@ import bguspl.set.ex.Table;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.logging.*;
@@ -73,7 +74,7 @@ public class Main {
             // shutdown stuff
             dealerThread.joinWithLog();
             if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
-                env.ui.dispose();
+            env.ui.dispose();
         } catch (InterruptedException ignored) {
         } finally {
             logger.severe("thanks for playing... it was fun!");
@@ -105,7 +106,8 @@ public class Main {
     }
 
     public static void setLoggerLevelAndFormat(Logger logger, Level level, String format) {
-        logger.getHandlers()[0].setFormatter(new SimpleFormatter() {
+        Handler[] handlers = logger.getHandlers();
+        if (handlers != null) Arrays.stream(handlers).forEach(h -> h.setFormatter(new SimpleFormatter() {
             // default format (with timestamp)  = "[%1$tF %1$tT] [%2$-7s] %3$s%n";
             @Override
             public synchronized String format(LogRecord lr) {
@@ -113,7 +115,7 @@ public class Main {
                         lr.getLevel().getLocalizedName(), lr.getMessage()
                 );
             }
-        });
+        }));
         logger.setLevel(level);
     }
 }
