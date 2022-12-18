@@ -303,7 +303,7 @@ public class Player implements Runnable {
                 System.out.println(c);
             System.out.println("remainingFreezeTime: "+freezeRemainder);
             System.out.println("AIRunning: "+AIRunning);
-            System.out.println("aiThread.getState(): "+aiThread.getState());
+            if(aiThread != null) System.out.println("aiThread.getState(): "+aiThread.getState());
             System.out.println("================================");
     }
 

@@ -594,6 +594,10 @@ public class Dealer implements Runnable {
     //========================================|
 
     /**
+     * A thread that counts time and throws an exception if a certain amount of time has passed
+     * without player/dealer activity.
+     * The thread dumps the players' and the dealer's data to the console for further examination.
+     *
      * @DONT_FORGET: to set 'stop = true' when the game should pause
      * AND resetDebuggingTimer() between actions
      */
