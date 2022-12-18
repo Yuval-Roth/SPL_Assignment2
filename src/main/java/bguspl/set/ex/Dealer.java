@@ -97,8 +97,8 @@ public class Dealer implements Runnable {
     // create an enum of time modes
     private enum TimerMode {
         elapsedTimerMode,
-        CountdownTimerMode,
-        NoTimerMode
+        countdownTimerMode,
+        noTimerMode
     }
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -113,13 +113,13 @@ public class Dealer implements Runnable {
         claimQueueAccess = new Semaphore(players.length,true);
 
         if (env.config.turnTimeoutMillis > 0) {
-            timerMode = TimerMode.CountdownTimerMode;
+            timerMode = TimerMode.countdownTimerMode;
         }
         else if (env.config.turnTimeoutMillis == 0) {
             timerMode = TimerMode.elapsedTimerMode;
         }
         else {
-            timerMode = TimerMode.NoTimerMode;
+            timerMode = TimerMode.noTimerMode;
         }
     }
     
@@ -184,7 +184,7 @@ public class Dealer implements Runnable {
         //TODO - break this into sub-classes / game-modes
 
         switch (timerMode) {
-            case CountdownTimerMode: {
+            case countdownTimerMode: {
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
             gameVersion = 0;
             while (!terminate && System.currentTimeMillis() < reshuffleTime) {
@@ -207,7 +207,7 @@ public class Dealer implements Runnable {
                 }
                 break;
             }
-            case NoTimerMode: {
+            case noTimerMode: {
                 gameVersion = 0;
                 while (!shouldFinish()) {
                     fillDeck();
@@ -474,7 +474,7 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (timerMode == TimerMode.CountdownTimerMode) {
+        if (timerMode == TimerMode.countdownTimerMode) {
             if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
             env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
                     reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
