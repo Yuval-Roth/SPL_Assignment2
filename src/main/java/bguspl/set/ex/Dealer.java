@@ -94,7 +94,9 @@ public class Dealer implements Runnable {
      */
     private volatile Object wakeListener;
 
-    // create an enum of time modes
+    /**
+     * All the possible timer modes.
+     */
     private enum TimerMode {
         elapsedTimerMode,
         countdownTimerMode,
