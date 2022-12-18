@@ -27,8 +27,8 @@ public class Main {
         if (logger != null) logger.severe("exit button pressed");
         xButtonPressed = true;
         if (dealer != null) dealer.terminate();
-        thread.interrupt();
-        try { thread.join(); } catch (InterruptedException ignored) {}
+        // thread.interrupt();
+        // try { thread.join(); } catch (InterruptedException ignored) {}
     }
 
     /**
