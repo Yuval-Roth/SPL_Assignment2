@@ -11,8 +11,6 @@ import java.util.stream.IntStream;
  * This class manages the dealer's threads and data
  */
 public class Dealer implements Runnable {
-
-
     public static final int SET_SIZE = 3;
     private static final int timerUpdateCriticalTickTime = 25;
     private static final int timerUpdateTickTime = 250;
@@ -36,6 +34,7 @@ public class Dealer implements Runnable {
      * The list of card ids that are left in the dealer's deck.
      */
     private final LinkedList<Integer> deck;
+    private final TimerMode timerMode;
 
     /**
      * True if game should be terminated due to an external event.
@@ -89,6 +88,14 @@ public class Dealer implements Runnable {
      * a listener for the dealer thread to wake up
      */
     private volatile Object wakeListener;
+
+    // create an enum of time modes
+    private enum TimerMode {
+        elapsedTimerMode,
+        CountdownTimerMode,
+        NoTimerMode
+    }
+
     private boolean elapsedTimerMode;
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -101,11 +108,15 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
+
         if (env.config.turnTimeoutMillis > 0) {
-            elapsedTimerMode = false;
+            timerMode = TimerMode.CountdownTimerMode;
+        }
+        else if (env.config.turnTimeoutMillis == 0) {
+            timerMode = TimerMode.elapsedTimerMode;
         }
         else {
-            elapsedTimerMode = true;
+            timerMode = TimerMode.NoTimerMode;
         }
     }
     
@@ -203,7 +214,8 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        if (env.config.turnTimeoutMillis > 0) {
+        switch (timerMode) {
+            case CountdownTimerMode: {
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
             gameVersion = 0;
             while (!terminate && System.currentTimeMillis() < reshuffleTime) {
@@ -213,16 +225,26 @@ public class Dealer implements Runnable {
                 pausePlayerThreads();
                 removeAllCardsFromTable();
                 shuffleDeck();
+                }
             }
-        } else if (env.config.turnTimeoutMillis == 0) {
+            case elapsedTimerMode: {
             gameVersion = 0;
-            while (!terminate) {
+            while (!shouldFinish()) {
                 fillDeck();
                 resumePlayerThreads();
                 startElapsedTimer();
+                }
+            }
+            case NoTimerMode: {
+                gameVersion = 0;
+                while (!shouldFinish()) {
+                    fillDeck();
+                    resumePlayerThreads();
+                }
             }
         }
     }
+
 
     private void startElapsedTimer() {
 
@@ -321,6 +343,9 @@ public class Dealer implements Runnable {
             }
         }else {
             claim.claimer.notifyClaim(claim);;
+        }
+        if (shouldFinish()) {
+            terminate = true;
         }
     }
 
@@ -511,10 +536,13 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (!elapsedTimerMode) {
+        if (timerMode == TimerMode.CountdownTimerMode) {
             if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
             env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
                     reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+        }
+        else {
+            // TODO: Implement elapsed timer mode
         }
     }
 
