@@ -226,6 +226,7 @@ public class Dealer implements Runnable {
                 removeAllCardsFromTable();
                 shuffleDeck();
                 }
+                break;
             }
             case elapsedTimerMode: {
             gameVersion = 0;
@@ -234,13 +235,16 @@ public class Dealer implements Runnable {
                 resumePlayerThreads();
                 startElapsedTimer();
                 }
+                break;
             }
             case NoTimerMode: {
                 gameVersion = 0;
                 while (!shouldFinish()) {
                     fillDeck();
                     resumePlayerThreads();
+                    startNoTimer();
                 }
+                break;
             }
         }
     }
@@ -271,7 +275,7 @@ public class Dealer implements Runnable {
         });
         // debuggingThread.start();
         //===================================================================|
-        reshuffleTime = Long.MAX_VALUE;
+        //reshuffleTime = Long.MAX_VALUE;
         updateElapsedTimeDisplay(true);
         while(terminate == false){
             updateNextWakeTime();
@@ -282,7 +286,6 @@ public class Dealer implements Runnable {
                     processClaims();
                 }
             }
-
         }
 
         //used for debugging
@@ -290,6 +293,49 @@ public class Dealer implements Runnable {
         //==================
         if(terminate == false) env.ui.setElapsed(0);
     }
+
+
+    private void startNoTimer() {
+
+        //============used for debugging==================|
+        Thread dealerThread = Thread.currentThread();
+        Thread debuggingThread = new Thread(()->{
+            stop = false;
+            resetDebuggingTimer();
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+            if(stop == false){
+                for(Player player : players){
+                    player.dumpData();
+                }
+                dumpData();
+                dealerThread.interrupt();
+                reshuffleTime = Long.MAX_VALUE;
+                throw new RuntimeException("Player threads unresponsive");
+            }
+
+        });
+        // debuggingThread.start();
+        //===================================================================|
+        reshuffleTime = Long.MAX_VALUE;
+        while(terminate == false){
+            updateNextWakeTime();
+            while(terminate == false & nextWakeTime > System.currentTimeMillis()){
+                sleepUntilWokenOrTimeout();
+                if(claimQueue.isEmpty() == false){
+                    processClaims();
+                }
+            }
+        }
+        //used for debugging
+        stop = true;
+        //==================
+    }
+
+
 
     /**
      * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
@@ -541,8 +587,9 @@ public class Dealer implements Runnable {
             env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
                     reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
         }
-        else {
-            // TODO: Implement elapsed timer mode
+        else if (timerMode == TimerMode.elapsedTimerMode) { // TODO: Implement noTimerMode here too
+            if (reset) elapsedTime = System.currentTimeMillis();
+            env.ui.setCountdown(System.currentTimeMillis() - elapsedTime, false);
         }
     }
 
