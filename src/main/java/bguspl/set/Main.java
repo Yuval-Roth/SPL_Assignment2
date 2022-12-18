@@ -73,10 +73,17 @@ public class Main {
         try {
             // shutdown stuff
             dealerThread.joinWithLog();
-            if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
-            env.ui.dispose();
+            if (!xButtonPressed && config.endGamePauseMillies > 0){
+                try{Thread.sleep(config.endGamePauseMillies);}
+                catch(InterruptedException ignored){}
+            } 
         } catch (InterruptedException ignored) {
-        } finally {
+            try{
+                dealerThread.join();
+            }catch(InterruptedException ignored2){}
+        }
+        finally{
+            env.ui.dispose();
             logger.severe("thanks for playing... it was fun!");
             System.out.println("Thanks for playing... it was fun!");
             ThreadLogger.logStop(logger, Thread.currentThread().getName());
