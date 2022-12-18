@@ -1,7 +1,9 @@
 package bguspl.set.ex;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 import bguspl.set.ex.PlayerStates.*;
 import bguspl.set.Env;
@@ -150,7 +152,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
 
-        AIRunning = false;
+        AIRunning = true;
 
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
@@ -247,7 +249,9 @@ public class Player implements Runnable {
      * Resumes the player's ability to interact with the game
      */
     public void resume(){
-        if(human == false) AIRunning = true;
+        while(AIRunning != false | getState() != State.paused){
+            try{Thread.sleep(10);}catch(InterruptedException ignored){}
+        }
         synchronized(executionListener){executionListener.notifyAll();}
     }
 
@@ -342,23 +346,50 @@ public class Player implements Runnable {
 
             //wait until the game starts
             try{
+                AIRunning = false;
                 synchronized(executionListener){
                     executionListener.wait();
                 }
             }catch(InterruptedException ignored){}
 
             AIRunning = true; //AI is now running
-            
-            while (getState() != State.terminated) {
-                Integer[] keys = secretService.getIntel(); //get the keys to press
 
+            while (getState() != State.terminated) {
+
+                while(getState() != State.waitingForActivity & getState() != State.pausingExecution){
+                    try{
+                        synchronized(AIListener){
+                            AIListener.wait(25);
+                        }
+                    }catch(InterruptedException ignored){}
+                }
+                Integer[] keysArray = secretService.getIntel(); //get the keys to press
+
+                LinkedList<Integer> keysToPlace = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new));
+                LinkedList<Integer> keysToRemove = new LinkedList<>();
+
+                synchronized(placedTokens){
+                    for(Integer key : placedTokens){ 
+                        if(keysToPlace.contains(key)){
+                            keysToPlace.remove(key);
+                        }else keysToRemove.add(key);
+                    }
+                }
+            
                 int currentScore = score; //score before the AI makes a move
 
-                for(int i = 0; i < keys.length & getState() == State.waitingForActivity ; i++){
+                while(keysToPlace.isEmpty() == false & getState() == State.waitingForActivity){
+
                     // limit how fast the AI clicks buttons
                     try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
                     } catch(InterruptedException ignored){}
-                    keyPressed_AI(keys[i]);
+
+                    if(keysToRemove.isEmpty() == false){
+                        keyPressed_AI(keysToRemove.remove(0));
+                    }
+                    else{
+                        keyPressed_AI(keysToPlace.remove(0));
+                    }  
                 }
 
                 //if the player is waiting, gather intel
@@ -371,8 +402,8 @@ public class Player implements Runnable {
                 //if the game does not need to be paused, report the claim
                 if(getState() != State.pausingExecution & getState() !=State.paused){
                     if (currentScore < score)
-                        secretService.reportSetClaimed(keys);
-                    else secretService.sendIntel(keys,false); 
+                        secretService.reportSetClaimed(keysArray);
+                    else secretService.sendIntel(keysArray,false); 
                 }
 
                 //if the player is frozen, gather intel
@@ -390,8 +421,10 @@ public class Player implements Runnable {
                             executionListener.wait();
                         }
                     }catch(InterruptedException ignored){}
+                    AIRunning = true;
                 }        
             }
+            AIRunning = false;
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }
 
