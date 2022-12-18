@@ -334,8 +334,8 @@ public class Player implements Runnable {
 
     /**
      * This class is used to create a thread for the AI player.
-     * The AI thread repeatedly generates key presses.
-     * and does other things while the player thread is busy.
+     * The AI thread repeatedly generates key presses.........
+     * and does other very secretive things while the player thread is busy... SHHH!
      */
     private final class AI implements Runnable {
         @Override
