@@ -22,6 +22,7 @@ public class Main {
 
     private static boolean xButtonPressed = false;
     private static Logger logger;
+    private static UserInterface ui;
 
     public static void xButtonPressed() {
         if (logger != null) logger.severe("exit button pressed");
@@ -29,6 +30,7 @@ public class Main {
         if (dealer != null) dealer.terminate();
         thread.interrupt();
         try { thread.join(); } catch (InterruptedException ignored) {}
+        ui.dispose();
     }
 
     /**
@@ -47,7 +49,6 @@ public class Main {
         Util util = new UtilImpl(config);
 
         Player[] players = new Player[config.players];
-        UserInterface ui = null;
         try {
             ui = new UserInterfaceSwing(logger, config, players);
         } catch (UnsupportedOperationException | IllegalArgumentException e) {
@@ -73,15 +74,19 @@ public class Main {
         try {
             // shutdown stuff
             dealerThread.joinWithLog();
-            if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
-            env.ui.dispose();
+            if (!xButtonPressed && config.endGamePauseMillies > 0){
+                try{Thread.sleep(config.endGamePauseMillies);}
+                catch(InterruptedException ignored){}
+            } 
         } catch (InterruptedException ignored) {
-        } finally {
-            logger.severe("thanks for playing... it was fun!");
-            System.out.println("Thanks for playing... it was fun!");
-            ThreadLogger.logStop(logger, Thread.currentThread().getName());
-            for (Handler h : logger.getHandlers()) h.close();
+            try{
+                dealerThread.join();
+            }catch(InterruptedException ignored2){}
         }
+        logger.severe("thanks for playing... it was fun!");
+        System.out.println("Thanks for playing... it was fun!");
+        ThreadLogger.logStop(logger, Thread.currentThread().getName());
+        for (Handler h : logger.getHandlers()) h.close();
     }
 
     private static Logger initLogger() {
