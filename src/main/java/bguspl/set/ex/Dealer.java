@@ -287,7 +287,7 @@ public class Dealer implements Runnable {
      */
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
-             removeClaimedCards(claim.cards);
+             clearSlots(claim.cards);
              if (deck.size() >= SET_SIZE /*&& !shouldFinish() */ ) { //TODO: Test the shouldFinish() condition
                 placeCardsFromClaim();
              }
@@ -451,7 +451,7 @@ public class Dealer implements Runnable {
                 placeNextCardOnTable();
             }
             else {
-                break; // TODO: Think about this
+                break;
             }
         }
     }
@@ -494,14 +494,12 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Removes the claimed cards from the table .
+     * clears the cards in these slots from the table .
      * @param cards
      */
-    private void removeClaimedCards(Integer[] cards) { //TODO: rename to removeClaimedSlots to prevent confusion
-        // These are slots and not cards
-        for(int card : cards){ // remove cards from table
-            // deck.remove(card); do not remove from deck, card should already be out of the deck
-            table.removeCard(card);
+    private void clearSlots(Integer[] slots) {
+        for(int slot : slots){
+            table.removeCard(slot);
         } 
     }
     
