@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,8 @@ public class Table {
 
     private int cardCount;
 
+    private LinkedList<Integer> cardsPlacementSlotsOrder;
+
     /**
      * Constructor for testing.
      *
@@ -45,6 +48,11 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+        cardsPlacementSlotsOrder = new LinkedList<>();
+        for (int i = 0; i < slotToCard.length; i++) {
+            cardsPlacementSlotsOrder.add(i);
+        }
+        Collections.shuffle(cardsPlacementSlotsOrder);
     }
 
     /**
@@ -75,16 +83,17 @@ public class Table {
      * @post - the card placed is on the table, in the assigned slot.
      */
     public void placeCard(int cardToPlace) {
+        placeCard(cardToPlace, findEmptySlot());
+    }
+    public void placeCard(int cardToPlace, int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
+        
+        cardToSlot[cardToPlace] = slot;
+        slotToCard[slot] = cardToPlace;
 
-        int suggestedSlot = findEmptySlot();
-
-        cardToSlot[cardToPlace] = suggestedSlot;
-        slotToCard[suggestedSlot] = cardToPlace;
-
-        env.ui.placeCard(cardToPlace, suggestedSlot); // UI update, this is shitty software design 
+        env.ui.placeCard(cardToPlace, slot);
         cardCount++;
     }
 
@@ -151,13 +160,18 @@ public class Table {
      * @post - the table is empty.
      */
     public Integer[] clearTable() {
-        Integer[] cardsRemoved = new Integer[slotToCard.length];
-        for (int i = 0; i < slotToCard.length; i++) {
-            if (slotToCard[i] != null) {
-                cardsRemoved[i] = slotToCard[i];
-                removeCard(i);
-            }
+        cardsPlacementSlotsOrder = Arrays.stream(slotToCard)
+        .filter(Objects::nonNull).map(i->cardToSlot[i]).collect(Collectors.toCollection(LinkedList::new));
+        Collections.shuffle(cardsPlacementSlotsOrder);
+
+        Integer[] cardsRemoved = new Integer[getCurrentSize()];
+
+        int i = 0;
+        for (Integer slot : cardsPlacementSlotsOrder) {
+            cardsRemoved[i++] = slotToCard[slot];
+            removeCard(slot);
         }
+        // Collections.reverse(cardsPlacementSlotsOrder);
         return cardsRemoved;
     }
 
@@ -195,6 +209,11 @@ public class Table {
 
     public int getSlotFromCard(int card) {
         return cardToSlot[card];
+    }
+    
+    public LinkedList<Integer> getCardsPlacementSlotsOrder() {
+        Collections.shuffle(cardsPlacementSlotsOrder);
+        return cardsPlacementSlotsOrder;
     }
     
     public LinkedList<Integer> getCardsOnTable(){

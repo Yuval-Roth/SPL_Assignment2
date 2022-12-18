@@ -53,9 +53,6 @@ public class WaitingForClaimResult extends PlayerState {
             Claim claim = claimQueue.remove();
             if(claim.claimer == player){
                 action = claim.validSet ? 1:-1;
-
-                //TODO - remove clearAllPlacedTokens() because they want to keep the tokens on the board
-                clearAllPlacedTokens();
                 break;
             }
             else{ 
@@ -91,6 +88,7 @@ public class WaitingForClaimResult extends PlayerState {
      */
     private void point() {
         env.ui.setScore(player.id, player.incrementAndGetScore());
+        clearAllPlacedTokens();
         if(env.config.pointFreezeMillis > 0 & stillThisState()){
             player.setFreezeRemainder(env.config.pointFreezeMillis);
             changeToState(State.frozen);

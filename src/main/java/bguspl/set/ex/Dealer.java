@@ -100,7 +100,6 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
-        claimSetCounters = new int[players.length];
     }
     
     
@@ -121,7 +120,6 @@ public class Dealer implements Runnable {
             timerLoop();
         }
         terminatePlayers();
-        System.out.println(Arrays.toString(claimSetCounters));
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -157,9 +155,6 @@ public class Dealer implements Runnable {
         });
         // debuggingThread.start();
         //===================================================================|
-
-
-
 
         updateTimerDisplay(true);
         while(terminate == false & reshuffleTime > System.currentTimeMillis()){
@@ -204,7 +199,7 @@ public class Dealer implements Runnable {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         gameVersion = 0;
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            placeCardsOnTable();
+            fillDeck();
             resumePlayerThreads();
             startTimer();
             pausePlayerThreads();
@@ -212,12 +207,6 @@ public class Dealer implements Runnable {
             shuffleDeck();
         }
     }
-
-
-    //================= claim set counters ==========================
-    private static volatile int[] claimSetCounters;
-    //===========================================================
-
 
     /**
      * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
@@ -240,10 +229,6 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-
-            //used for debugging
-            claimSetCounters[claimer.id]++;
-            //==================
 
             claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion));
@@ -323,6 +308,16 @@ public class Dealer implements Runnable {
     //                  utility methods
     //===========================================================
 
+
+    private void fillDeck() {
+        LinkedList<Integer> slots = table.getCardsPlacementSlotsOrder();
+        for(Integer slot : slots){
+            Integer cardToPlace = deck.get(0);
+            deck.remove(0);
+            table.placeCard(cardToPlace,slot);
+        }
+    }
+
     /**
     * Checks if the given set of cards is a valid set.
     */
@@ -342,7 +337,6 @@ public class Dealer implements Runnable {
         for(Player player : players){
             player.pause();
         }
-        System.out.println();
     }
 
     /**
