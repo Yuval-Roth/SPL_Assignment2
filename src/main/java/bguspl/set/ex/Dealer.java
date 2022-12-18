@@ -269,20 +269,24 @@ public class Dealer implements Runnable {
         boolean found = false;
 
         ListIterator<Integer> iter = deck.listIterator();
-        for (int i = 0; i < SET_SIZE; i++) {
+        for (int i = 0; iter.hasNext() && i < SET_SIZE; i++) {
             cardsToPlace_U_Table.addFirst(iter.next());
         }
         do{
             if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                 found = true;
-                LinkedList<Integer> cardsToPlace = new LinkedList<>();
-                cardsToPlace.add(iter.previous());
-                cardsToPlace.add(iter.previous());
-                cardsToPlace.add(iter.previous());
-
-                placeCardsOnTable();
+                for (int i = 0; i < SET_SIZE; i++) {
+                    // place iter.previous() on table and delete it from deck
+                    if (iter.hasPrevious()) {
+                        table.placeCard(iter.previous());
+                        iter.remove();
+                    }
+                    else {
+                        placeCardsOnTable();
+                    }
+                }
             } else{
-                cardsToPlace_U_Table.remove(2);
+                cardsToPlace_U_Table.remove(SET_SIZE-1);
                 cardsToPlace_U_Table.addFirst(iter.next());
             }
         }while (!found);
