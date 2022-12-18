@@ -275,6 +275,11 @@ public class Dealer implements Runnable {
         do{
             if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                 found = true;
+                LinkedList<Integer> cardsToPlace = new LinkedList<>();
+                cardsToPlace.add(iter.previous());
+                cardsToPlace.add(iter.previous());
+                cardsToPlace.add(iter.previous());
+
                 placeCardsOnTable();
             } else{
                 cardsToPlace_U_Table.remove(2);
