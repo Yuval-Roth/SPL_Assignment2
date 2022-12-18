@@ -245,8 +245,8 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
              removeClaimedCards(claim.cards);
-             if (!shouldFinish() & deck.size() >= SET_SIZE) {
-                 placeCardsFromClaim();
+             if (deck.size() >= SET_SIZE /*&& !shouldFinish() */ ) { //TODO: Test the shouldFinish() condition
+                placeCardsFromClaim();
              }
             updateTimerDisplay(true);
             claim.validSet = true;
@@ -278,7 +278,8 @@ public class Dealer implements Runnable {
                 if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                     for (int i = 0; i < SET_SIZE; i++) {
                         // place iter.previous() on table and delete it from deck
-                        table.placeCard(iter.previous());
+                        Integer card = iter.previous();
+                        table.placeCard(card);
                         iter.remove();
                     }
                     done = true;
@@ -525,7 +526,12 @@ public class Dealer implements Runnable {
      * @return true iff there are no possible sets.
      */
     private boolean allSetsDepleted() {
-        return env.util.findSets(deck, 1).size() == 0 && table.getSetCount()==0;
+        
+        LinkedList<Integer> allCards = new LinkedList<>();
+        allCards.addAll(deck);
+        allCards.addAll(table.getCardsOnTable());
+
+        return env.util.findSets(allCards, 1).size() == 0;
     }
 
     /**

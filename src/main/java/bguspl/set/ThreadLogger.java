@@ -17,7 +17,7 @@ public class ThreadLogger extends Thread {
     }
 
     public void joinWithLog() throws InterruptedException {
-        join();
+        super.join();
         logStop(logger, getName());
     }
 
