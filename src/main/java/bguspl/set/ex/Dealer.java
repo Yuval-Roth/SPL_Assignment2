@@ -11,6 +11,7 @@ import java.util.stream.IntStream;
  * This class manages the dealer's threads and data
  */
 public class Dealer implements Runnable {
+
     public static final int SET_SIZE = 3;
     private static final int timerUpdateCriticalTickTime = 25;
     private static final int timerUpdateTickTime = 250;
@@ -223,6 +224,7 @@ public class Dealer implements Runnable {
                 resumePlayerThreads();
                 startTimer();
                 pausePlayerThreads();
+                if(terminate) break;
                 removeAllCardsFromTable();
                 shuffleDeck();
                 }
@@ -479,6 +481,7 @@ public class Dealer implements Runnable {
         for(Player player : players){
             player.pause();
         }
+        System.out.println("Player threads paused");
     }
 
     /**
