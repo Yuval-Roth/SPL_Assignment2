@@ -100,9 +100,6 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
-
-
-        claimSetCounters = new int[players.length];
     }
     
     
@@ -123,7 +120,6 @@ public class Dealer implements Runnable {
             timerLoop();
         }   
         terminatePlayers();
-        System.out.println(Arrays.toString(claimSetCounters));
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
@@ -212,12 +208,6 @@ public class Dealer implements Runnable {
         }
     }
 
-
-    //================= claim set counters ==========================
-    private static volatile int[] claimSetCounters;
-    //===========================================================
-
-
     /**
      * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
      * @param cards - The cards forming the set
@@ -239,10 +229,6 @@ public class Dealer implements Runnable {
                 gameVersionAccess.release();
                 return false;
             }
-
-            //used for debugging
-            claimSetCounters[claimer.id]++;
-            //==================
 
             claimQueueAccess.acquireUninterruptibly(1);
             claimQueue.add(new Claim(cards,claimer,claimVersion));
