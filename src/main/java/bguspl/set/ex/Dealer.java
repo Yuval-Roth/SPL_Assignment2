@@ -245,7 +245,7 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
              removeClaimedCards(claim.cards);
-             if (!shouldFinish()) {
+             if (!shouldFinish() & deck.size() >= SET_SIZE) {
                  placeCardsFromClaim();
              }
             updateTimerDisplay(true);
@@ -266,30 +266,31 @@ public class Dealer implements Runnable {
 
     private void placeCardsFromClaim() {
         LinkedList<Integer> cardsToPlace_U_Table = table.getCardsOnTable();
-        boolean found = false;
+        boolean done = false;
 
-        ListIterator<Integer> iter = deck.listIterator();
-        for (int i = 0; iter.hasNext() && i < SET_SIZE; i++) {
-            cardsToPlace_U_Table.addFirst(iter.next());
-        }
-        do{
-            if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
-                found = true;
-                for (int i = 0; i < SET_SIZE; i++) {
-                    // place iter.previous() on table and delete it from deck
-                    if (iter.hasPrevious()) {
+        if(deck.size() >= SET_SIZE){
+            //takes the next 3 cards from the deck and places them in the front of the list
+            ListIterator<Integer> iter = deck.listIterator();
+            for (int i = 0; i < SET_SIZE; i++) {
+                cardsToPlace_U_Table.addFirst(iter.next());
+            }
+            while(!done){
+                if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
+                    for (int i = 0; i < SET_SIZE; i++) {
+                        // place iter.previous() on table and delete it from deck
                         table.placeCard(iter.previous());
                         iter.remove();
                     }
-                    else {
-                        placeCardsOnTable();
-                    }
+                    done = true;
+                }else if(iter.hasNext()){
+                    cardsToPlace_U_Table.remove(SET_SIZE-1);
+                    cardsToPlace_U_Table.addFirst(iter.next());
+                }else {
+                    placeCardsOnTable();
+                    done = true;
                 }
-            } else{
-                cardsToPlace_U_Table.remove(SET_SIZE-1);
-                cardsToPlace_U_Table.addFirst(iter.next());
             }
-        }while (!found);
+        }
     }
 
     private int removeCardFromDeck(int index) {
