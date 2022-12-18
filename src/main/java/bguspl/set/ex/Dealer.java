@@ -224,6 +224,7 @@ public class Dealer implements Runnable {
                 resumePlayerThreads();
                 startTimer();
                 pausePlayerThreads();
+                if(terminate) break;
                 removeAllCardsFromTable();
                 shuffleDeck();
                 }

@@ -152,7 +152,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
 
-        AIRunning = true;
+        if(!human)AIRunning = true;
 
         placedTokens = new LinkedList<>();
         clickQueue = new ConcurrentLinkedQueue<>();
