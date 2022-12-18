@@ -1,7 +1,10 @@
 package bguspl.set.ex;
+
 import java.util.Random;
 
 import bguspl.set.Env;
+import bguspl.set.Config;
+
 
 public class AISuperSecretIntelligenceService{
 
@@ -16,7 +19,7 @@ public class AISuperSecretIntelligenceService{
     private static final IntelligenceStrength intelligenceStrength = IntelligenceStrength.illuminati;
 
     private volatile int[][][] sets;
-    private int cardsCount = 12;
+    private int cardsCount;
 
     private int isSetTries;
     private int isPotentialSetTries;
@@ -31,6 +34,7 @@ public class AISuperSecretIntelligenceService{
     private Dealer dealer;
 
     public AISuperSecretIntelligenceService(Env env,Dealer dealer,Table table){
+        cardsCount = env.config.tableSize;
         sets = new int[cardsCount][cardsCount][cardsCount];
 
         AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 25 : 250;

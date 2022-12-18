@@ -28,11 +28,6 @@ public class Player implements Runnable {
         paused,
         terminated
     }
-
-    /**
-     * The AI service
-     */
-    public static AISuperSecretIntelligenceService secretService;
     
     /**
      * The game environment object.
@@ -331,6 +326,11 @@ public class Player implements Runnable {
     //===========================================================
     //                  AI class
     //===========================================================
+
+      /**
+     * The AI service
+     */
+    public static AISuperSecretIntelligenceService secretService;
 
     /**
      * This class is used to create a thread for the AI player.
