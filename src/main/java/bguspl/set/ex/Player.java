@@ -234,6 +234,8 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
+        long time = System.currentTimeMillis();
+        System.out.println("Player " + id + " pausing at "+time);
         int tries = 0;
         do {
             if(tries++ % 10 == 0) setState(State.pausingExecution);
@@ -243,6 +245,7 @@ public class Player implements Runnable {
             synchronized(claimListener){claimListener.notifyAll();}
             try{Thread.sleep(10);}catch(InterruptedException ignored){}
         }while(getState() != State.paused | AIRunning);
+        System.out.println("Player " + id + " paused after "+(System.currentTimeMillis()-time));
     }
 
     /**
@@ -275,12 +278,15 @@ public class Player implements Runnable {
      * Clears the queue of tokens placed.
      */
     public void terminate() {
+        long time = System.currentTimeMillis();
+        System.out.println("Player " + id + " terminating at "+time);
         setState(State.terminated);
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(executionListener){executionListener.notifyAll();}
         try{
             playerThread.join();
         }catch(InterruptedException ignored){};
+        System.out.println("Player " + id + " terminated after "+(System.currentTimeMillis()-time));
     }
 
     //===========================================================
@@ -416,14 +422,16 @@ public class Player implements Runnable {
                 if(getState() == State.pausingExecution | getState() == State.paused){
                     try{
                         AIRunning = false; //AI is not running while game is paused
+                        // System.out.println("AI paused at: "+System.currentTimeMillis());
                         synchronized(executionListener){
                             executionListener.wait();
                         }
                     }catch(InterruptedException ignored){}
-                    AIRunning = true;
+                    if(getState() != State.paused) AIRunning = true;
                 }        
             }
-            AIRunning = false;
+            // AIRunning = false;
+            // System.out.println("AI terminated at: "+System.currentTimeMillis());
             System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
         }
 
