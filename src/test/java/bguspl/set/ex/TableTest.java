@@ -67,9 +67,10 @@ class TableTest {
         assertEquals(slotToCard.length, table.getEmptySlotCount());
 
         // Test a table with some slots filled
-        fillSomeSlots();
-        assertEquals(slotToCard.length - fillSomeSlots(), table.getEmptySlotCount());
+        int slotsFilled = fillSomeSlots();
+        assertEquals(slotToCard.length - slotsFilled, table.getEmptySlotCount());
 
+        table.clearTable();
         // Test a table with all slots filled
         fillAllSlots();
         assertEquals(0, table.getEmptySlotCount());
@@ -85,6 +86,7 @@ class TableTest {
         int slotsFilled = fillSomeSlots();
         assertEquals(slotsFilled, table.getCurrentSize());
 
+        table.clearTable();
         // Test a table with all slots filled
         fillAllSlots();
         assertEquals(slotToCard.length, table.getCurrentSize());

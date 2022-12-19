@@ -44,6 +44,8 @@ public class Dealer implements Runnable {
 
     /**
      * True if game should be terminated due to an external event.
+     * @notice this needs to be public to prevent the UI from being updated after the game has been terminated because
+     * it causes a deadlock in linux for some reason out of our control 
      */
     public volatile boolean terminate;
 
@@ -482,14 +484,19 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (!terminate) {
+        
             if (timerMode == TimerMode.countdownTimerMode) {
                 if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-                env.ui.setCountdown(reshuffleTime - System.currentTimeMillis() + TIMER_PADDING,
-                        reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+
+                // this if state is to prevent the UI from being updated after the game has been terminated because
+                // it causes a deadlock in linux for some reason out of our control 
+                if(terminate == false){
+                    env.ui.setCountdown(reshuffleTime - System.currentTimeMillis() + TIMER_PADDING,
+                    reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+                }
             } else if (timerMode == TimerMode.elapsedTimerMode) {
                 updateElapsedTimeDisplay(reset);
-            }
+            
 
             // In No Timer mode, the timer display is not updated as it is not needed.
         }
@@ -499,8 +506,11 @@ public class Dealer implements Runnable {
      * Updates the elapsed time display.
      */
     private void updateElapsedTimeDisplay(boolean reset){
+        if (reset) elapsedTime = System.currentTimeMillis();
+
+        // this if statement is to prevent the UI from being updated after the game has been terminated because
+        // it causes a deadlock in linux for some reason out of our control 
         if (!terminate) {
-            if (reset) elapsedTime = System.currentTimeMillis();
             env.ui.setElapsed(System.currentTimeMillis() - elapsedTime + TIMER_PADDING);
         }
     }
