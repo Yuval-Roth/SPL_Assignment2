@@ -42,7 +42,7 @@ import org.junit.jupiter.api.AfterEach;
      void setUp() {
          // purposely do not find the configuration files (use defaults here).
          Env env = new Env(logger, new Config(logger, ""), ui, util);
-         player = new Player(env, dealer, table, 0, false);
+         player = new Player(env, dealer, table, 0, true);
          assertInvariants();
 
         Thread playerThread = new Thread(player,"Player");
@@ -75,6 +75,38 @@ import org.junit.jupiter.api.AfterEach;
         Claim claim = new Claim(new Integer[]{1,2,3},player,0);
         claim.validSet = true;
         player.notifyClaim(claim);
+
+        try{Thread.sleep(100);
+        }catch(InterruptedException ignored){}
+
+        assertEquals(Player.State.frozen, player.getState());
+
+        // check that the score was increased correctly
+        assertEquals(expectedScore, player.getScore());
+
+        // check that ui.setScore was called with the player's id and the correct score
+        verify(ui).setScore(eq(player.id), eq(expectedScore));
+     }
+
+     @Test
+     void penalty() {
+
+        assertEquals(Player.State.waitingForActivity, player.getState());
+
+        // calculate the expected score for later
+        int expectedScore = player.getScore();
+
+        player.setState(State.waitingForClaimResult);
+        player.nudge();
+        assertEquals(Player.State.waitingForClaimResult, player.getState());
+        
+        Claim claim = new Claim(new Integer[]{1,2,3},player,0);
+        player.notifyClaim(claim);
+
+        //check if the freeze lasts more than 1 second
+        try{Thread.sleep(1000);
+        }catch(InterruptedException ignored){}
+        assertEquals(Player.State.frozen, player.getState());
 
         // check that the score was increased correctly
         assertEquals(expectedScore, player.getScore());
