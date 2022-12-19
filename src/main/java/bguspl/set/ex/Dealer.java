@@ -172,8 +172,7 @@ public class Dealer implements Runnable {
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
             handleClaimedSet(claim);
-            updateTimerDisplay(false);
-            resetDebuggingTimer();
+            // updateTimerDisplay(false);
         }
         claimQueueAccess.release(players.length);
     }
@@ -293,7 +292,7 @@ public class Dealer implements Runnable {
              if (deck.size() >= SET_SIZE /*&& !shouldFinish() */ ) { //TODO: Test the shouldFinish() condition
                 placeCardsFromClaim();
              }
-            updateTimerDisplay(true);
+             updateTimerDisplay(true);
             claim.validSet = true;
             claim.claimer.notifyClaim(claim);
             for(Player player : players){
@@ -485,16 +484,10 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (timerMode == TimerMode.countdownTimerMode) {
-            if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
-                    reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
-        }
-        else if (timerMode == TimerMode.elapsedTimerMode) { // TODO: Implement noTimerMode here too
-            if (reset) elapsedTime = System.currentTimeMillis();
-            env.ui.setCountdown(System.currentTimeMillis() - elapsedTime, false);
-        }
-    }
+        if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        env.ui.setCountdown(reshuffleTime - System.currentTimeMillis()+timerUpdateTickTime*2,
+                reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+}
 
     /**
      * Updates the elapsed time display.
