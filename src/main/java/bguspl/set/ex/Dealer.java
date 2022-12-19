@@ -295,7 +295,7 @@ public class Dealer implements Runnable {
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
              clearSlots(claim.cards);
-             if (deck.size() >= SET_SIZE /*&& !shouldFinish() */ ) { //TODO: Test the shouldFinish() condition
+             if (deck.size() >= SET_SIZE) {
                 placeCardsFromClaim();
              }
              updateTimerDisplay(true);
