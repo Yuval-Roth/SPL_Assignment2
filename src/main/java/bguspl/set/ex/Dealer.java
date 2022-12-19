@@ -96,6 +96,7 @@ public class Dealer implements Runnable {
      * a listener for the dealer thread to wake up
      */
     private volatile Object wakeListener;
+    private boolean noMoreSets;
 
     /**
      * All the possible timer modes.
@@ -166,9 +167,9 @@ public class Dealer implements Runnable {
 
     private void startTimer() {    
         updateTimerDisplay(true);
-        while(terminate == false & reshuffleTime > System.currentTimeMillis()){
+        while(terminate == false & noMoreSets == false & reshuffleTime > System.currentTimeMillis()){
             updateNextWakeTime(); 
-            while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
+            while(terminate == false & noMoreSets == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
                 if(claimQueue.isEmpty() == false){
@@ -215,8 +216,7 @@ public class Dealer implements Runnable {
             pausePlayerThreads();
             if(terminate) break;
             removeAllCardsFromTable();
-            if (shouldFinish())
-                terminate();
+            if (shouldFinish()) terminate();
             shuffleDeck();
         }
     }
@@ -224,9 +224,9 @@ public class Dealer implements Runnable {
 
     private void startElapsedTimer() {
         updateElapsedTimeDisplay(true);
-        while(terminate == false){
+        while(terminate == false & noMoreSets == false){
             updateNextWakeTime();
-            while(terminate == false & nextWakeTime > System.currentTimeMillis()){
+            while(terminate == false & noMoreSets == false & nextWakeTime > System.currentTimeMillis()){
                 updateElapsedTimeDisplay(false);
                 sleepUntilWokenOrTimeout();
                 if(claimQueue.isEmpty() == false){
@@ -240,9 +240,9 @@ public class Dealer implements Runnable {
 
     private void startNoTimer() {
         reshuffleTime = Long.MAX_VALUE;
-        while(terminate == false){
+        while(terminate == false & noMoreSets == false){
             updateNextWakeTime();
-            while(terminate == false & nextWakeTime > System.currentTimeMillis()){
+            while(terminate == false & noMoreSets == false & nextWakeTime > System.currentTimeMillis()){
                 sleepUntilWokenOrTimeout();
                 if(claimQueue.isEmpty() == false){
                     processClaims();
@@ -261,24 +261,24 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
 
-            resetDebuggingTimer();
-            try{
-                gameVersionAccess.acquire();
-            }catch(InterruptedException ignored){}
-            if(claimVersion == gameVersion) {
-                gameVersion++;
-                gameVersionAccess.release();
-            }
-            else {
-                gameVersionAccess.release();
-                return false;
-            }
+        resetDebuggingTimer();
+        try{
+            gameVersionAccess.acquire();
+        }catch(InterruptedException ignored){}
+        if(claimVersion == gameVersion) {
+            gameVersion++;
+            gameVersionAccess.release();
+        }
+        else {
+            gameVersionAccess.release();
+            return false;
+        }
 
-            claimQueueAccess.acquireUninterruptibly(1);
-            claimQueue.add(new Claim(cards,claimer,claimVersion));
-            claimQueueAccess.release(1);
-            synchronized(wakeListener){wakeListener.notifyAll();}
-            return true;      
+        claimQueueAccess.acquireUninterruptibly(1);
+        claimQueue.add(new Claim(cards,claimer,claimVersion));
+        claimQueueAccess.release(1);
+        synchronized(wakeListener){wakeListener.notifyAll();}
+        return true;      
     }
 
     
@@ -306,9 +306,9 @@ public class Dealer implements Runnable {
         }else {
             claim.claimer.notifyClaim(claim);;
         }
-//        if (shouldFinish()) {
-//            terminate = true;
-//        }
+       if (shouldFinish()) {
+           noMoreSets = true;
+       }
     }
 
     private void placeCardsFromClaim() {
@@ -429,7 +429,7 @@ public class Dealer implements Runnable {
      * @return true iff the game should be finished.
      */
     private boolean shouldFinish() {
-        return terminate || allSetsDepleted();
+        return terminate || noMoreSets || allSetsDepleted();
     }
 
     private void terminatePlayers() {
