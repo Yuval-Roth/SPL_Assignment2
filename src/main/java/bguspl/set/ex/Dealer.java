@@ -13,8 +13,9 @@ import java.util.stream.IntStream;
 public class Dealer implements Runnable {
 
     public static final int SET_SIZE = 3;
-    private static final int timerUpdateCriticalTickTime = 25;
-    private static final int timerUpdateTickTime = 250;
+    private static final int TIMER_UPDATE_CRITICAL_TICK_TIME = 25;
+    private static final int TIMER_UPDATE_TICK_TIME = 250;
+    private static final int TIMER_PADDING = TIMER_UPDATE_TICK_TIME*2;
 
     /**
      * The game environment object.
@@ -148,11 +149,11 @@ public class Dealer implements Runnable {
                 }
                 case elapsedTimerMode: {
                     runElapsedTimeMode();
-                break;
+                    break;
                 }
                 case noTimerMode: {
                     runNoTimerMode();
-                break;
+                    break;
                 }
             }
         }
@@ -482,7 +483,7 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        env.ui.setCountdown(reshuffleTime - System.currentTimeMillis()+timerUpdateTickTime*2,
+        env.ui.setCountdown(reshuffleTime - System.currentTimeMillis()+TIMER_PADDING,
                 reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
 }
 
@@ -567,7 +568,7 @@ public class Dealer implements Runnable {
      */
     private void updateNextWakeTime() {
         nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
-            System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime;
+            System.currentTimeMillis()+TIMER_UPDATE_TICK_TIME : System.currentTimeMillis()+TIMER_UPDATE_CRITICAL_TICK_TIME;
     }
 
     /**
