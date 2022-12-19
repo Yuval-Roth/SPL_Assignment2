@@ -44,6 +44,8 @@ public class Dealer implements Runnable {
 
     /**
      * True if game should be terminated due to an external event.
+     * @notice this needs to be public to prevent the UI from being updated after the game has been terminated because
+     * it causes a deadlock in linux for some reason out of our control 
      */
     public volatile boolean terminate;
 
