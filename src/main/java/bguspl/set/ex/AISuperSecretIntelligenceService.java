@@ -3,7 +3,6 @@ package bguspl.set.ex;
 import java.util.Random;
 
 import bguspl.set.Env;
-import bguspl.set.Config;
 
 
 public class AISuperSecretIntelligenceService{
