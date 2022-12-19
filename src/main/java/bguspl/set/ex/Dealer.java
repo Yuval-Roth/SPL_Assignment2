@@ -267,8 +267,6 @@ public class Dealer implements Runnable {
      */
     private void startNoTimer() {
 
-        //TODO make sure this works
-
         reshuffleTime = Long.MAX_VALUE;
         nextWakeTime = Long.MAX_VALUE;
 
@@ -278,17 +276,6 @@ public class Dealer implements Runnable {
                 processClaims();
             }
         }
-
-        // reshuffleTime = Long.MAX_VALUE;
-        // while(terminate == false & noMoreSets == false){
-        //     updateNextWakeTime();
-        //     while(terminate == false & noMoreSets == false & nextWakeTime > System.currentTimeMillis()){
-        //         sleepUntilWokenOrTimeout();
-        //         if(claimQueue.isEmpty() == false){
-        //             processClaims();
-        //         }
-        //     }
-        // }
     }
 
     //===========================================================
