@@ -139,8 +139,22 @@ public class Dealer implements Runnable {
         createPlayerThreads();
         elapsedTime = System.currentTimeMillis();
         shuffleDeck();
-        while (!shouldFinish()) {        
-            timerLoop();
+        gameVersion = 0;
+        while (!shouldFinish()){
+            switch (timerMode) {
+                case countdownTimerMode: {
+                    countdownModeLoop();
+                    break;
+                }
+                case elapsedTimerMode: {
+                    runElapsedTimeMode();
+                break;
+                }
+                case noTimerMode: {
+                    runNoTimerMode();
+                break;
+                }
+            }
         }
         terminatePlayers();
         if(env.util.findSets(deck, 1).size() == 0) announceWinners();
@@ -178,46 +192,29 @@ public class Dealer implements Runnable {
         claimQueueAccess.release(players.length);
     }
 
-    /**
-     * The inner loop of the dealer thread that runs as long as the countdown did not time out.
-     */
-    private void timerLoop() {
 
-        //TODO - break this into sub-classes / game-modes
+    private void runNoTimerMode() {
+        dealCardsRandomly();
+        resumePlayerThreads();
+        startNoTimer();
+    }
 
-        switch (timerMode) {
-            case countdownTimerMode: {
-                reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-                gameVersion = 0;
-                while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-                    dealCardsRandomly();
-                    resumePlayerThreads();
-                    startTimer();
-                    pausePlayerThreads();
-                    if(terminate) break;
-                    removeAllCardsFromTable();
-                    shuffleDeck();
-                }
-                    break;
-            }
-            case elapsedTimerMode: {
-                gameVersion = 0;
-                while (!shouldFinish()) {
-                    dealCardsRandomly();
-                    resumePlayerThreads();
-                    startElapsedTimer();
-                }
-                    break;
-            }
-            case noTimerMode: {
-                gameVersion = 0;
-                while (!shouldFinish()) {
-                    dealCardsRandomly();
-                    resumePlayerThreads();
-                    startNoTimer();
-                }
-                break;
-            }
+    private void runElapsedTimeMode() {
+        dealCardsRandomly();
+        resumePlayerThreads();
+        startElapsedTimer();
+    }
+
+    private void countdownModeLoop() {
+        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+            dealCardsRandomly();
+            resumePlayerThreads();
+            startTimer();
+            pausePlayerThreads();
+            if(terminate) break;
+            removeAllCardsFromTable();
+            shuffleDeck();
         }
     }
 
