@@ -1,7 +1,9 @@
  package bguspl.set.ex;
 
  import bguspl.set.*;
- import org.junit.jupiter.api.AfterEach;
+import bguspl.set.ex.Player.State;
+
+import org.junit.jupiter.api.AfterEach;
  import org.junit.jupiter.api.BeforeEach;
  import org.junit.jupiter.api.Test;
  import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,20 +54,18 @@
      @Test
      void point() {
 
-         // force table.countCards to return 3
-//         when(p).thenReturn(3); // this part is just for demonstration
+        // calculate the expected score for later
+        int expectedScore = player.getScore() + 1;
+        player.setState(State.waitingForClaimResult);
+        Claim claim = new Claim(new Integer[]{1,2,3},player,0);
+        claim.validSet = true;
+        player.notifyClaim(claim);
 
-         // calculate the expected score for later
-         int expectedScore = player.getScore() + 1;
+        // check that the score was increased correctly
+        assertEquals(expectedScore, player.getScore());
 
-         // call the method we are testing
-         player.incrementAndGetScore();
-
-         // check that the score was increased correctly
-         assertEquals(expectedScore, player.getScore());
-
-         // check that ui.setScore was called with the player's id and the correct score
-         verify(ui).setScore(eq(player.id), eq(expectedScore));
+        // check that ui.setScore was called with the player's id and the correct score
+        verify(ui).setScore(eq(player.id), eq(expectedScore));
      }
 
 
