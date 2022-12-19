@@ -96,6 +96,10 @@ public class Dealer implements Runnable {
      * a listener for the dealer thread to wake up
      */
     private volatile Object wakeListener;
+
+    /**
+     * True iff there are no more sets in the deck.
+     */
     private boolean noMoreSets;
 
     /**
@@ -131,7 +135,7 @@ public class Dealer implements Runnable {
     
     
     //===========================================================
-    //                      Main methods
+    //                      Dealer thread
     //===========================================================
 
     /**
@@ -147,7 +151,7 @@ public class Dealer implements Runnable {
         while (!shouldFinish()){
             switch (timerMode) {
                 case countdownTimerMode: {
-                    countdownModeLoop();
+                    countdownMode();
                     break;
                 }
                 case elapsedTimerMode: {
@@ -165,7 +169,62 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
     }
 
-    private void startTimer() {    
+    //===========================================================
+    //                      Timer modes
+    //===========================================================
+
+
+    /**
+     *  no timer mode main method
+     */
+    private void runNoTimerMode() {
+        dealCardsRandomly();
+        resumePlayerThreads();
+        startNoTimer();
+        pausePlayerThreads();
+        if(terminate) return;
+        removeAllCardsFromTable();
+    }
+
+    /**
+     *  elapsed timer mode main method
+     */
+    private void runElapsedTimeMode() {
+        dealCardsRandomly();
+        resumePlayerThreads();
+        startElapsedTimer();
+        pausePlayerThreads();
+        if(terminate) return;
+        removeAllCardsFromTable();
+    }
+
+    /**
+     *  countdown timer mode main method
+     */
+    private void countdownMode() {
+        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+            dealCardsRandomly();
+            resumePlayerThreads();
+            startCountdownTimer();
+            pausePlayerThreads();
+            if(terminate) break;
+            removeAllCardsFromTable();
+            if (shouldFinish()) terminate();
+            shuffleDeck();
+        }
+    }
+
+    //===========================================================
+    //                      Timers
+    //===========================================================
+
+
+    /**
+     * in Countdown mode, Dealer spends most of its time in this method.
+     * it sleeps until it is woken up by a player thread or needs to updates the timer.
+     */
+    private void startCountdownTimer() {    
         updateTimerDisplay(true);
         while(terminate == false & noMoreSets == false & reshuffleTime > System.currentTimeMillis()){
             updateNextWakeTime(); 
@@ -181,53 +240,11 @@ public class Dealer implements Runnable {
         if(terminate == false) env.ui.setCountdown(0,true);   
     }
 
+
     /**
-     * processes all the claims that were made by the players
+     * in Elapsed mode, Dealer spends most of its time in this method.
+     * it sleeps until it is woken up by a player thread or needs to updates the timer.
      */
-    private void processClaims() {
-        claimQueueAccess.acquireUninterruptibly(players.length);
-        while(claimQueue.isEmpty() == false){
-            Claim claim = claimQueue.remove();
-            handleClaimedSet(claim);
-            // updateTimerDisplay(false);
-        }
-        claimQueueAccess.release(players.length);
-    }
-
-
-    private void runNoTimerMode() {
-        dealCardsRandomly();
-        resumePlayerThreads();
-        startNoTimer();
-        pausePlayerThreads();
-        if(terminate) return;
-        removeAllCardsFromTable();
-    }
-
-    private void runElapsedTimeMode() {
-        dealCardsRandomly();
-        resumePlayerThreads();
-        startElapsedTimer();
-        pausePlayerThreads();
-        if(terminate) return;
-        removeAllCardsFromTable();
-    }
-
-    private void countdownModeLoop() {
-        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-            dealCardsRandomly();
-            resumePlayerThreads();
-            startTimer();
-            pausePlayerThreads();
-            if(terminate) break;
-            removeAllCardsFromTable();
-            if (shouldFinish()) terminate();
-            shuffleDeck();
-        }
-    }
-
-
     private void startElapsedTimer() {
         updateElapsedTimeDisplay(true);
         while(terminate == false & noMoreSets == false){
@@ -243,21 +260,40 @@ public class Dealer implements Runnable {
         if(terminate == false) env.ui.setElapsed(0);
     }
 
-
+    /**
+     * in No timer mode, Dealer spends most of its time in this method.
+     * it sleeps until it is woken up by a player thread.
+     * it does not update the timer display.
+     */
     private void startNoTimer() {
+
+        //TODO make sure this works
+
         reshuffleTime = Long.MAX_VALUE;
+        nextWakeTime = Long.MAX_VALUE;
+
         while(terminate == false & noMoreSets == false){
-            updateNextWakeTime();
-            while(terminate == false & noMoreSets == false & nextWakeTime > System.currentTimeMillis()){
-                sleepUntilWokenOrTimeout();
-                if(claimQueue.isEmpty() == false){
-                    processClaims();
-                }
+            sleepUntilWokenOrTimeout();
+            if(claimQueue.isEmpty() == false){
+                processClaims();
             }
         }
+
+        // reshuffleTime = Long.MAX_VALUE;
+        // while(terminate == false & noMoreSets == false){
+        //     updateNextWakeTime();
+        //     while(terminate == false & noMoreSets == false & nextWakeTime > System.currentTimeMillis()){
+        //         sleepUntilWokenOrTimeout();
+        //         if(claimQueue.isEmpty() == false){
+        //             processClaims();
+        //         }
+        //     }
+        // }
     }
 
-
+    //===========================================================
+    //                      Main methods
+    //===========================================================
 
     /**
      * Claims a set. adds the claim to the dealer's claimQueue and wakes up the dealer thread
@@ -267,7 +303,10 @@ public class Dealer implements Runnable {
      */
     public boolean  claimSet(Integer[] cards, Player claimer, int claimVersion){
 
-        resetDebuggingTimer();
+        // this is a critical section that must be synchronized 
+        // because this is the solution to multiple players claiming the same cards
+        // at virtually the same time. we combat this problem by using versions for claims 
+        // and a fair semaphore.
         try{
             gameVersionAccess.acquire();
         }catch(InterruptedException ignored){}
@@ -276,30 +315,61 @@ public class Dealer implements Runnable {
             gameVersionAccess.release();
         }
         else {
+
+            // another claimSet was made virtually at the same time as this one but reached the dealer first.
+            // To be able to make sure that the player isn't penalized for claiming cards
+            // that were just replaced thus claiming a "wrong" set, the player must check for changes 
+            // and claim the set again if none of his cards were affected by the claim
+
             gameVersionAccess.release();
+            // the claim was rejected
             return false;
         }
+
+
 
         claimQueueAccess.acquireUninterruptibly(1);
         claimQueue.add(new Claim(cards,claimer,claimVersion));
         claimQueueAccess.release(1);
+
+        // wake up the dealer thread to process the claim
         synchronized(wakeListener){wakeListener.notifyAll();}
+
+        // the claim was accepted
         return true;      
     }
 
+    /**
+     * processes all the claims that were made by the players
+     */
+    private void processClaims() {
+        claimQueueAccess.acquireUninterruptibly(players.length);
+        while(claimQueue.isEmpty() == false){
+            Claim claim = claimQueue.remove();
+            handleClaimedSet(claim);
+        }
+        claimQueueAccess.release(players.length);
+    }
     
     /**
      * handles a claim that was verified as a true set
+     * and notifies the players accordingly
      * @param claim
      */
     private void handleClaimedSet(Claim claim) {
          if(isValidSet(claim.cards)){
+
+            // remove the cards from the deck and replace them with new cards
+            // while making sure that there are sets on the table
              clearSlots(claim.cards);
              if (deck.size() >= SET_SIZE) {
                 placeCardsFromClaim();
              }
-             updateTimerDisplay(true);
+
+            updateTimerDisplay(true);
             claim.validSet = true;
+
+            //notify the claimer first and then the other players
             claim.claimer.notifyClaim(claim);
             for(Player player : players){
                 if(player!=claim.claimer && (
@@ -310,24 +380,45 @@ public class Dealer implements Runnable {
                 }
             }
         }else {
+            // if the claim was not a valid set notify the claimer only.
+            // no need to notify the other players
             claim.claimer.notifyClaim(claim);;
         }
        if (shouldFinish()) {
+            // if there are no more sets in the game then we want to end the game immediately
+            // this is done by setting the noMoreSets flag to true
+            // and this breaks the dealer thread out of the while loops
+            // and the dealer thread will then terminate the game
            noMoreSets = true;
        }
     }
 
+
+    /**
+     * this method replaces the claimed cards with new cards from the deck
+     * and makes sure there is always a set on the table
+     */
     private void placeCardsFromClaim() {
+
+        //this is a list of the cards that are currently on the table
+        //after removing the cards that were claimed
         LinkedList<Integer> cardsToPlace_U_Table = table.getCardsOnTable();
+
         boolean done = false;
 
         if(deck.size() >= SET_SIZE){
+
             //takes the next 3 cards from the deck and places them in the front of the list
             ListIterator<Integer> iter = deck.listIterator();
             for (int i = 0; i < SET_SIZE; i++) {
                 cardsToPlace_U_Table.addFirst(iter.next());
             }
+            //==============================================================================
+
             while(!done){
+
+                // this checks if there is a set in the list and if so it places the last 3 cards 
+                // that were added to the list on the table and removes them from the deck
                 if(env.util.findSets(cardsToPlace_U_Table, 1).size() != 0){
                     for (int i = 0; i < SET_SIZE; i++) {
                         // place iter.previous() on table and delete it from deck
@@ -336,9 +427,18 @@ public class Dealer implements Runnable {
                         iter.remove();
                     }
                     done = true;
+
+                 // if there is no set in the list then it removes the oldest card added to the list
+                 // and adds the next card from the deck to the list in a FIFO fashion
                 }else if(iter.hasNext()){
                     cardsToPlace_U_Table.remove(SET_SIZE-1);
                     cardsToPlace_U_Table.addFirst(iter.next());
+
+
+                // if all fails and you can't find a set just place the
+                // next cards from the deck on the table
+                // this should never realistically happen but it is here just in case.
+                // the game would end in this situation.
                 }else {
                     placeCardsOnTable();
                     done = true;
@@ -368,14 +468,24 @@ public class Dealer implements Runnable {
 
 
     /**
-     * Fills the table with cards from the deck. Note that this method fills the table in random order, as opposed to
+     * Fills the table with cards from the deck. Note that this method
+     * fills the table in random order, as opposed to
      * placeCardsOnTable() which fills the table in order of the deck.
      */
     private void dealCardsRandomly() {
+
+        // this gets the order in which the cards should be placed on the table
+        // this is a random order and the slots themselves are determined by where
+        // the cards were before they were removed from the table.
         LinkedList<Integer> slots = table.getCardsPlacementSlotsOrder();
+
+        // this randomizes the deck until there is a set in the first 12 cards.
+        // this is done to make sure that there is a set on the table after reshuffling
         while (env.util.findSets(deck.subList(0,slots.size()) , 1).size() == 0) {
             shuffleDeck();
         }
+
+        // this places the cards on the table in the order determined by the slots list
         for(Integer slot : slots){
             Integer cardToPlace = deck.get(0);
             deck.remove(0);
@@ -387,12 +497,19 @@ public class Dealer implements Runnable {
     /**
     * Checks if the given set of cards is a valid set.
     */
-    public boolean isValidSet(Integer[] cards) {
-            cards = Arrays.stream(cards).map(i->table.slotToCard[i]).toArray(Integer[]::new);
-            int[] _cards = Arrays.stream(cards).filter(Objects::nonNull).mapToInt(i->i).toArray();
-            if(_cards.length != SET_SIZE)
-                return false;
-            return env.util.testSet(_cards);
+    public boolean isValidSet(Integer[] slots) {
+
+
+        // get an int[] card array from the slots array while filtering out null slots
+        slots = Arrays.stream(slots).map(i->table.slotToCard[i]).toArray(Integer[]::new);
+        int[] cards = Arrays.stream(slots).filter(Objects::nonNull).mapToInt(i->i).toArray();
+
+        // if the resulting array is not the correct size then it is not a valid set
+        // because there was a null slot when converting the slots to cards
+        if(cards.length != SET_SIZE)
+            return false;
+
+        return env.util.testSet(cards);
     }
 
      /**
@@ -493,7 +610,7 @@ public class Dealer implements Runnable {
             if (timerMode == TimerMode.countdownTimerMode) {
                 if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
 
-                // this if state is to prevent the UI from being updated after the game has been terminated because
+                // this if statement is to prevent the UI from being updated after the game has been terminated because
                 // it causes a deadlock in linux for some reason out of our control 
                 if(terminate == false){
                     env.ui.setCountdown(reshuffleTime - System.currentTimeMillis() + TIMER_PADDING,
@@ -505,7 +622,7 @@ public class Dealer implements Runnable {
 
             // In No Timer mode, the timer display is not updated as it is not needed.
         }
-}
+    }
 
     /**
      * Updates the elapsed time display.
@@ -596,21 +713,7 @@ public class Dealer implements Runnable {
             System.currentTimeMillis()+TIMER_UPDATE_TICK_TIME : System.currentTimeMillis()+TIMER_UPDATE_CRITICAL_TICK_TIME;
     }
 
-    /**
-     * dumps the dealer's data to the console
-     * for debugging purposes
-     */
-    private void dumpData() {
-        System.out.println("dumping Dealer data:");
-        System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
-        System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
-        System.out.println("claimQueue.size:"+claimQueue.size());
-        System.out.println("claimQueue.size:");
-        for(Claim claim : claimQueue){
-            System.out.println(claim);
-        }
-        System.out.println("====================================");
-    }
+    //========================================================================================================|
 
 
     //========used for debugging==============|
@@ -655,6 +758,22 @@ public class Dealer implements Runnable {
      */
     private void resetDebuggingTimer() {
         debuggingTimer = System.currentTimeMillis();
+    }
+
+    /**
+     * dumps the dealer's data to the console
+     * for debugging purposes
+     */
+    private void dumpData() {
+        System.out.println("dumping Dealer data:");
+        System.out.println("reshuffleTime: " + (reshuffleTime-System.currentTimeMillis())/1000.0);
+        System.out.println("claimQueue.isEmpty():"+claimQueue.isEmpty());
+        System.out.println("claimQueue.size:"+claimQueue.size());
+        System.out.println("claimQueue.size:");
+        for(Claim claim : claimQueue){
+            System.out.println(claim);
+        }
+        System.out.println("====================================");
     }
     
 }
