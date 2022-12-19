@@ -77,6 +77,7 @@ public class Main {
             if (!xButtonPressed && config.endGamePauseMillies > 0){
                 try{Thread.sleep(config.endGamePauseMillies);}
                 catch(InterruptedException ignored){}
+                ui.dispose();
             } 
         } catch (InterruptedException ignored) {
             try{
