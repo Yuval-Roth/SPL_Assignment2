@@ -507,7 +507,7 @@ public class Dealer implements Runnable {
     private void updateElapsedTimeDisplay(boolean reset){
         if (reset) elapsedTime = System.currentTimeMillis();
 
-        // this if state is to prevent the UI from being updated after the game has been terminated because
+        // this if statement is to prevent the UI from being updated after the game has been terminated because
         // it causes a deadlock in linux for some reason out of our control 
         if (!terminate) {
             env.ui.setElapsed(System.currentTimeMillis() - elapsedTime + TIMER_PADDING);

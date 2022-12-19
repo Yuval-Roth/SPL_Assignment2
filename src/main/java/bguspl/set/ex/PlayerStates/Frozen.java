@@ -41,7 +41,7 @@ public class Frozen extends PlayerState {
      */
     private void updateTimerDisplay(long time) { 
 
-        // this if state is to prevent the UI from being updated after the game has been terminated because
+        // this if statement is to prevent the UI from being updated after the game has been terminated because
         // it causes a deadlock in linux for some reason out of our control 
         if(dealer.terminate == false){
             env.ui.setFreeze(player.id,time);   
