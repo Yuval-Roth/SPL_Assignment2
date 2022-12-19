@@ -45,7 +45,7 @@ public class Dealer implements Runnable {
     /**
      * True if game should be terminated due to an external event.
      */
-    private volatile boolean terminate;
+    public volatile boolean terminate;
 
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
@@ -482,9 +482,16 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-        env.ui.setCountdown(reshuffleTime - System.currentTimeMillis()+TIMER_PADDING,
-                reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+        if (!terminate) {
+            if (timerMode == TimerMode.countdownTimerMode) {
+                if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+                env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
+                        reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+            } else if (timerMode == TimerMode.elapsedTimerMode) { // TODO: Implement noTimerMode here too
+                if (reset) elapsedTime = System.currentTimeMillis();
+                env.ui.setCountdown(System.currentTimeMillis() - elapsedTime, false);
+            }
+        }
 }
 
     /**
