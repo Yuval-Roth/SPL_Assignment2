@@ -623,7 +623,7 @@ public class Dealer implements Runnable {
      * without player/dealer activity.
      * The thread dumps the players' and the dealer's data to the console for further examination.
      *
-     * @DONT_FORGET: to set 'stop = true' when the game should pause
+     * @DONT_FORGET to set 'stop = true' when the game should pause
      * AND resetDebuggingTimer() between actions
      */
     private void startDebuggerThread() {
