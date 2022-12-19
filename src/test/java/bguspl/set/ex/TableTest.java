@@ -6,6 +6,7 @@
  import bguspl.set.Util;
  import org.junit.jupiter.api.BeforeEach;
  import org.junit.jupiter.api.Test;
+ import org.mockito.Mock;
 
  import java.util.List;
  import java.util.Properties;
@@ -16,7 +17,7 @@
  class TableTest {
 
      Table table;
-
+     @Mock
      Dealer dealer;
      private Integer[] slotToCard;
      private Integer[] cardToSlot;
@@ -38,7 +39,6 @@
          cardToSlot = new Integer[config.deckSize];
          Env env = new Env(logger, config, new MockUserInterface(), new MockUtil());
          table = new Table(env, slotToCard, cardToSlot);
-         dealer = new Dealer(env, table, null);
      }
 
      private int fillSomeSlots() {
@@ -51,7 +51,9 @@
      }
 
      private void fillAllSlots() {
-
+        for (int i = 0; i < slotToCard.length; i++) {
+                table.placeCard(i, i);
+            }
      }
 
      private void placeSomeCardsAndAssert() throws InterruptedException {
@@ -71,19 +73,17 @@
      void countCards_SomeSlotsAreFilled() {
 
          int slotsFilled = fillSomeSlots();
-         assertEquals(slotsFilled, table.countCards());
+         assertEquals(slotsFilled, table.getCurrentSize());
      }
 
      @Test
      void countCards_AllSlotsAreFilled() {
-
          fillAllSlots();
-         assertEquals(slotToCard.length, table.countCards());
+         assertEquals(slotToCard.length, table.getCurrentSize());
      }
 
      @Test
      void placeCard_SomeSlotsAreFilled() throws InterruptedException {
-
          fillSomeSlots();
          placeSomeCardsAndAssert();
      }
