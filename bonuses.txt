@@ -53,12 +53,12 @@ changed on the display, key input needs to be handled, etc.) and the only thread
 1 thread per player + 1 additional thread for non-human players.
 
 we have created exactly 1 thread for dealer, 1 thread for each player and 1 thread for each AI.
-the dealer waits for claimsets, the player thread waits for clicks and then wakes up the dealer so that he
-checks the claimset. the baseline states for every thread is waiting. We have allowed the AI to perform some
-tasks while the player thread is 'busy' in order to speed up and enhance the AI's performance. but even then,
-between these tasks the AI waits for a designated period.
+the dealer waits for claimsets and timer updates when needed, the player thread waits for clicks and then wakes up the 
+dealer so that he will check the claimset. the baseline states for every thread is waiting.
+We have allowed the AI to perform some tasks while the player thread is 'busy' in order to speed up and enhance
+the AI's performance. but even then,between these tasks the AI waits for a designated period.
 
 We log and print the start and termination of each thread, and it can be seen that there are no
- redundant threads created.
+redundant threads created.
 
 
