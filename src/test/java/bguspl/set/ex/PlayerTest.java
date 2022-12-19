@@ -44,6 +44,7 @@ import org.junit.jupiter.api.AfterEach;
          Env env = new Env(logger, new Config(logger, ""), ui, util);
          player = new Player(env, dealer, table, 0, true);
          assertInvariants();
+         ui.setScore(0, 0);
 
         Thread playerThread = new Thread(player,"Player");
         playerThread.start();
