@@ -628,10 +628,11 @@ public class Dealer implements Runnable {
      */
     private void startDebuggerThread() {
         Thread dealerThread = Thread.currentThread();
+        long MAX_INACTIVITY_TIME = env.config.penaltyFreezeMillis+3000;
         Thread debuggingThread = new Thread(()->{
             stop = false;
             resetDebuggingTimer();
-            while(stop == false & System.currentTimeMillis() - debuggingTimer < env.config.penaltyFreezeMillis+3000){
+            while(stop == false & System.currentTimeMillis() - debuggingTimer < MAX_INACTIVITY_TIME){
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {}
