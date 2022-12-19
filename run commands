@@ -1,0 +1,5 @@
+to compile:         mvn clean compile test
+
+to run:             java -cp target/classes bguspl.set.Main
+
+
