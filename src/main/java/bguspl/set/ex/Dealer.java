@@ -187,32 +187,32 @@ public class Dealer implements Runnable {
 
         switch (timerMode) {
             case countdownTimerMode: {
-            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-            gameVersion = 0;
-            while (!terminate && System.currentTimeMillis() < reshuffleTime) {
-                fillDeck();
-                resumePlayerThreads();
-                startTimer();
-                pausePlayerThreads();
-                if(terminate) break;
-                removeAllCardsFromTable();
-                shuffleDeck();
+                reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+                gameVersion = 0;
+                while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+                    dealCardsRandomly();
+                    resumePlayerThreads();
+                    startTimer();
+                    pausePlayerThreads();
+                    if(terminate) break;
+                    removeAllCardsFromTable();
+                    shuffleDeck();
                 }
-                break;
+                    break;
             }
             case elapsedTimerMode: {
-            gameVersion = 0;
-            while (!shouldFinish()) {
-                fillDeck();
-                resumePlayerThreads();
-                startElapsedTimer();
+                gameVersion = 0;
+                while (!shouldFinish()) {
+                    dealCardsRandomly();
+                    resumePlayerThreads();
+                    startElapsedTimer();
                 }
-                break;
+                    break;
             }
             case noTimerMode: {
                 gameVersion = 0;
                 while (!shouldFinish()) {
-                    fillDeck();
+                    dealCardsRandomly();
                     resumePlayerThreads();
                     startNoTimer();
                 }
@@ -362,12 +362,21 @@ public class Dealer implements Runnable {
     //===========================================================
 
 
-    private void fillDeck() {
+    /**
+     * Fills the table with cards from the deck. Note that this method fills the table in random order, as opposed to
+     * placeCardsOnTable() which fills the table in order of the deck.
+     */
+    private void dealCardsRandomly() {
         LinkedList<Integer> slots = table.getCardsPlacementSlotsOrder();
         for(Integer slot : slots){
             Integer cardToPlace = deck.get(0);
             deck.remove(0);
             table.placeCard(cardToPlace,slot);
+        }
+        while (env.util.findSets(table.getCardsOnTable(), 1).size() == 0) {
+            shuffleDeck();
+            removeAllCardsFromTable();
+            placeCardsOnTable();
         }
     }
 
@@ -497,7 +506,7 @@ public class Dealer implements Runnable {
 
     /**
      * clears the cards in these slots from the table .
-     * @param cards
+     * @param slots
      */
     private void clearSlots(Integer[] slots) {
         for(int slot : slots){
