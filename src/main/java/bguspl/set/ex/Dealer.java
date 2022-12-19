@@ -151,7 +151,7 @@ public class Dealer implements Runnable {
         while (!shouldFinish()){
             switch (timerMode) {
                 case countdownTimerMode: {
-                    countdownMode();
+                    runCountdownMode();
                     break;
                 }
                 case elapsedTimerMode: {
@@ -182,6 +182,9 @@ public class Dealer implements Runnable {
         resumePlayerThreads();
         startNoTimer();
         pausePlayerThreads();
+
+        // if the game is terminated, don't remove the cards from the table
+        // just return and let the dealer thread terminate
         if(terminate) return;
         removeAllCardsFromTable();
     }
@@ -194,6 +197,9 @@ public class Dealer implements Runnable {
         resumePlayerThreads();
         startElapsedTimer();
         pausePlayerThreads();
+
+        // if the game is terminated, don't remove the cards from the table
+        // just return and let the dealer thread terminate
         if(terminate) return;
         removeAllCardsFromTable();
     }
@@ -201,13 +207,16 @@ public class Dealer implements Runnable {
     /**
      *  countdown timer mode main method
      */
-    private void countdownMode() {
+    private void runCountdownMode() {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             dealCardsRandomly();
             resumePlayerThreads();
             startCountdownTimer();
             pausePlayerThreads();
+
+            // if the game is terminated, don't remove the cards from the table
+            // just return and let the dealer thread terminate
             if(terminate) break;
             removeAllCardsFromTable();
             if (shouldFinish()) terminate();
