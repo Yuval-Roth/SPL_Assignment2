@@ -16,7 +16,6 @@ import org.junit.jupiter.api.AfterEach;
  import static org.junit.jupiter.api.Assertions.assertTrue;
  import static org.mockito.ArgumentMatchers.eq;
  import static org.mockito.Mockito.verify;
- import static org.mockito.Mockito.when;
 
  @ExtendWith(MockitoExtension.class)
  class PlayerTest {
