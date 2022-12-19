@@ -1,73 +1,119 @@
-package bguspl.set.ex;
+ package bguspl.set.ex;
 
-import bguspl.set.Config;
-import bguspl.set.Env;
-import bguspl.set.UserInterface;
-import bguspl.set.Util;
+ import bguspl.set.*;
+import bguspl.set.ex.Player.State;
+
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.extension.ExtendWith;
+ import org.mockito.Mock;
+ import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.logging.Logger;
+ import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ import static org.mockito.ArgumentMatchers.eq;
+ import static org.mockito.Mockito.verify;
+ import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-class PlayerTest {
+ @ExtendWith(MockitoExtension.class)
+ class PlayerTest {
 
-    Player player;
-    @Mock
-    Util util;
-    @Mock
-    private UserInterface ui;
-    @Mock
-    private Table table;
-    @Mock
-    private Dealer dealer;
-    @Mock
-    private Logger logger;
+     Player player;
+     @Mock
+     Util util;
+     @Mock
+     private UserInterface ui;
+     @Mock
+     private Table table;
+     @Mock
+     private Dealer dealer;
+     @Mock
+     private Logger logger;
 
-    void assertInvariants() {
-        assertTrue(player.id >= 0);
-        assertTrue(player.score() >= 0);
-    }
+     void assertInvariants() {
+         assertTrue(player.id >= 0);
+         assertTrue(player.getScore() >= 0);
+     }
 
-    @BeforeEach
-    void setUp() {
-        // purposely do not find the configuration files (use defaults here).
-        Env env = new Env(logger, new Config(logger, ""), ui, util);
-        player = new Player(env, dealer, table, 0, false);
+     @BeforeEach
+     void setUp() {
+         // purposely do not find the configuration files (use defaults here).
+         Env env = new Env(logger, new Config(logger, ""), ui, util);
+         player = new Player(env, dealer, table, 0, true);
+         assertInvariants();
+         ui.setScore(0, 0);
+
+        Thread playerThread = new Thread(player,"Player");
+        playerThread.start();
+        try{Thread.sleep(100);
+        }catch(InterruptedException ignored){}
+        player.resume();
+
+     }
+
+     @AfterEach
+     void tearDown() {
         assertInvariants();
-    }
+        player.pause();
+        player.terminate();
+     }
 
-    @AfterEach
-    void tearDown() {
-        assertInvariants();
-    }
+     @Test
+     void point() {
 
-    @Test
-    void point() {
-
-        // force table.countCards to return 3
-        when(table.countCards()).thenReturn(3); // this part is just for demonstration
+        assertEquals(Player.State.waitingForActivity, player.getState());
 
         // calculate the expected score for later
-        int expectedScore = player.score() + 1;
+        int expectedScore = player.getScore() + 1;
 
-        // call the method we are testing
-        player.point();
+        player.setState(State.waitingForClaimResult);
+        player.nudge();
+        assertEquals(Player.State.waitingForClaimResult, player.getState());
+        
+        Claim claim = new Claim(new Integer[]{1,2,3},player,0);
+        claim.validSet = true;
+        player.notifyClaim(claim);
+
+        try{Thread.sleep(100);
+        }catch(InterruptedException ignored){}
+
+        assertEquals(Player.State.frozen, player.getState());
 
         // check that the score was increased correctly
-        assertEquals(expectedScore, player.score());
+        assertEquals(expectedScore, player.getScore());
 
         // check that ui.setScore was called with the player's id and the correct score
         verify(ui).setScore(eq(player.id), eq(expectedScore));
-    }
-}
+     }
+
+     @Test
+     void penalty() {
+
+        assertEquals(Player.State.waitingForActivity, player.getState());
+
+        // calculate the expected score for later
+        int expectedScore = player.getScore();
+
+        player.setState(State.waitingForClaimResult);
+        player.nudge();
+        assertEquals(Player.State.waitingForClaimResult, player.getState());
+        
+        Claim claim = new Claim(new Integer[]{1,2,3},player,0);
+        player.notifyClaim(claim);
+
+        //check if the freeze lasts more than 1 second
+        try{Thread.sleep(1000);
+        }catch(InterruptedException ignored){}
+        assertEquals(Player.State.frozen, player.getState());
+
+        // check that the score was increased correctly
+        assertEquals(expectedScore, player.getScore());
+
+        // check that ui.setScore was called with the player's id and the correct score
+        verify(ui).setScore(eq(player.id), eq(expectedScore));
+     }
+
+ }

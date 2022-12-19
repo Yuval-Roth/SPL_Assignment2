@@ -302,6 +302,16 @@ public class Player implements Runnable {
             System.out.println("================================");
     }
 
+    /**
+     * used to nudge the player thread out of a wait state.
+     * Used for debugging.
+     */
+    public void nudge(){
+        synchronized(executionListener){executionListener.notifyAll();}
+        synchronized(activityListener){activityListener.notifyAll();}
+        synchronized(claimListener){claimListener.notifyAll();}
+    }
+
     //===========================================================
     //                  Getters / Setters
     //===========================================================

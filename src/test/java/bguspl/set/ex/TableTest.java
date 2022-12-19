@@ -6,6 +6,7 @@ import bguspl.set.UserInterface;
 import bguspl.set.Util;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Properties;
@@ -16,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TableTest {
 
     Table table;
+    @Mock
+    Dealer dealer;
     private Integer[] slotToCard;
     private Integer[] cardToSlot;
 
@@ -34,24 +37,19 @@ class TableTest {
         Config config = new Config(logger, properties);
         slotToCard = new Integer[config.tableSize];
         cardToSlot = new Integer[config.deckSize];
-
         Env env = new Env(logger, config, new MockUserInterface(), new MockUtil());
         table = new Table(env, slotToCard, cardToSlot);
     }
 
     private int fillSomeSlots() {
-        slotToCard[1] = 3;
-        slotToCard[2] = 5;
-        cardToSlot[3] = 1;
-        cardToSlot[5] = 2;
-
+        table.placeCard(3, 1);
+        table.placeCard(5, 3);
         return 2;
     }
 
     private void fillAllSlots() {
-        for (int i = 0; i < slotToCard.length; ++i) {
-            slotToCard[i] = i;
-            cardToSlot[i] = i;
+        for (int i = 0; i < slotToCard.length; i++) {
+            table.placeCard(i, i);
         }
     }
 
@@ -63,28 +61,43 @@ class TableTest {
     }
 
     @Test
-    void countCards_NoSlotsAreFilled() {
+    void getEmptySlotCountTest() {
+        // Test an empty table
+        table.clearTable();
+        assertEquals(slotToCard.length, table.getEmptySlotCount());
 
-        assertEquals(0, table.countCards());
+        // Test a table with some slots filled
+        fillSomeSlots();
+        assertEquals(slotToCard.length - fillSomeSlots(), table.getEmptySlotCount());
+
+        // Test a table with all slots filled
+        fillAllSlots();
+        assertEquals(0, table.getEmptySlotCount());
     }
 
     @Test
-    void countCards_SomeSlotsAreFilled() {
+    void getCurrentSizeTest() {
+        // Test an empty table
+        table.clearTable();
+        assertEquals(0, table.getCurrentSize());
 
+        // Test a table with some slots filled
         int slotsFilled = fillSomeSlots();
-        assertEquals(slotsFilled, table.countCards());
+        assertEquals(slotsFilled, table.getCurrentSize());
+
+        // Test a table with all slots filled
+        fillAllSlots();
+        assertEquals(slotToCard.length, table.getCurrentSize());
     }
 
     @Test
     void countCards_AllSlotsAreFilled() {
-
         fillAllSlots();
-        assertEquals(slotToCard.length, table.countCards());
+        assertEquals(slotToCard.length, table.getCurrentSize());
     }
 
     @Test
     void placeCard_SomeSlotsAreFilled() throws InterruptedException {
-
         fillSomeSlots();
         placeSomeCardsAndAssert();
     }
@@ -94,6 +107,27 @@ class TableTest {
         fillAllSlots();
         placeSomeCardsAndAssert();
     }
+
+    // Test placeCard()
+    @Test
+    void placeCard_SlotIsAlreadyFilled() throws InterruptedException {
+        fillSomeSlots();
+        table.placeCard(9, 2);
+        table.placeCard(8, 2);
+        assertEquals(8, (int) slotToCard[2]);
+        assertEquals(2, (int) cardToSlot[8]);
+    }
+
+    // Test table.removeCard()
+    @Test
+    void removeCardTest() throws InterruptedException {
+        table.placeCard(77, 2);
+        table.removeCard(2);
+        assertEquals(null, slotToCard[2]);
+        assertEquals(null, cardToSlot[77]);
+    }
+
+
 
     static class MockUserInterface implements UserInterface {
         @Override

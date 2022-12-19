@@ -9,6 +9,12 @@ public class Claim{
     public final int claimVersion;
     public boolean validSet;
 
+
+    /**
+     * @param cards - the cards in the claim
+     * @param claimer - the player who made the claim
+     * @param claimVersion - the version of the claim
+     */
     public Claim(Integer[] cards, Player claimer,int claimVersion){
         this.cards = cards;
         this.claimer = claimer;
