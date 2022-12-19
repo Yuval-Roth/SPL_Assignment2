@@ -6,6 +6,7 @@ import bguspl.set.ex.Player.State;
 
 public class WaitingForClaimResult extends PlayerState {
 
+    private static final int WAIT_FOR_CLAIM_MAX_TRIES = 10;
     private volatile Object claimListener;
 
     public WaitingForClaimResult(Player player) {
@@ -20,7 +21,7 @@ public class WaitingForClaimResult extends PlayerState {
     public void run() {
         //number of tries to wait for claim result
         int tries = 0;
-        while(stillThisState() & tries < 10){  
+        while(stillThisState() & tries < WAIT_FOR_CLAIM_MAX_TRIES){  
             try{
                 //wait for claim result
                 synchronized(claimListener){claimListener.wait(generateWaitingTime());}
@@ -33,7 +34,7 @@ public class WaitingForClaimResult extends PlayerState {
         }
 
         //disaster recovery if claim result was not notified
-        if(tries >= 10 & stillThisState()){
+        if(tries >= WAIT_FOR_CLAIM_MAX_TRIES & stillThisState()){
             changeToState(State.turningInClaim);
         }   
     }

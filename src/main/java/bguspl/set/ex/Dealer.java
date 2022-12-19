@@ -13,8 +13,9 @@ import java.util.stream.IntStream;
 public class Dealer implements Runnable {
 
     public static final int SET_SIZE = 3;
-    private static final int timerUpdateCriticalTickTime = 25;
-    private static final int timerUpdateTickTime = 250;
+    private static final int TIMER_UPDATE_CRITICAL_TICK_TIME = 25;
+    private static final int TIMER_UPDATE_TICK_TIME = 250;
+    private static final int TIMER_PADDING = TIMER_UPDATE_TICK_TIME*2;
 
     /**
      * The game environment object.
@@ -148,11 +149,11 @@ public class Dealer implements Runnable {
                 }
                 case elapsedTimerMode: {
                     runElapsedTimeMode();
-                break;
+                    break;
                 }
                 case noTimerMode: {
                     runNoTimerMode();
-                break;
+                    break;
                 }
             }
         }
@@ -186,8 +187,7 @@ public class Dealer implements Runnable {
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
             handleClaimedSet(claim);
-            updateTimerDisplay(false);
-            resetDebuggingTimer();
+            // updateTimerDisplay(false);
         }
         claimQueueAccess.release(players.length);
     }
@@ -290,7 +290,7 @@ public class Dealer implements Runnable {
              if (deck.size() >= SET_SIZE /*&& !shouldFinish() */ ) { //TODO: Test the shouldFinish() condition
                 placeCardsFromClaim();
              }
-            updateTimerDisplay(true);
+             updateTimerDisplay(true);
             claim.validSet = true;
             claim.claimer.notifyClaim(claim);
             for(Player player : players){
@@ -482,16 +482,10 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        if (timerMode == TimerMode.countdownTimerMode) {
-            if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
-                    reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
-        }
-        else if (timerMode == TimerMode.elapsedTimerMode) { // TODO: Implement noTimerMode here too
-            if (reset) elapsedTime = System.currentTimeMillis();
-            env.ui.setCountdown(System.currentTimeMillis() - elapsedTime, false);
-        }
-    }
+        if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        env.ui.setCountdown(reshuffleTime - System.currentTimeMillis()+TIMER_PADDING,
+                reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+}
 
     /**
      * Updates the elapsed time display.
@@ -574,7 +568,7 @@ public class Dealer implements Runnable {
      */
     private void updateNextWakeTime() {
         nextWakeTime =  reshuffleTime-System.currentTimeMillis() > env.config.turnTimeoutWarningMillis ?
-            System.currentTimeMillis()+timerUpdateTickTime : System.currentTimeMillis()+timerUpdateCriticalTickTime;
+            System.currentTimeMillis()+TIMER_UPDATE_TICK_TIME : System.currentTimeMillis()+TIMER_UPDATE_CRITICAL_TICK_TIME;
     }
 
     /**
