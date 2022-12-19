@@ -220,7 +220,6 @@ public class Dealer implements Runnable {
 
 
     private void startElapsedTimer() {
-
         updateElapsedTimeDisplay(true);
         while(terminate == false){
             updateNextWakeTime();
@@ -485,12 +484,13 @@ public class Dealer implements Runnable {
         if (!terminate) {
             if (timerMode == TimerMode.countdownTimerMode) {
                 if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
-                env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),
+                env.ui.setCountdown(reshuffleTime - System.currentTimeMillis() + TIMER_PADDING,
                         reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
-            } else if (timerMode == TimerMode.elapsedTimerMode) { // TODO: Implement noTimerMode here too
-                if (reset) elapsedTime = System.currentTimeMillis();
-                env.ui.setCountdown(System.currentTimeMillis() - elapsedTime, false);
+            } else if (timerMode == TimerMode.elapsedTimerMode) {
+                updateElapsedTimeDisplay(reset);
             }
+
+            // In No Timer mode, the timer display is not updated as it is not needed.
         }
 }
 
@@ -498,8 +498,10 @@ public class Dealer implements Runnable {
      * Updates the elapsed time display.
      */
     private void updateElapsedTimeDisplay(boolean reset){
-        if(reset) elapsedTime = System.currentTimeMillis();   
-        env.ui.setElapsed(System.currentTimeMillis() - elapsedTime);
+        if (!terminate) {
+            if (reset) elapsedTime = System.currentTimeMillis();
+            env.ui.setElapsed(System.currentTimeMillis() - elapsedTime + TIMER_PADDING);
+        }
     }
 
     /**
