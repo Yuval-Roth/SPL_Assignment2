@@ -199,12 +199,18 @@ public class Dealer implements Runnable {
         dealCardsRandomly();
         resumePlayerThreads();
         startNoTimer();
+        pausePlayerThreads();
+        if(terminate) return;
+        removeAllCardsFromTable();
     }
 
     private void runElapsedTimeMode() {
         dealCardsRandomly();
         resumePlayerThreads();
         startElapsedTimer();
+        pausePlayerThreads();
+        if(terminate) return;
+        removeAllCardsFromTable();
     }
 
     private void countdownModeLoop() {
@@ -367,16 +373,15 @@ public class Dealer implements Runnable {
      */
     private void dealCardsRandomly() {
         LinkedList<Integer> slots = table.getCardsPlacementSlotsOrder();
+        while (env.util.findSets(deck.subList(0,slots.size()) , 1).size() == 0) {
+            shuffleDeck();
+        }
         for(Integer slot : slots){
             Integer cardToPlace = deck.get(0);
             deck.remove(0);
             table.placeCard(cardToPlace,slot);
         }
-        while (env.util.findSets(table.getCardsOnTable(), 1).size() == 0) {
-            shuffleDeck();
-            removeAllCardsFromTable();
-            placeCardsOnTable();
-        }
+
     }
 
     /**
