@@ -169,7 +169,6 @@ public class Dealer implements Runnable {
             while(terminate == false & reshuffleTime > System.currentTimeMillis() & nextWakeTime > System.currentTimeMillis()){
                 updateTimerDisplay(false);
                 sleepUntilWokenOrTimeout();
-
                 if(claimQueue.isEmpty() == false){
                     processClaims();
                 }
@@ -214,6 +213,8 @@ public class Dealer implements Runnable {
             pausePlayerThreads();
             if(terminate) break;
             removeAllCardsFromTable();
+            if (shouldFinish())
+                terminate();
             shuffleDeck();
         }
     }
@@ -303,9 +304,9 @@ public class Dealer implements Runnable {
         }else {
             claim.claimer.notifyClaim(claim);;
         }
-        if (shouldFinish()) {
-            terminate = true;
-        }
+//        if (shouldFinish()) {
+//            terminate = true;
+//        }
     }
 
     private void placeCardsFromClaim() {

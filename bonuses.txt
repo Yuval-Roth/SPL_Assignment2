@@ -12,18 +12,24 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-we supported the configuration fields by using dynamic sizes that pull the numbers from env.config.
+We supported the configuration fields by using dynamic sizes that pull the numbers from env.config.
 for numbers not in the config we used static final fields with NAMES_LIKE_THIS (according to the convention in java)
 in order to avoid the use of magic numbers.
+
+This was tested by changing every configuration field and seeing that the game works as expected.
+
 
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-we started all the player threads in the order they are in the player threads array and terminated them in
-the reverse order. this is enabled by the dealer joining the player thread when terminating the player and the 
+We started all the player threads in the order they are in the player threads array and terminated them in
+the reverse order. This is enabled by the dealer joining the player thread when terminating the player and the
 player thread waiting for the AI thread before terminating. The dealer waited for each player thread 
 to terminate before proceeding to the next player and finally terminated himself.
+
+We log and print the start and termination of each thread, and it can be seen that the threads are terminated
+in the correct order.
 
 
 --------------------
@@ -35,6 +41,11 @@ Note: in modes without a countdown timer the dealer must ensure there is always 
 
 We supported this configuration field by implementing 3 different timer modes in dealer class.
 
+In the dealer constructor we check the value of the configuration field and set the timer mode accordingly.
+Later in the dealer run method we check the timer mode and call a different start method according to the switch case.
+
+We tested this by changing the configuration field and seeing that the timer works as expected.
+
 --------------------
 
 4. Making sure that the threads do not wake up unless some actual job needs to be done (e.g., a value needs to be
@@ -44,7 +55,10 @@ changed on the display, key input needs to be handled, etc.) and the only thread
 we have created exactly 1 thread for dealer, 1 thread for each player and 1 thread for each AI.
 the dealer waits for claimsets, the player thread waits for clicks and then wakes up the dealer so that he
 checks the claimset. the baseline states for every thread is waiting. We have allowed the AI to perform some
-tasks while the player thread is 'busy' in order to speed up and enchance the AI's performance. but even then,
+tasks while the player thread is 'busy' in order to speed up and enhance the AI's performance. but even then,
 between these tasks the AI waits for a designated period.
+
+We log and print the start and termination of each thread, and it can be seen that there are no
+ redundant threads created.
 
 
