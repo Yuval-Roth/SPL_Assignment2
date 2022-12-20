@@ -86,8 +86,6 @@ public class Player implements Runnable {
      */
     private volatile ConcurrentLinkedQueue<Claim> claimQueue;
 
-    // private volatile Boolean claimNotification;
-
     private volatile PlayerState state;
 
     /**
@@ -185,6 +183,11 @@ public class Player implements Runnable {
 
         //while the game is still running
         while (getState() != State.terminated) {
+
+            // This runs the current state's main method.
+            // When the state is changed, the state's main method will return here
+            // and the new state's main method will be called.
+            // we use the states design pattern in order to control the flow of the player's thread
             state.run();
         }
 
@@ -217,6 +220,8 @@ public class Player implements Runnable {
 
         State state = getState();
 
+
+        // we allow the player to receive a claim only if he is waiting for a claim or waiting for key presses
         if(state == State.waitingForActivity | state == State.waitingForClaimResult | state == State.turningInClaim){
             claimQueueAccess.acquireUninterruptibly();
             claimQueue.add(claim);
@@ -229,6 +234,10 @@ public class Player implements Runnable {
      * Pauses the player's ability to interact with the game
      */
     public void pause(){
+
+        // here we want to push the player thread into a waiting state
+        // so we are gonna wake him up from every possible waiting state
+
         int tries = 0;
         do {
             if(tries++ % 10 == 0) setState(State.pausingExecution);
@@ -279,9 +288,29 @@ public class Player implements Runnable {
     }
 
     //===========================================================
-    //                  utility methods
+    //                  Getters / Setters
     //===========================================================
+    
+    public int getScore() {return score;}
+    public int incrementAndGetScore() {return ++score;}
+    public State getState() {return state.stateName();}
+    public void setState(State state) {this.state = playerStates[state.ordinal()];}
+    public void setFreezeRemainder(long remainder) {this.freezeRemainder = remainder;}
+    public long getFreezeRemainder() {return freezeRemainder;}
+    public Env getEnv() {return env;}
+    public Table getTable() {return table;}
+    public LinkedList<Integer> getPlacedTokens() {return placedTokens;}
+    public Dealer getDealer() {return dealer;}
+    public ConcurrentLinkedQueue<Claim> getClaimQueue() {return claimQueue;}
+    public Semaphore getClaimQueueAccess() {return claimQueueAccess;}
+    public Object getActivityListener() {return activityListener;}
+    public Object getExecutionListener() {return executionListener;}
+    public Object getClaimListener() {return claimListener;}
+    public ConcurrentLinkedQueue<Integer> getClickQueue() {return clickQueue;}
 
+     //===========================================================
+    //                  debugging methods
+    //===========================================================
 
     /**
     * dumps the player's data to the console.
@@ -311,27 +340,6 @@ public class Player implements Runnable {
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(claimListener){claimListener.notifyAll();}
     }
-
-    //===========================================================
-    //                  Getters / Setters
-    //===========================================================
-    
-    public int getScore() {return score;}
-    public int incrementAndGetScore() {return ++score;}
-    public State getState() {return state.stateName();}
-    public void setState(State state) {this.state = playerStates[state.ordinal()];}
-    public void setFreezeRemainder(long remainder) {this.freezeRemainder = remainder;}
-    public long getFreezeRemainder() {return freezeRemainder;}
-    public Env getEnv() {return env;}
-    public Table getTable() {return table;}
-    public LinkedList<Integer> getPlacedTokens() {return placedTokens;}
-    public Dealer getDealer() {return dealer;}
-    public ConcurrentLinkedQueue<Claim> getClaimQueue() {return claimQueue;}
-    public Semaphore getClaimQueueAccess() {return claimQueueAccess;}
-    public Object getActivityListener() {return activityListener;}
-    public Object getExecutionListener() {return executionListener;}
-    public Object getClaimListener() {return claimListener;}
-    public ConcurrentLinkedQueue<Integer> getClickQueue() {return clickQueue;}
 
     //===========================================================
     //                  AI class
@@ -365,6 +373,8 @@ public class Player implements Runnable {
 
             while (getState() != State.terminated) {
 
+                
+                //wait until the player thread is waiting for activity and ready to accept key presses
                 while(getState() != State.waitingForActivity & getState() != State.pausingExecution){
                     try{
                         synchronized(AIListener){
@@ -372,11 +382,13 @@ public class Player implements Runnable {
                         }
                     }catch(InterruptedException ignored){}
                 }
+                
                 Integer[] keysArray = secretService.getIntel(); //get the keys to press
 
+                // here we build the lists for the keys to press and remove the keys that are already pressed
+                // this is done so the AI doesn't waste key presses and time and generally behave more like a human
                 LinkedList<Integer> keysToPlace = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new));
                 LinkedList<Integer> keysToRemove = new LinkedList<>();
-
                 synchronized(placedTokens){
                     for(Integer key : placedTokens){ 
                         if(keysToPlace.contains(key)){
@@ -384,9 +396,12 @@ public class Player implements Runnable {
                         }else keysToRemove.add(key);
                     }
                 }
+                //================================================================================================
             
                 int currentScore = score; //score before the AI makes a move
 
+
+                //press the keys
                 while(keysToPlace.isEmpty() == false & getState() == State.waitingForActivity){
 
                     // limit how fast the AI clicks buttons
@@ -426,7 +441,6 @@ public class Player implements Runnable {
                 if(getState() == State.pausingExecution | getState() == State.paused){
                     try{
                         AIRunning = false; //AI is not running while game is paused
-                        // System.out.println("AI paused at: "+System.currentTimeMillis());
                         synchronized(executionListener){
                             executionListener.wait();
                         }

@@ -24,17 +24,21 @@ public class Table {
     /**
      * Mapping between a slot and the card placed in it (null if none).
      */     
-    protected Integer[] slotToCard; // card per slot (if any).
-    // Used to be final, we changed it to be able to reset the table
+    protected final Integer[] slotToCard; // card per slot (if any).
 
     /**
      * Mapping between a card and the slot it is in (null if none).
      */
-    protected Integer[] cardToSlot; // slot per card (if any).
-    // Used to be final, we changed it to be able to reset the table
+    protected final Integer[] cardToSlot; // slot per card (if any).
 
+    /**
+     * The number of cards currently on the table.
+     */
     private int cardCount;
 
+    /**
+     * used by the dealer to know in which order to place/remove cards
+     */
     private LinkedList<Integer> cardsPlacementSlotsOrder;
 
     /**
@@ -154,24 +158,29 @@ public class Table {
         env.ui.removeToken(player, slot);
     }
 
-    /*
+    /**
      * Clears the table of all cards and tokens.
      * @return - array of cards that were on the table.
      * @post - the table is empty.
      */
     public Integer[] clearTable() {
+
+        // here we get a list of slots that have cards in them and then shuffle that list
+        // to get a random order of cards removal
         cardsPlacementSlotsOrder = Arrays.stream(slotToCard)
         .filter(Objects::nonNull).map(i->cardToSlot[i]).collect(Collectors.toCollection(LinkedList::new));
         Collections.shuffle(cardsPlacementSlotsOrder);
 
-        Integer[] cardsRemoved = new Integer[getCurrentSize()];
+        // the cards that were on the table, this will be returned to the caller
+        Integer[] cardsRemoved = new Integer[getCurrentSize()]; 
 
+
+        // remove all cards from the table
         int i = 0;
         for (Integer slot : cardsPlacementSlotsOrder) {
             cardsRemoved[i++] = slotToCard[slot];
             removeCard(slot);
         }
-        // Collections.reverse(cardsPlacementSlotsOrder);
         return cardsRemoved;
     }
 
@@ -198,7 +207,6 @@ public class Table {
         return env.util.findSets(tableCards, 1).size();
     }
 
-    
     /**
      * @param slot - slot number
      * @return true if the slot is empty and false otherwise
@@ -207,15 +215,29 @@ public class Table {
         return slotToCard[slot] == null;
     }
 
+    /**
+     * @param card
+     * @return slot number
+     */
     public int getSlotFromCard(int card) {
         return cardToSlot[card];
     }
     
+    /**
+     * Returns a shuffled list of slots that had cards on them
+     * according to the last call to clearTable()
+     * @return
+     */
     public LinkedList<Integer> getCardsPlacementSlotsOrder() {
         Collections.shuffle(cardsPlacementSlotsOrder);
         return cardsPlacementSlotsOrder;
     }
     
+    /**
+     * Returns a list of cards that are currently on the table
+     * without removing them from the table
+     * @return
+     */
     public LinkedList<Integer> getCardsOnTable(){
         LinkedList<Integer> cardsOnTable = new LinkedList<>();
         for (int i = 0; i < slotToCard.length; i++) {

@@ -322,8 +322,6 @@ public class Dealer implements Runnable {
             return false;
         }
 
-
-
         claimQueueAccess.acquireUninterruptibly(1);
         claimQueue.add(new Claim(cards,claimer,claimVersion));
         claimQueueAccess.release(1);
