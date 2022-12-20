@@ -11,10 +11,13 @@ public class PausingExecution extends PlayerState {
 
     @Override
     public void run() {
-            clearAllPlacedTokens();
-            clearClickQueue();
-            changeToState(State.paused);
-        }      
+
+        // cleaning up before pausing the player
+        clearAllPlacedTokens();
+        clearClickQueue();
+
+        changeToState(State.paused);
+    }      
 
     @Override
     public State stateName() {

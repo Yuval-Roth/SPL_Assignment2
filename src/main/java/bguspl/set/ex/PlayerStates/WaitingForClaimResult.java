@@ -33,7 +33,10 @@ public class WaitingForClaimResult extends PlayerState {
             }else  tries++; //if no claim was notified, increment tries
         }
 
-        //disaster recovery if claim result was not notified
+        // disaster recovery if claim result got lost due to a limitation in java's concurrent data structures.
+        // this is a very rare case, but it can happen.
+        // this just makes sure that the player does not get stuck in this state.
+        // realistically, it just sends the player back to the previous state to try again.
         if(tries >= WAIT_FOR_CLAIM_MAX_TRIES & stillThisState()){
             changeToState(State.turningInClaim);
         }   
@@ -47,16 +50,22 @@ public class WaitingForClaimResult extends PlayerState {
      */
     private void handleNotifiedClaim() {
 
+        // this variable is used to store the action that should be performed after the claim is handled
+        // the base value is 0, which means no action should be performed
         int action = 0;
+
         boolean cardsRemoved = false;
         claimQueueAccess.acquireUninterruptibly();
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
+
+            // this part is for the case when the player is the claimer
             if(claim.claimer == player){
                 action = claim.validSet ? 1:-1;
                 break;
             }
             else{ 
+                // this part is for the case when the player is not the claimer
                 if(claim.validSet){
                     for(Integer card : claim.cards){
                         if(placedTokens.contains(card)){
@@ -68,7 +77,11 @@ public class WaitingForClaimResult extends PlayerState {
             }        
         }
         claimQueueAccess.release();
+
+        //if the player's placed tokens were cleared, change state to waitingForActivity
         if(cardsRemoved & stillThisState()) changeToState(State.waitingForActivity);
+
+        // here we handle the action that was decided in the previous part
         switch(action){
             case 0 : break;
             case 1:{
@@ -89,7 +102,11 @@ public class WaitingForClaimResult extends PlayerState {
      */
     private void point() {
         env.ui.setScore(player.id, player.incrementAndGetScore());
+
+        // if the player claimed a valid set we want to clear all of his placed tokens
         clearAllPlacedTokens();
+
+        // this is an optimization to skip the frozen state if the freeze time is 0
         if(env.config.pointFreezeMillis > 0 & stillThisState()){
             player.setFreezeRemainder(env.config.pointFreezeMillis);
             changeToState(State.frozen);
@@ -101,6 +118,8 @@ public class WaitingForClaimResult extends PlayerState {
      * Penalize a player and perform other related actions.
      */
     private void penalty() {
+
+        //this is an optimization to skip the frozen state if the freeze time is 0
         if(env.config.penaltyFreezeMillis > 0 & stillThisState()){
             player.setFreezeRemainder(env.config.penaltyFreezeMillis);
             changeToState(State.frozen);

@@ -47,18 +47,27 @@ public class TurningInClaim extends PlayerState {
         return dealer.claimSet(array, player,version);     
     }
 
+    /**
+     * @pre - The claimQueue is not empty.
+     * @post - The claimQueue is empty.
+     * @post - The player has removed all cards that were already claimed by another player.
+     *  and if so, changed to the waitingForActivity state if it was still in the turningInClaim state.
+     */
     private void handleNotifiedClaim() {
-        
+
         boolean cardsRemoved = false;
         claimQueueAccess.acquireUninterruptibly();
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
+
+            // in this state the only thing that can be notified is a claim
+            // that a different player has made, thus no need to check if it is our claim
             for(Integer card : claim.cards){
                 if(placedTokens.contains(card)){
                     clearPlacedToken(card);
                     cardsRemoved = true;
                 }
-            }            
+            }
         }
         claimQueueAccess.release();
         

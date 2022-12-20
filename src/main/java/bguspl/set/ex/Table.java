@@ -120,7 +120,7 @@ public class Table {
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
      */
-    public int removeCard(int slot) {
+    public void removeCard(int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
@@ -129,9 +129,7 @@ public class Table {
             slotToCard[slot] = null;
             env.ui.removeCard(slot);
             cardCount--;
-            return slot;
         }
-        return slot;
     }
 
     /**
@@ -226,7 +224,6 @@ public class Table {
     /**
      * Returns a shuffled list of slots that had cards on them
      * according to the last call to clearTable()
-     * @return
      */
     public LinkedList<Integer> getCardsPlacementSlotsOrder() {
         Collections.shuffle(cardsPlacementSlotsOrder);
@@ -236,7 +233,6 @@ public class Table {
     /**
      * Returns a list of cards that are currently on the table
      * without removing them from the table
-     * @return
      */
     public LinkedList<Integer> getCardsOnTable(){
         LinkedList<Integer> cardsOnTable = new LinkedList<>();

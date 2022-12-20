@@ -43,18 +43,24 @@ public class WaitingForActivity extends PlayerState {
     }
 
     /**
-     * If a token is placed in the given slot, remove it.
-     * Otherwise, place a token in the given slot.
-     * Placing or removing a token sends a message to the table.
-     * Claims a set if the player has placed a full set.
-     * @post - the token is placed or removed from the given slot.
+     * places or removes a token from the table.
+     * 
+     * @post - if the token was placed, it is added to the list of placed tokens.
+     * @post - if the token was removed, it is removed from the list of placed tokens.
+     * @post - if the player has placed enough tokens, the set is claimed.
+     * @param slot - the slot to place or remove a token from.
      */
     private void placeOrRemoveToken(Integer slot){
 
         if(placedTokens.contains(slot) == false){
+
+            // this limits the number of tokens that can be placed to the number of cards in a set
             if(placedTokens.size() == Dealer.SET_SIZE){
                 return;
             }
+ 
+            // we try to place a token in slot. this could fail due to the slot being null during the time
+            // when a card is removed and another card is instered in the slot. so, we try a few times.
             boolean insertState = false;
             int tries = 0;
             while(insertState == false & tries <=5 & stillThisState()){
@@ -62,6 +68,10 @@ public class WaitingForActivity extends PlayerState {
                 tries++;
                 try{Thread.sleep(10);}catch(InterruptedException ignored){}
             }
+            //================================================================================================|
+
+            // if the token was placed, add it to the list of placed tokens.
+            // if the player has placed enough tokens, claim the set.
             if(insertState){
                 placedTokens.addLast(slot);
                 if(placedTokens.size() == Dealer.SET_SIZE) {
@@ -71,15 +81,25 @@ public class WaitingForActivity extends PlayerState {
             }
         }
         else {
+            // here we remove the token from the slot
             clearPlacedToken(slot);       
         }
     }
     
+    /**
+     * @pre - The claimQueue is not empty.
+     * @post - The claimQueue is empty.
+     * @post - The player has removed all cards that were already claimed by another player.
+     *  and if so, changed to the waitingForActivity state if it was still in the turningInClaim state.
+     */
     private void handleNotifiedClaim() {
 
         claimQueueAccess.acquireUninterruptibly();
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
+
+            // in this state the only thing that can be notified is a claim
+            // that a different player has made, thus no need to check if it is our claim
             for(Integer card : claim.cards){
                 if(placedTokens.contains(card)){
                     clearPlacedToken(card);
