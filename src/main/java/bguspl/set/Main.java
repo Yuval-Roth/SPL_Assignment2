@@ -18,19 +18,16 @@ import java.util.logging.*;
 public class Main {
 
     private static Dealer dealer;
-    private static Thread thread;
+    private static Thread mainThread;
 
     private static boolean xButtonPressed = false;
     private static Logger logger;
-    private static UserInterface ui;
 
-    public static void xButtonPressed() {
+    public static void xButtonPressed() throws InterruptedException {
         if (logger != null) logger.severe("exit button pressed");
         xButtonPressed = true;
         if (dealer != null) dealer.terminate();
-        thread.interrupt();
-        try { thread.join(); } catch (InterruptedException ignored) {}
-        ui.dispose();
+        mainThread.join();
     }
 
     /**
@@ -40,7 +37,7 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        thread = Thread.currentThread();
+        mainThread = Thread.currentThread();
 
         // create the game environment objects
         logger = initLogger();
@@ -49,6 +46,7 @@ public class Main {
         Util util = new UtilImpl(config);
 
         Player[] players = new Player[config.players];
+        UserInterface ui = null;
         try {
             ui = new UserInterfaceSwing(logger, config, players);
         } catch (UnsupportedOperationException | IllegalArgumentException e) {
@@ -74,20 +72,15 @@ public class Main {
         try {
             // shutdown stuff
             dealerThread.joinWithLog();
-            if (!xButtonPressed && config.endGamePauseMillies > 0){
-                try{Thread.sleep(config.endGamePauseMillies);}
-                catch(InterruptedException ignored){}
-                ui.dispose();
-            } 
+            if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
         } catch (InterruptedException ignored) {
-            try{
-                dealerThread.join();
-            }catch(InterruptedException ignored2){}
+        } finally {
+            logger.severe("thanks for playing... it was fun!");
+            System.out.println("Thanks for playing... it was fun!");
+            ThreadLogger.logStop(logger, Thread.currentThread().getName());
+            if (!xButtonPressed) env.ui.dispose();
+            for (Handler h : logger.getHandlers()) h.flush();
         }
-        logger.severe("thanks for playing... it was fun!");
-        System.out.println("Thanks for playing... it was fun!");
-        ThreadLogger.logStop(logger, Thread.currentThread().getName());
-        for (Handler h : logger.getHandlers()) h.close();
     }
 
     private static Logger initLogger() {
