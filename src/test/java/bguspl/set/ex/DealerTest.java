@@ -36,10 +36,13 @@ class DealerTest {
     @BeforeEach
     void setUp() {
         Logger logger = new MockLogger();
+        ui = new UserInterfaceImpl(logger);
         Env env = new Env(logger, new Config(logger, "config.properties"), ui, util);
+        table = new Table(env);
         player = new Player(env, dealer, table, 0, true);
         Player[] players = {player};
         dealer = new Dealer(env, table, players);
+
     }
 
 
@@ -54,8 +57,14 @@ class DealerTest {
     }
 
     @Test
-    void isValidSet() {
+    void isValidSetCorrect() {
+        table.placeCard(1, 1);
+        table.placeCard(2, 2);
+        table.placeCard(3, 3);
+        assertEquals(true, dealer.isValidSet(new Integer[]{1, 2, 3}));
+
     }
+
 
 
     static class MockUserInterface implements UserInterface {
