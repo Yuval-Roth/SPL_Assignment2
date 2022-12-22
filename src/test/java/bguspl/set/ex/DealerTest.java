@@ -1,9 +1,6 @@
 package bguspl.set.ex;
 
-import bguspl.set.Config;
-import bguspl.set.Env;
-import bguspl.set.UserInterface;
-import bguspl.set.Util;
+import bguspl.set.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,12 +29,16 @@ class DealerTest {
 
     @Mock
     Util util;
+    @Mock
+    Config config;
 
     @BeforeEach
     void setUp() {
         Logger logger = new MockLogger();
-        ui = new UserInterfaceImpl(logger);
-        Env env = new Env(logger, new Config(logger, "config.properties"), ui, util);
+        UserInterface ui = new MockUserInterface();
+        Config config = new Config(logger, "");
+        util = new UtilImpl(config);
+        Env env = new Env(logger, config, ui, util);
         table = new Table(env);
         player = new Player(env, dealer, table, 0, true);
         Player[] players = {player};
@@ -67,7 +68,13 @@ class DealerTest {
         table.placeCard(1, 1);
         table.placeCard(2, 2);
         table.placeCard(3, 3);
-        assertEquals(true, dealer.isValidSet(new Integer[]{1, 2, 3}));
+        assertEquals(false, dealer.isValidSet(new Integer[]{1, 2, 3}));
+
+        table.placeCard(0, 4);
+        table.placeCard(1, 5);
+        table.placeCard(2, 6);
+        assertEquals(true, dealer.isValidSet(new Integer[]{4, 5, 6}));
+
 
     }
 
