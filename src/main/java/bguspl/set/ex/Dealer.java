@@ -101,6 +101,7 @@ public class Dealer implements Runnable {
      * True iff there are no more sets in the deck.
      */
     private boolean noMoreSets;
+    private boolean mHints;
 
     /**
      * All the possible timer modes.
@@ -121,6 +122,7 @@ public class Dealer implements Runnable {
         claimQueue = new ConcurrentLinkedQueue<>();
         gameVersionAccess = new Semaphore(1,true);
         claimQueueAccess = new Semaphore(players.length,true);
+        mHints = env.config.hints; 
 
         if (env.config.turnTimeoutMillis > 0) {
             timerMode = TimerMode.countdownTimerMode;
@@ -179,6 +181,9 @@ public class Dealer implements Runnable {
      */
     private void runNoTimerMode() {
         dealCardsRandomly();
+        if (mHints) {
+            table.hints();;
+        }
         resumePlayerThreads();
         startNoTimer();
         pausePlayerThreads();
@@ -194,6 +199,9 @@ public class Dealer implements Runnable {
      */
     private void runElapsedTimeMode() {
         dealCardsRandomly();
+        if (mHints) {
+            table.hints();;
+        }
         resumePlayerThreads();
         startElapsedTimer();
         pausePlayerThreads();
@@ -211,6 +219,9 @@ public class Dealer implements Runnable {
         reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             dealCardsRandomly();
+            if (mHints) {
+                table.hints();;
+            }
             resumePlayerThreads();
             startCountdownTimer();
             pausePlayerThreads();
@@ -358,6 +369,9 @@ public class Dealer implements Runnable {
              clearSlots(claim.cards);
              if (deck.size() >= SET_SIZE) {
                 placeCardsFromClaim();
+                if (mHints) {
+                    table.hints();;
+                }
              }
 
             updateTimerDisplay(true);
