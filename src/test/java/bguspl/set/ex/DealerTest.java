@@ -17,18 +17,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DealerTest {
 
-    @Mock
-    Table table;
+
     Dealer dealer;
     @Mock
-    Env env;
-
+    Table table;
     @Mock
-    Player player1;
+    Env env;
+    @Mock
+    Player player;
 
     @BeforeEach
     void setUp() {
-        Player p = new Player(env, dealer, table, 0, true);
+        
 
     }
 
