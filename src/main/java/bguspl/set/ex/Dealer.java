@@ -506,8 +506,6 @@ public class Dealer implements Runnable {
     * Checks if the given set of cards is a valid set.
     */
     public boolean isValidSet(Integer[] slots) {
-
-
         // get an int[] card array from the slots array while filtering out null slots
         slots = Arrays.stream(slots).map(i->table.slotToCard[i]).toArray(Integer[]::new);
         int[] cards = Arrays.stream(slots).filter(Objects::nonNull).mapToInt(i->i).toArray();
