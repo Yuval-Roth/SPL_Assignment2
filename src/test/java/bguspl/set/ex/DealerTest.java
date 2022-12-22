@@ -25,11 +25,20 @@ class DealerTest {
     Env env;
     @Mock
     Player player;
+    @Mock Logger logger;
+
+    @Mock
+    UserInterface ui;
+
+    @Mock
+    Util util;
 
     @BeforeEach
     void setUp() {
-        
-
+        Env env = new Env(logger, new Config(logger, ""), ui, util);
+        player = new Player(env, dealer, table, 0, true);
+        Player[] players = {player};
+        Dealer dealer = new Dealer(env, table, players);
     }
 
 
@@ -38,8 +47,9 @@ class DealerTest {
     }
 
     @Test
-    void terminate() {
-
+    void terminateTest() {
+        dealer.terminate();
+        assertEquals(true, dealer.terminate);
     }
 
     @Test
