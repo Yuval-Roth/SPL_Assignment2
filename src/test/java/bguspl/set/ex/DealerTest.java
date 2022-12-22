@@ -35,10 +35,11 @@ class DealerTest {
 
     @BeforeEach
     void setUp() {
-        Env env = new Env(logger, new Config(logger, ""), ui, util);
+        Logger logger = new MockLogger();
+        Env env = new Env(logger, new Config(logger, "config.properties"), ui, util);
         player = new Player(env, dealer, table, 0, true);
         Player[] players = {player};
-        Dealer dealer = new Dealer(env, table, players);
+        dealer = new Dealer(env, table, players);
     }
 
 
