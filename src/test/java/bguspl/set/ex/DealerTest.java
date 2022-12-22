@@ -49,8 +49,14 @@ class DealerTest {
 
     @Test
     void terminateTest() {
+        Thread dealThread = new Thread(dealer,"Dealer");
+        dealThread.start();
+        try{Thread.sleep(1000);}catch(InterruptedException ignored){}
+
         dealer.terminate();
-        assertEquals(true, dealer.terminate);
+        try{Thread.sleep(1000);}catch(InterruptedException ignored){}
+
+        assertEquals(Thread.State.TERMINATED, dealThread.getState());
     }
 
     @Test
