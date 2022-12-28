@@ -36,7 +36,7 @@ public class AISuperSecretIntelligenceService{
         cardsCount = env.config.tableSize;
         sets = new int[cardsCount][cardsCount][cardsCount];
 
-        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 25 : 1;
+        AI_WAIT_BETWEEN_KEY_PRESSES = env.config.penaltyFreezeMillis == 0 ? 25 : 250;
 
         switch(intelligenceStrength){
             case disabled:{
