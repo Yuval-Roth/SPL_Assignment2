@@ -620,7 +620,7 @@ public class Dealer implements Runnable {
                 // it causes a deadlock in linux for some reason out of our control 
                 if(terminate == false){
                     env.ui.setCountdown(reshuffleTime - System.currentTimeMillis() + TIMER_PADDING,
-                    reshuffleTime - System.currentTimeMillis() <= env.config.turnTimeoutWarningMillis);
+                    reshuffleTime - System.currentTimeMillis() + TIMER_PADDING <= env.config.turnTimeoutWarningMillis);
                 }
             } else if (timerMode == TimerMode.elapsedTimerMode) {
                 updateElapsedTimeDisplay(reset);

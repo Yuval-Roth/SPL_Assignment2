@@ -469,9 +469,9 @@ public class Player implements Runnable {
          * @return the wait time in milliseconds.
          */
         private int generateAIWaitTime() {
-            return (int)(Math.random()*
+            return Math.max((int)(Math.random()*
             (secretService.AI_WAIT_BETWEEN_KEY_PRESSES*(3.0/2.0) - secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0)+
-            secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0);
+            secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0),1);
         }
     }
 }
