@@ -21,7 +21,8 @@ public class Frozen extends PlayerState {
         //main freeze timer loop
         while(stillThisState() & freezeUntil >= System.currentTimeMillis() ){
             try{
-                synchronized(player){player.wait(Math.min(CLOCK_UPDATE_INTERVAL,player.getFreezeRemainder()));}
+                synchronized(player){player.wait(Math.min(CLOCK_UPDATE_INTERVAL,
+                                                    Math.max((int)(freezeUntil - System.currentTimeMillis()),1)));}
             } catch (InterruptedException ignored){}
             updateTimerDisplay(freezeUntil-System.currentTimeMillis()); 
         }
