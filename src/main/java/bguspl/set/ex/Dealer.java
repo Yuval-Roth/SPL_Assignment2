@@ -352,12 +352,7 @@ public class Dealer implements Runnable {
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
             handleClaimedSet(claim);
-            if(timerMode == TimerMode.countdownTimerMode){
-                updateTimerDisplay(false);
-            }
-            else if(timerMode == TimerMode.elapsedTimerMode){
-                updateElapsedTimeDisplay(false);
-            }
+            updateTimerDisplay(false);
         claimQueueAccess.release(players.length);
         }
     }
