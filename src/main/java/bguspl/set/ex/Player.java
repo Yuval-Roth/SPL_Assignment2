@@ -1,10 +1,8 @@
 package bguspl.set.ex;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
-import java.util.stream.Collectors;
 
 import bguspl.set.ex.PlayerStates.*;
 import bguspl.set.Env;
