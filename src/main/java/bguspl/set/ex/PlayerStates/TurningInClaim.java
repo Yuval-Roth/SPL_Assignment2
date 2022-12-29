@@ -7,10 +7,10 @@ import bguspl.set.ex.Player.State;
 
 public class TurningInClaim extends PlayerState {
     
-    private static final int MIN_RETRY_WAIT_TIME = 10;
-    private static final int MAX_RETRY_WAIT_TIME = 100;
+    private static final int MIN_RETRY_WAIT_TIME = 1;
+    private static final int MAX_RETRY_WAIT_TIME = 10;
 
-    private static final int CLICK_TIME_PADDING = 100;
+    // private static final int CLICK_TIME_PADDING = 100;
 
     public TurningInClaim(Player player) {
         super(player);
@@ -43,7 +43,7 @@ public class TurningInClaim extends PlayerState {
      */
     private boolean ClaimSet(Integer[] array) {
         int version = dealer.getGameVersion();
-        try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
+        // try{Thread.sleep(CLICK_TIME_PADDING);}catch(InterruptedException ignored){}
         return dealer.claimSet(array, player,version);     
     }
 

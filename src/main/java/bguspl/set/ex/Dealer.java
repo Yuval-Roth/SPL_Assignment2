@@ -148,7 +148,7 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         createPlayerThreads();
         elapsedTime = System.currentTimeMillis();
-        shuffleDeck();
+        // shuffleDeck();
         gameVersion = 0;
         while (!shouldFinish()){
             switch (timerMode) {
@@ -352,8 +352,14 @@ public class Dealer implements Runnable {
         while(claimQueue.isEmpty() == false){
             Claim claim = claimQueue.remove();
             handleClaimedSet(claim);
-        }
+            if(timerMode == TimerMode.countdownTimerMode){
+                updateTimerDisplay(false);
+            }
+            else if(timerMode == TimerMode.elapsedTimerMode){
+                updateElapsedTimeDisplay(false);
+            }
         claimQueueAccess.release(players.length);
+        }
     }
     
     /**
@@ -522,7 +528,6 @@ public class Dealer implements Runnable {
      * Terminates all the player threads
      */
     private void pausePlayerThreads() {   
-        if(env.config.computerPlayers > 0) Player.secretService.continueExecution = false;
         for(Player player : players){
             player.pause();
         }
@@ -532,8 +537,6 @@ public class Dealer implements Runnable {
      * resumes the player threads 
      */
     private void resumePlayerThreads() {
-        if(env.config.computerPlayers > 0) 
-            Player.secretService = new AISuperSecretIntelligenceService(env, this,table);
         for(Player player : players){
             player.resume();
         }

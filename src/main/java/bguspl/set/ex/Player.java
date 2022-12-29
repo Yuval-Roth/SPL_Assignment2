@@ -1,6 +1,7 @@
 package bguspl.set.ex;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -15,6 +16,11 @@ import bguspl.set.Env;
  * @inv score >= 0
  */
 public class Player implements Runnable {
+
+    /**
+     *
+     */
+    private static final int AI_WAIT_FOR_PLAYER_TO_FINISH_CLAIMSET = 1;
 
     /**
      * The player's possible states
@@ -214,71 +220,26 @@ public class Player implements Runnable {
                 }
             }catch(InterruptedException ignored){}
 
+            while(getState() != State.waitingForActivity){
+                try{Thread.sleep(10);}catch(InterruptedException ignored){}
+            }
+
             AIRunning = true; //AI is now running
             while (getState() != State.terminated) {
 
                 
                 //wait until the player thread is waiting for activity and ready to accept key presses
-                while(getState() != State.waitingForActivity & getState() != State.pausingExecution){
+                while(getState() != State.waitingForActivity & getState() != State.pausingExecution & getState() != State.paused){
                     try{
                         synchronized(AIListener){
-                            AIListener.wait(25);
+                            AIListener.wait(AI_WAIT_FOR_PLAYER_TO_FINISH_CLAIMSET);
                         }
                     }catch(InterruptedException ignored){}
                 }
-                
-                Integer[] keysArray = secretService.getIntel(); //get the keys to press
-
-                // here we build the lists for the keys to press and remove the keys that are already pressed
-                // this is done so the AI doesn't waste key presses and time and generally behave more like a human
-                LinkedList<Integer> keysToPlace = Arrays.stream(keysArray).collect(Collectors.toCollection(LinkedList::new));
-                LinkedList<Integer> keysToRemove = new LinkedList<>();
-                synchronized(placedTokens){
-                    for(Integer key : placedTokens){ 
-                        if(keysToPlace.contains(key)){
-                            keysToPlace.remove(key);
-                        }else keysToRemove.add(key);
-                    }
-                }
-                //================================================================================================
             
-                int currentScore = score; //score before the AI makes a move
-
-
                 //press the keys
-                while(getState() == State.waitingForActivity){
-
-                    // limit how fast the AI clicks buttons
-                    try{synchronized(AIListener){AIListener.wait(generateAIWaitTime());}
-                    } catch(InterruptedException ignored){}
-
-                    if(keysToRemove.isEmpty() == false){
-                        keyPressed_AI(generateKeyPress);
-                    }
-                    else{
-                        keyPressed_AI(keysToPlace.remove(0));
-                    }  
-                }
-
-                //if the player is waiting, gather intel
-                while(getState() == State.waitingForClaimResult | getState() == State.turningInClaim){
-                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-                    } catch(InterruptedException ignored){}
-                    secretService.gatherIntel();
-                }
-
-                //if the game does not need to be paused, report the claim
-                if(getState() != State.pausingExecution & getState() !=State.paused){
-                    if (currentScore < score)
-                        secretService.reportSetClaimed(keysArray);
-                    else secretService.sendIntel(keysArray,false); 
-                }
-
-                //if the player is frozen, gather intel
-                while(getState() == State.frozen){
-                    try{synchronized(AIListener){AIListener.wait(secretService.WAIT_BETWEEN_INTELLIGENCE_GATHERING);}
-                    }catch(InterruptedException ignored){}
-                    secretService.gatherIntel();
+                while(getState() != State.pausingExecution & getState() != State.paused){
+                    keyPressed_AI(generateKeyPress());
                 }
 
                 //if the game needs to be paused, wait until it is unpaused
@@ -368,17 +329,22 @@ public class Player implements Runnable {
     }
 
     /**
-         * This method is called when a key is pressed.
-         * This method is called by the AI thread.
-         *
-         * @param slot - the slot corresponding to the key pressed.
-         */
-        private void keyPressed_AI(int slot) {
-            if(getState() == State.waitingForActivity){
-                clickQueue.add(slot);
-                synchronized(activityListener){activityListener.notifyAll();}    
-            }
+     * This method is called when a key is pressed.
+     * This method is called by the AI thread.
+     *
+     * @param slot - the slot corresponding to the key pressed.
+     */
+    private void keyPressed_AI(int slot) {
+        if(getState() == State.waitingForActivity){
+            clickQueue.add(slot);
+            synchronized(activityListener){activityListener.notifyAll();}    
         }
+    }
+
+    private int generateKeyPress(){
+        Random rand = new Random();
+        return rand.nextInt(env.config.tableSize);
+    }
 
     /**
      * Called when the game should be terminated due to an external event.
@@ -446,40 +412,5 @@ public class Player implements Runnable {
         synchronized(executionListener){executionListener.notifyAll();}
         synchronized(activityListener){activityListener.notifyAll();}
         synchronized(claimListener){claimListener.notifyAll();}
-    }
-
-    //===========================================================
-    //                  AI class
-    //===========================================================
-
-      /**
-     * The AI service
-     */
-    public static AISuperSecretIntelligenceService secretService;
-
-    /**
-     * This class is used to create a thread for the AI player.
-     * The AI thread repeatedly generates key presses.........
-     * and does other very secretive things while the player thread is busy... SHHH!
-     */
-    private final class AI implements Runnable {
-        @Override
-        public void run() {
-            
-
-            
-        }
-
-        
-
-        /**
-         * Generates a random wait time between key presses for the AI.
-         * @return the wait time in milliseconds.
-         */
-        private int generateAIWaitTime() {
-            return Math.max((int)(Math.random()*
-            (secretService.AI_WAIT_BETWEEN_KEY_PRESSES*(3.0/2.0) - secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0)+
-            secretService.AI_WAIT_BETWEEN_KEY_PRESSES/2.0),1);
-        }
     }
 }
