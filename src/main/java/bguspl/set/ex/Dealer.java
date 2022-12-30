@@ -148,7 +148,6 @@ public class Dealer implements Runnable {
         System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
         createPlayerThreads();
         elapsedTime = System.currentTimeMillis();
-        // shuffleDeck();
         gameVersion = 0;
         while (!shouldFinish()){
             switch (timerMode) {
