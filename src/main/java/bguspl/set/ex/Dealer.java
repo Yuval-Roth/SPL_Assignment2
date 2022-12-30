@@ -531,6 +531,7 @@ public class Dealer implements Runnable {
         for(Player player : players){
             player.pause();
         }
+        claimQueue.clear();
     }
 
     /**

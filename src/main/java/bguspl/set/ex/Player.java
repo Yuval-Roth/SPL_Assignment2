@@ -1,11 +1,8 @@
 package bguspl.set.ex;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
-import java.util.stream.Collectors;
-
 import bguspl.set.ex.PlayerStates.*;
 import bguspl.set.Env;
 
@@ -20,7 +17,7 @@ public class Player implements Runnable {
     /**
      *
      */
-    private static final int AI_WAIT_FOR_PLAYER_TO_FINISH_CLAIMSET = 1;
+    private static final int AI_WAIT_FOR_PLAYER_TO_FINISH_CLAIMSET = 10;
 
     /**
      * The player's possible states
@@ -212,7 +209,7 @@ public class Player implements Runnable {
             System.out.printf("Info: Thread %s starting.%n", Thread.currentThread().getName());
             aiThread = Thread.currentThread();
 
-            //wait until the game starts
+            //===================wait until the game starts==================|
             try{
                 AIRunning = false;
                 synchronized(executionListener){
@@ -223,11 +220,13 @@ public class Player implements Runnable {
             while(getState() != State.waitingForActivity){
                 try{Thread.sleep(10);}catch(InterruptedException ignored){}
             }
-
             AIRunning = true; //AI is now running
+            //===============================================================|
+
+            //game is now running
+            
             while (getState() != State.terminated) {
 
-                
                 //wait until the player thread is waiting for activity and ready to accept key presses
                 while(getState() != State.waitingForActivity & getState() != State.pausingExecution & getState() != State.paused){
                     try{
@@ -252,8 +251,8 @@ public class Player implements Runnable {
                     }catch(InterruptedException ignored){}
                     if(getState() != State.paused) AIRunning = true;
                 }        
-            }
-            System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
+        }
+        System.out.printf("Info: Thread %s terminated.%n", Thread.currentThread().getName());
 
 
             

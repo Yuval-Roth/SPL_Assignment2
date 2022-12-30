@@ -58,21 +58,10 @@ public class WaitingForActivity extends PlayerState {
             if(placedTokens.size() == Dealer.SET_SIZE){
                 return;
             }
- 
-            // we try to place a token in slot. this could fail due to the slot being null during the time
-            // when a card is removed and another card is instered in the slot. so, we try a few times.
-            boolean insertState = false;
-            int tries = 0;
-            while(insertState == false & tries <=5 & stillThisState()){
-                insertState = table.placeToken(player.id, slot);
-                tries++;
-                try{Thread.sleep(10);}catch(InterruptedException ignored){}
-            }
-            //================================================================================================|
 
             // if the token was placed, add it to the list of placed tokens.
             // if the player has placed enough tokens, claim the set.
-            if(insertState){
+            if(table.placeToken(player.id, slot)){
                 placedTokens.addLast(slot);
                 if(placedTokens.size() == Dealer.SET_SIZE) {
                     changeToState(State.turningInClaim);
